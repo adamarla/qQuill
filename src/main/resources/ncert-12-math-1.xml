@@ -1,6 +1,5 @@
-<qsource>
+<qsource  tag="ncert-12-math-1" label="NCERT XII - Mathematics - I">
     <qbatch tag="ch1" label="1 Relations and Functions">
-        <!-- tag: ncert-math-12-set1-ex1 -->
         <qbundle tag="ex1" label="Exercise 1.1"/>
         <qbundle tag="ex2" label="Exercise 1.2"/>
         <qbundle tag="ex3" label="Exercise 1.3"/>
