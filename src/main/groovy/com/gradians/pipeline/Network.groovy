@@ -10,7 +10,8 @@ class Network {
         
         def bodyMap = q.toJSONString()
         
-        def httpClient = new HTTPBuilder('http://www.gradians.com:3000/tag/question')
+//        def httpClient = new HTTPBuilder('http://localhost:3000/tag/question')
+        def httpClient = new HTTPBuilder('http://www.gradians.com/tag/question')
         httpClient.setHeaders(Accept: 'application/json')
         
         def results = httpClient.request(POST, JSON) { req ->
