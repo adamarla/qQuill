@@ -1,0 +1,13 @@
+<qsource>
+	<qbatch tag="set1" label="Set I">
+	    <!-- tag: cbse-math-12-set1-secna -->   
+	    <qbundle tag="secna" label="Section A"/>
+	    <qbundle tag="secnb" label="Section B"/>
+	    <qbundle tag="secnc" label="Section C"/>
+	</qbatch>
+	<qbatch tag="set2" label="Set II">
+	    <qbundle tag="secna" label="Section A"/>
+	    <qbundle tag="secnb" label="Section B"/>
+	    <qbundle tag="secnc" label="Section C"/>
+	</qbatch>
+</qsource>
