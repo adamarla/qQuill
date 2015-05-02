@@ -1,5 +1,7 @@
 package com.gradians.pipeline
 
+import java.nio.file.Path
+
 class Driver {
     
     def static void main(String[] args) {
@@ -10,10 +12,12 @@ class Driver {
             println "Run from within a Question folder in vault"
         }
                 
-        Question q = new Question(pwd)
-        Catalog c = new Catalog()
+        Path bank = (new File(pwd)).toPath().resolve("../../../../common/catalog")
+        println bank        
+        Catalog c = new Catalog(bank)
         Network n = new Network()
-        TagLib tl = new TagLib()
+        TagLib tl = new TagLib()        
+        Question q = new Question(pwd)
         
         UI ui = new UI(c, n, tl, q)
         ui.go()

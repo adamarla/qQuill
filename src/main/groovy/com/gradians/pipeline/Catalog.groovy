@@ -1,5 +1,6 @@
 package com.gradians.pipeline
 
+import java.nio.file.Path
 import javax.swing.AbstractListModel
 import javax.swing.ComboBoxModel
 
@@ -7,11 +8,13 @@ class Catalog {
     
     def catalog
     def qsource
-    final String catalogFile = "/catalog.xml"
+    Path bank
+    final String catalogFile = "catalog.xml"
     
-    public Catalog() {
-        def xmlStream = Question.class.getResourceAsStream(catalogFile)
-        catalog = new XmlSlurper().parse(xmlStream)
+    public Catalog(Path bank) {
+        this.bank = bank
+        def xmlFile = bank.resolve(catalogFile).toFile()
+        catalog = new XmlSlurper().parse(xmlFile)
     }
     
     def getGradeLevels() {
@@ -36,8 +39,8 @@ class Catalog {
         def qsourceEntry = catalog.qsources.'*'.find { node ->
             node.@tag == tag
         }
-        def xmlStream = Question.class.getResourceAsStream("/" + qsourceEntry.text())
-        qsource = new XmlSlurper().parse(xmlStream)
+        def xmlFile = bank.resolve(qsourceEntry.text()).toFile()
+        qsource = new XmlSlurper().parse(xmlFile)
         getTagLabelSet(qsource.qbatch)
     }
     
