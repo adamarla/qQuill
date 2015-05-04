@@ -1,10 +1,15 @@
 package com.gradians.pipeline
 
+import java.io.FileInputStream;
+import java.nio.file.Path
+
 import groovy.json.JsonBuilder
 import groovy.util.slurpersupport.GPathResult
+
 import javax.xml.XMLConstants
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
+
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
 import org.scilab.forge.jlatexmath.TeXIcon
@@ -12,7 +17,6 @@ import org.scilab.forge.jlatexmath.TeXIcon
 class Question {
     
     //question info
-    File file
     String uid
     GPathResult xml
     
@@ -20,27 +24,25 @@ class Question {
     String[] bundles
     String[] concepts
     
-    final String delim = ","
+    final String delim = ",", sep = "/"
     
-    def Question(String path) {
-        file = new File("${path}/question.xml")
-        assert file.exists()
-        assert isValidXML()
-        
-        xml = new XmlSlurper().parse(file)
-        def tokens = file.getAbsolutePath().split("/")
-        uid = tokens[tokens.length-4] + "/" + tokens[tokens.length-3] + "/"  + tokens[tokens.length-2]
+    def Question(Path qpath, Path bank) {
+        assert isValidXML(qpath, bank)
+        xml = new XmlSlurper().parse(qpath.resolve("question.xml").toFile())
+        def tokens = qpath.toString().split(sep)
+        uid = tokens[tokens.length-3] + sep + tokens[tokens.length-2] + sep  + tokens[tokens.length-1]
+        println "$uid"        
     }
     
     def getStatement() {
-        TeXFormula tex = new TeXFormula(xml.statement.tex.toString())
+        TeXFormula tex = new TeXFormula(xml.statement.tex.toString().replace("newline", "\\"))
         tex.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15, TeXFormula.SANSSERIF)
     }
     
     def getChoices() {
         TeXIcon[] icons = new TeXIcon[4]
         xml.choices.tex.eachWithIndex { it, i ->
-            TeXFormula tex = new TeXFormula(it.toString())
+            TeXFormula tex = new TeXFormula(it.toString().replace("newline", "\\"))
             icons[i] = tex.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15, TeXFormula.SANSSERIF) 
         }
         return icons
@@ -49,15 +51,19 @@ class Question {
     def getSteps() {
         def steps = []
         xml.step.each {
-            def tex = it.context.toString()
-            tex += "\\\\ "
-            tex += it.reason.toString()
-            tex += "\\\\ "
+            def latex = new StringBuilder()
+            latex.append("\\text{Context: } ").append(it.context.toString().replace("newline", "\\"))
+            latex.append(" \\\\ ")
+            latex.append("\\text{Steps: }")
             it.tex.each { iit ->
-                tex += iit.toString()
-                tex += "\\\\ "
+                latex.append("\\text{Option: }").append(iit.toString().replace("newline", "\\"))
+                latex.append(" \\\\ ")
             }
-            steps << (new TeXFormula(tex)).createTeXIcon(TeXConstants.STYLE_DISPLAY, 15, TeXFormula.SANSSERIF)            
+            latex.append("\\text{Reason: }")
+            latex.append(it.reason.toString().replace("newline", "\\"))
+            
+            def formula = new TeXFormula(latex.toString()) 
+            steps << formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15, TeXFormula.SANSSERIF)
         }
         return steps
     }
@@ -75,13 +81,9 @@ class Question {
             builder.toPrettyString()
     }
 
-    private isValidXML() {
-        println file.getAbsolutePath()
-        InputStream is = Question.class.getResourceAsStream("/question.xsd")
-        assert is != null
-        def xsdStream = new StreamSource(is)
-        assert xsdStream != null
-        def xmlStream = new StreamSource(file)        
+    private def isValidXML(Path qpath, Path bank) {
+        def xsdStream = new StreamSource(bank.resolve("question.xsd").toFile())
+        def xmlStream = new StreamSource(qpath.resolve("question.xml").toFile())
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(xsdStream)
             .newValidator()

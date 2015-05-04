@@ -4,7 +4,7 @@ import ca.odell.glazedlists.GlazedLists
 import ca.odell.glazedlists.matchers.TextMatcherEditor
 import ca.odell.glazedlists.swing.AutoCompleteSupport
 import groovy.swing.SwingBuilder
-import java.awt.BorderLayout as BL
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Color
 import java.awt.FlowLayout
@@ -74,33 +74,39 @@ class UI {
                         gridBagLayout()
 
                         label(id: 'lblQSource', text: 'Book',
-                            constraints: gbc(gridx: 0, gridy: 0, weightx: 0.25, weighty: 0))
+                            constraints: gbc(gridx: 0, gridy: 0, weightx: 0.1, weighty: 0))
                         comboBox(id: 'cbQSource',
-                            constraints: gbc(gridx: 1, gridy: 0, gridwidth: 2, weightx: 1, weighty: 0,
+                            constraints: gbc(gridx: 1, gridy: 0, gridwidth: 4, weightx: 1, weighty: 0,
                                 fill: HORIZONTAL, insets: [0, 5, 5, 0]))
                         
                         label(id: 'lblQBatch', text: 'Chapter',
-                            constraints: gbc(gridx: 0, gridy: 1, weightx: 0.25, weighty: 0))
+                            constraints: gbc(gridx: 0, gridy: 1, weightx: 0.1, weighty: 0))
                         comboBox(id: 'cbQBatch',                            
-                            constraints: gbc(gridx: 1, gridy: 1, gridwidth: 2, weightx: 1, weighty: 0,
+                            constraints: gbc(gridx: 1, gridy: 1, gridwidth: 4, weightx: 1, weighty: 0,
                                 fill: HORIZONTAL, insets: [0, 5, 5, 0]))
                         
                         label(id: 'lblQBundle', text: 'Exercise',
-                            constraints: gbc(gridx: 0, gridy: 2, weightx: 0.25, weighty: 0))
+                            constraints: gbc(gridx: 0, gridy: 2, weightx: 0.1, weighty: 0))
                         comboBox(id: 'cbQBundle',
-                            constraints: gbc(gridx: 1, gridy: 2, gridwidth: 2, weightx: 1, weighty: 0, 
+                            constraints: gbc(gridx: 1, gridy: 2, gridwidth: 4, weightx: 1, weighty: 0, 
                                 fill: HORIZONTAL, insets: [0, 5, 5, 0]))
                         
-                        label(text:"Label (e.g. 4.(ii)a.)",
-                            constraints: gbc(gridx: 0, gridy: 3, weightx: 0.25, weighty: 0))
-                        textField(id: 'tfLabel', columns: 5,
-                            constraints: gbc(gridx: 1, gridy: 3, weightx: 0.50, weighty: 0,
+                        label(text:"Label (e.g. 4.(a)(i))",
+                            constraints: gbc(gridx: 0, gridy: 3, weightx: 0.1, weighty: 0))
+                        comboBox(id: 'cbLabelQsn', items: lib.getQsn(),
+                            constraints: gbc(gridx: 1, gridy: 3,
+                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
+                        comboBox(id: 'cbLabelPart', items: lib.getPart(),
+                            constraints: gbc(gridx: 2, gridy: 3,
+                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
+                        comboBox(id: 'cbLabelSubpart', items: lib.getSubpart(),
+                            constraints: gbc(gridx: 3, gridy: 3,
                                 fill: HORIZONTAL, insets: [0, 5, 5, 0]))
                         button(id: 'btnAddBundle', text: 'Add', actionPerformed: addBundle,
-                            constraints: gbc(gridx: 2, gridy: 3, weightx: 0.50, weighty: 0))
+                            constraints: gbc(gridx: 4, gridy: 3, weightx: 0.50, weighty: 0))
                         
                         scrollPane(id: 'spBundles',
-                            constraints: gbc(gridx: 0, gridy: 4, gridwidth: 3, weightx: 1, weighty: 1, 
+                            constraints: gbc(gridx: 0, gridy: 4, gridwidth: 5, weightx: 1, weighty: 1, 
                                 fill: BOTH, insets: [5, 0, 5, 0])) {
                             textArea(id: 'taBundles', focusable: false)
                         }
@@ -122,7 +128,7 @@ class UI {
                     panel(border: BorderFactory.createTitledBorder("Actions"),
                         constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
     
-                        button(id: 'btnPreview', text: 'Preview', actionPerformed: preview)
+                        button(id: 'btnPreview', text: 'Preview', actionPerformed: showPreview)
                         button(id: 'btnTag', text: 'Add Tags', enabled: false, actionPerformed: tag)
                     }
                 }
@@ -138,16 +144,20 @@ class UI {
             
             sb.cbSource.selectedIndex = 0
             
-            AutoCompleteSupport acs1 = AutoCompleteSupport.install(sb.cbTopik, GlazedLists.eventListOf(lib.getTopiks()))
+            AutoCompleteSupport acs1 = AutoCompleteSupport.install(sb.cbTopik, GlazedLists.eventListOf(lib.getConcepts()))
             acs1.setFilterMode(TextMatcherEditor.CONTAINS)
             acs1.setSelectsTextOnFocusGain(true)
-            acs1.setHidesPopupOnFocusLost(true)            
+            acs1.setHidesPopupOnFocusLost(true)
         }
     }
     
     def addBundle = {
-        def text = sb.cbQSource.selectedItem.tag + "-" + sb.cbQBatch.selectedItem.tag + "-" + 
-            sb.cbQBundle.selectedItem.tag + "|" + sb.tfLabel.text
+        def lblBundle = "${sb.cbQBatch.selectedItem.tag}-${sb.cbQSource.selectedItem.tag}-${sb.cbQBundle.selectedItem.tag}"
+        def lblQsn = "${sb.cbLabelQsn.selectedItem}."
+        def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "(${sb.cbLabelPart.selectedItem})"
+        def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "(${sb.cbLabelSubpart.selectedItem})"
+        def text = "${lblBundle}|${lblQsn}${lblPart}${lblSubpart}"
+        
         def target = sb.taBundles
         def targetText = target.getText()
         if (!targetText.contains(text)) {
@@ -222,43 +232,6 @@ class UI {
         source.setSelectedItem(null)
     }
     
-    def preview = {
-        def steps = q.getSteps()        
-        def choices = q.getChoices()
-        def panel = sb.panel() {
-            gridBagLayout()
-            
-            panel(constraints: gbc(gridx: 0, gridy: 0, weightx: 0.5, weighty: 1, fill: BOTH)) {
-                label(icon: q.getStatement())
-            }
-            
-            panel(constraints: gbc(gridx: 1, gridy: 0, weightx: 0.5, weighty: 1, fill: BOTH)) {
-                vbox(constraints: BL.EAST) {
-                    choices.each {
-                        label(icon: it)
-                    }
-                }
-            }
-            
-            panel(constraints: gbc(gridx: 0, gridy: 1, gridwidth: 2, gridheight: 2, 
-                weightx: 1, weighty: 2, fill: BOTH)) {
-                scrollPane(verticalScrollBarPolicy:JScrollPane.VERTICAL_SCROLLBAR_ALWAYS) {
-                    vbox(constraints: BL.EAST) {
-                        steps.each { iit ->
-                            label(icon: iit)
-                        }
-                    }
-                }
-            }
-        }
-        
-        JDialog dialog = new JDialog(title: "Preview", size: [720, 480], 
-            defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
-        dialog.add panel
-        dialog.setLocationByPlatform(true)
-        dialog.setVisible(true)
-    }
-
     def tag = {
         q.bundles = sb.taBundles.getText().split(delim)
         q.concepts = sb.taTopiks.getText().split(delim)
@@ -270,6 +243,14 @@ class UI {
             sb.optionPane().showMessageDialog(null, "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
         } catch (Exception e) {
             println e.getMessage()
+        }
+    }
+    
+    def showPreview = {
+        try {
+            (new Preview(sb)).show(q)            
+        } catch (Exception e) {
+            println e.getClass().getName()
         }
     }
 

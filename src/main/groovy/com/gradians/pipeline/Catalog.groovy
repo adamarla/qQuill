@@ -13,7 +13,8 @@ class Catalog {
     
     public Catalog(Path bank) {
         this.bank = bank
-        def xmlFile = bank.resolve(catalogFile).toFile()
+        File xmlFile = bank.resolve(catalogFile).toFile()
+        assert xmlFile.exists()
         catalog = new XmlSlurper().parse(xmlFile)
     }
     
@@ -40,6 +41,7 @@ class Catalog {
             node.@tag == tag
         }
         def xmlFile = bank.resolve(qsourceEntry.text()).toFile()
+        assert xmlFile.exists()
         qsource = new XmlSlurper().parse(xmlFile)
         getTagLabelSet(qsource.qbatch)
     }

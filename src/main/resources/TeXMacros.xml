@@ -1,0 +1,13 @@
+<PredefinedCommands enabled="true">
+    
+    <Command name="dd" enabled="true">
+        <CreateCommand name="f">
+            <Argument type="String" value="com.gradians.pipeline.TeXMacros" />
+            <Argument type="String" value="dd" />
+            <!-- the command dydx has 1 arguments -->
+            <Argument type="float" value="2" />
+        </CreateCommand>
+        <Return name="f" />
+    </Command>
+    
+</PredefinedCommands>
