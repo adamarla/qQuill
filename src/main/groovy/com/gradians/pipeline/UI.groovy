@@ -152,7 +152,7 @@ class UI {
     }
     
     def addBundle = {
-        def lblBundle = "${sb.cbQBatch.selectedItem.tag}-${sb.cbQSource.selectedItem.tag}-${sb.cbQBundle.selectedItem.tag}"
+        def lblBundle = "${sb.cbQSource.selectedItem.tag}-${sb.cbQBatch.selectedItem.tag}-${sb.cbQBundle.selectedItem.tag}"
         def lblQsn = "${sb.cbLabelQsn.selectedItem}."
         def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "(${sb.cbLabelPart.selectedItem})"
         def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "(${sb.cbLabelSubpart.selectedItem})"

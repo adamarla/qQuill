@@ -50,16 +50,15 @@ class Question {
     
     def getSteps() {
         def steps = []
-        xml.step.each {
+        xml.step.eachWithIndex { it, i ->
             def latex = new StringBuilder()
-            latex.append("\\text{Context: } ").append(it.context.toString().replace("newline", "\\"))
+            latex.append("\\text{Step ${i+1}: } ").append(it.context.toString().replace("newline", "\\"))
             latex.append(" \\\\ ")
-            latex.append("\\text{Steps: }")
             it.tex.each { iit ->
                 latex.append("\\text{Option: }").append(iit.toString().replace("newline", "\\"))
                 latex.append(" \\\\ ")
             }
-            latex.append("\\text{Reason: }")
+            latex.append("\\text{Reason: }\\\\")
             latex.append(it.reason.toString().replace("newline", "\\"))
             
             def formula = new TeXFormula(latex.toString()) 
