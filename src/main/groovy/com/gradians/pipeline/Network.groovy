@@ -1,14 +1,15 @@
 package com.gradians.pipeline
 
 import groovyx.net.http.HTTPBuilder
-import static groovyx.net.http.Method.*
-import static groovyx.net.http.ContentType.*
+
+import static groovyx.net.http.Method.POST
+import static groovyx.net.http.ContentType.JSON
 
 class Network {
     
     def updateTags(Question q) throws Exception {
         
-        def bodyMap = q.toJSONString()
+        def bodyMap = (new Renderer(q)).toJSONString()
         
 //        def httpClient = new HTTPBuilder('http://localhost:3000/tag/question')
         def httpClient = new HTTPBuilder('http://www.gradians.com/tag/question')

@@ -21,13 +21,13 @@ class Driver {
         try {
             Network n = new Network()
             Catalog c = new Catalog(bank)
-            TagLib tl = new TagLib(bank)            
+            TagLib tl = new TagLib(bank)
             Question q = new Question(qpath, bank)
             
             UI ui = new UI(c, n, tl, q)
-            ui.go()   
+            ui.go()
         } catch (Exception e) {
-            println e.getClass().getName()
+            println e
         }
     }
         

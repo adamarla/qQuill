@@ -56,52 +56,31 @@ class UI {
                     gridBagLayout()
                     
                     panel(border: BorderFactory.createTitledBorder("Context"),
-                        constraints: gbc(gridx: 0, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
-                        
-                        label(text: 'Grade Levels') 
-                        comboBox(id: 'cbGradeLevel', 
-                            model: catalog.getGradeLevels(), selectedIndex: 0)
-                        label(text: 'Subjects')
-                        comboBox(id: 'cbSubject', 
-                            model: catalog.getSubjects(), selectedIndex: 0)
-                        label(text: 'Source')
-                        comboBox(id: 'cbSource', 
-                            model: catalog.getPublishers(), selectedIndex: 0)
+                        constraints: gbc(gridx: 0, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {                        
+                        ["Grade", "Subject", "Publisher"].each { 
+                            label(text: "${it}")
+                            comboBox(id: "cb${it}", model: catalog."get${it}s"(), selectedIndex: 0)
+                        }
                     }
-                    
+                        
                     panel(border: BorderFactory.createTitledBorder("Source Details"),
                         constraints: gbc(gridx: 0, gridy: 1, weightx: 1, weighty: 1, fill: BOTH)) {
                         gridBagLayout()
+                        
+                        ["Book", "Chapter", "Exercise"].eachWithIndex { content, i ->
+                            label(id: "lbl${content}", text: "${content}",
+                                constraints: gbc(gridx: 0, gridy: i, weightx: 0.1, weighty: 0))
+                            comboBox(id: "cb${content}",
+                                constraints: gbc(gridx: 1, gridy: i, gridwidth: 4, weightx: 1, weighty: 0,
+                                    fill: HORIZONTAL, insets: [0, 5, 5, 0]))
+                        }
 
-                        label(id: 'lblQSource', text: 'Book',
-                            constraints: gbc(gridx: 0, gridy: 0, weightx: 0.1, weighty: 0))
-                        comboBox(id: 'cbQSource',
-                            constraints: gbc(gridx: 1, gridy: 0, gridwidth: 4, weightx: 1, weighty: 0,
-                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
-                        
-                        label(id: 'lblQBatch', text: 'Chapter',
-                            constraints: gbc(gridx: 0, gridy: 1, weightx: 0.1, weighty: 0))
-                        comboBox(id: 'cbQBatch',                            
-                            constraints: gbc(gridx: 1, gridy: 1, gridwidth: 4, weightx: 1, weighty: 0,
-                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
-                        
-                        label(id: 'lblQBundle', text: 'Exercise',
-                            constraints: gbc(gridx: 0, gridy: 2, weightx: 0.1, weighty: 0))
-                        comboBox(id: 'cbQBundle',
-                            constraints: gbc(gridx: 1, gridy: 2, gridwidth: 4, weightx: 1, weighty: 0, 
-                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
-                        
                         label(text:"Label (e.g. 4.(a)(i))",
                             constraints: gbc(gridx: 0, gridy: 3, weightx: 0.1, weighty: 0))
-                        comboBox(id: 'cbLabelQsn', items: lib.getQsn(),
-                            constraints: gbc(gridx: 1, gridy: 3,
-                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
-                        comboBox(id: 'cbLabelPart', items: lib.getPart(),
-                            constraints: gbc(gridx: 2, gridy: 3,
-                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
-                        comboBox(id: 'cbLabelSubpart', items: lib.getSubpart(),
-                            constraints: gbc(gridx: 3, gridy: 3,
-                                fill: HORIZONTAL, insets: [0, 5, 5, 0]))
+                        ["Qsn", "Part", "Subpart"].eachWithIndex { component, i ->
+                            comboBox(id: "cbLabel${component}", items: lib."get${component}"(), 
+                                constraints: gbc(gridx: (i+1), gridy: 3, fill: HORIZONTAL, insets: [0, 5, 5, 0]))
+                        }
                         button(id: 'btnAddBundle', text: 'Add', actionPerformed: addBundle,
                             constraints: gbc(gridx: 4, gridy: 3, weightx: 0.50, weighty: 0))
                         
@@ -111,7 +90,7 @@ class UI {
                             textArea(id: 'taBundles', focusable: false)
                         }
                     }
-                     
+                        
                     panel(border: BorderFactory.createTitledBorder("Concepts"), 
                         constraints: gbc(gridx: 0, gridy: 2, weightx: 1, weighty: 1, fill: BOTH)) {
                         gridBagLayout()
@@ -128,21 +107,23 @@ class UI {
                     panel(border: BorderFactory.createTitledBorder("Actions"),
                         constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
     
+                        button(id: 'btnEdit', text: 'Edit', actionPerformed: edit)
                         button(id: 'btnPreview', text: 'Preview', actionPerformed: showPreview)
-                        button(id: 'btnTag', text: 'Add Tags', enabled: false, actionPerformed: tag)
+                        button(id: 'btnRender', text: 'Render', actionPerformed: render)
+                        button(id: 'btnTag', text: 'Tag', enabled: false, actionPerformed: tag)
                     }
                 }
             }
             pack: true
             
-            sb.cbGradeLevel.actionPerformed = popQSource
-            sb.cbSubject.actionPerformed = popQSource
-            sb.cbSource.actionPerformed = popQSource
+            ["Grade", "Subject", "Publisher"].each {
+                sb."cb${it}".actionPerformed = popSource
+            }
             
-            sb.cbQSource.actionPerformed = popQBatch
-            sb.cbQBatch.actionPerformed = popQBundle
+            sb.cbBook.actionPerformed = popBooks
+            sb.cbChapter.actionPerformed = popChapters
             
-            sb.cbSource.selectedIndex = 0
+            sb.cbPublisher.selectedIndex = 0
             
             AutoCompleteSupport acs1 = AutoCompleteSupport.install(sb.cbTopik, GlazedLists.eventListOf(lib.getConcepts()))
             acs1.setFilterMode(TextMatcherEditor.CONTAINS)
@@ -152,8 +133,8 @@ class UI {
     }
     
     def addBundle = {
-        def lblBundle = "${sb.cbQSource.selectedItem.tag}-${sb.cbQBatch.selectedItem.tag}-${sb.cbQBundle.selectedItem.tag}"
-        def lblQsn = "${sb.cbLabelQsn.selectedItem}."
+        def lblBundle = "${sb.cbBook.selectedItem.tag}-${sb.cbChapter.selectedItem.tag}-${sb.cbExercise.selectedItem.tag}"
+        def lblQsn = "${sb.cbLabelQsn.selectedItem}"
         def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "(${sb.cbLabelPart.selectedItem})"
         def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "(${sb.cbLabelSubpart.selectedItem})"
         def text = "${lblBundle}|${lblQsn}${lblPart}${lblSubpart}"
@@ -169,39 +150,31 @@ class UI {
         sb.btnTag.enabled = true
     }
     
-    def popQBundle = { ActionEvent ae ->
-        sb.cbQBundle.model = catalog.getQBundles(sb.cbQBatch.selectedItem.tag)
-        if (sb.cbQBundle.model.size() > 0)
-            sb.cbQBundle.selectedIndex = 0
+    def popChapters = { ActionEvent ae ->
+        sb.cbExercise.model = catalog.getExercises(sb.cbBook.selectedItem.tag, sb.cbChapter.selectedItem.tag)
+        if (sb.cbExercise.model.size() > 0)
+            sb.cbExercise.selectedIndex = 0
     }
     
-    def popQBatch = { ActionEvent ae ->
-        sb.cbQBatch.model = catalog.getQBatches(sb.cbQSource.selectedItem.tag)
-        if (sb.cbQBatch.model.size() > 0)
-            sb.cbQBatch.selectedIndex = 0
+    def popBooks = { ActionEvent ae ->
+        sb.cbChapter.model = catalog.getChapters(sb.cbBook.selectedItem.tag)
+        if (sb.cbChapter.model.size() > 0)
+            sb.cbChapter.selectedIndex = 0
     }
     
-    def popQSource = { ActionEvent ae ->
+    def popSource = { ActionEvent ae ->
         if (!ae.getActionCommand().equals('comboBoxChanged'))
-            return            
-        if (sb.cbGradeLevel.getSelectedItem() == null ||
-            sb.cbSubject.getSelectedItem() == null ||
-            sb.cbSource.getSelectedItem() == null)
             return
-        sb.cbQSource.model = catalog.getQSources(sb.cbGradeLevel.getSelectedItem().tag,
-            sb.cbSubject.getSelectedItem().tag, sb.cbSource.getSelectedItem().tag)
-        if (sb.cbQSource.model.size() > 0)
-            sb.cbQSource.selectedIndex = 0
-        
-        if (sb.cbSource.getSelectedItem().label.contains("Book")) {
-            sb.lblQSource.text = "Book"
-            sb.lblQBatch.text = "Chapter"
-            sb.lblQBundle.text = "Exercise"
-        } else {
-            sb.lblQSource.text = "Exam (Year)"
-            sb.lblQBatch.text = "Set"
-            sb.lblQBundle.text = "Section"
-        }
+            
+        if (sb.cbGrade.getSelectedItem() == null ||
+            sb.cbSubject.getSelectedItem() == null ||
+            sb.cbPublisher.getSelectedItem() == null)
+            return
+              
+        sb.cbBook.model = catalog.getBooks(sb.cbGrade.getSelectedItem().tag,
+            sb.cbSubject.getSelectedItem().tag, sb.cbPublisher.getSelectedItem().tag)        
+        if (sb.cbBook.model.size() > 0)
+            sb.cbBook.selectedIndex = 0        
     }
     
     def typeahead = { ActionEvent ae ->
@@ -242,16 +215,33 @@ class UI {
             sb.btnTag.setEnabled(true)
             sb.optionPane().showMessageDialog(null, "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
         } catch (Exception e) {
-            println e.getMessage()
+            println e
         }
     }
     
     def showPreview = {
         try {
-            (new Preview(sb)).show(q)            
+            (new Preview(sb)).display(q)
         } catch (Exception e) {
-            println e.getClass().getName()
+            println e
         }
+    }
+    
+    def edit = {
+        try {
+            (new Editor(sb)).launch(q)
+        } catch (Exception e) {
+            println e
+        }
+    }
+    
+    def render = {
+        try {
+            (new Renderer(q)).toSVG(q.qpath)
+        } catch (Exception e) {
+            println e
+        }
+        sb.optionPane().showMessageDialog(null, "Rendered!", "Result", JOptionPane.INFORMATION_MESSAGE)
     }
 
 }

@@ -21,6 +21,8 @@ dependencies {
     compile 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
     compile 'org.scilab.forge:jlatexmath:1.0.2'
     compile 'com.googlecode.json-simple:json-simple:1.1'
+    compile 'org.apache.xmlgraphics:batik-svggen:1.7'
+    compile 'org.apache.xmlgraphics:batik-swing:1.7'
 }
 
 buildscript {    

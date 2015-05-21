@@ -7,9 +7,8 @@ import javax.swing.ComboBoxModel
 class Catalog {
     
     def catalog
-    def qsource
     Path bank
-    final String catalogFile = "catalog.xml"
+    final String catalogFile = "main.xml"
     
     public Catalog(Path bank) {
         this.bank = bank
@@ -18,53 +17,57 @@ class Catalog {
         catalog = new XmlSlurper().parse(xmlFile)
     }
     
-    def getGradeLevels() {
-        getTagLabelSet(catalog.gradeLevels.gradeLevel)
+    def getGrades() {
+        getCatalogItemSet(catalog.grades.grade)
     }
-    
+
     def getSubjects() {
-        getTagLabelSet(catalog.subjects.subject)
+        getCatalogItemSet(catalog.subjects.subject)
     }
-    
+
     def getPublishers() {
-        getTagLabelSet(catalog.publishers.publisher)
+        getCatalogItemSet(catalog.publishers.publisher)
     }
-    
-    def getQSources(String gradeLevel, subject, publisher) {
-        getTagLabelSet(catalog.qsources.'*'.findAll { node ->
-            node.@gradeLevel == gradeLevel && node.@subject == subject && node.@publisher == publisher
+
+    def getBooks(String grade, String subject, String publisher) {
+        getCatalogItemSet(catalog.books.'*'.findAll { node ->
+            node.@grade == grade && node.@subject == subject && node.@publisher == publisher
         })
     }
-    
-    def getQBatches(String tag) {
-        def qsourceEntry = catalog.qsources.'*'.find { node ->
-            node.@tag == tag
-        }
-        def xmlFile = bank.resolve(qsourceEntry.text()).toFile()
-        assert xmlFile.exists()
-        qsource = new XmlSlurper().parse(xmlFile)
-        getTagLabelSet(qsource.qbatch)
+
+    def getChapters(String book) {
+        def fileBookCatalog = catalog.books.'*'.find { node ->
+            node.@tag == book
+        }.text()
+        def xmlFile = bank.resolve(fileBookCatalog).toFile()
+        def bookCatalog = new XmlSlurper().parse(xmlFile)
+        getCatalogItemSet(bookCatalog.chapter)
     }
-    
-    def getQBundles(String tag) {
-        def qbatchEntry = qsource.'*'.find { node ->
-            node.@tag == tag
+
+    def getExercises(String book, String chapter) {
+        def fileBookCatalog = catalog.books.'*'.find { node ->
+            node.@tag == book
+        }.text()
+        def xmlFile = bank.resolve(fileBookCatalog).toFile()
+        def bookCatalog = new XmlSlurper().parse(xmlFile)   
+        def bookChapter = bookCatalog.'*'.find { node ->
+            node.@tag == chapter
         }
-        getTagLabelSet(qbatchEntry.qbundle)
+        getCatalogItemSet(bookChapter.exercise)
     }
-    
-    private def getTagLabelSet = {
-        new TagLabelSet(it*.@tag.collect{ it.toString() }, it*.@label.collect{ it.toString() })
+
+    private def getCatalogItemSet = {
+        new CatalogItemSet(it*.@tag.collect{ it.toString() }, it*.@label.collect{ it.toString() })
     }
 
 }
 
-class TagLabelSet extends AbstractListModel implements ComboBoxModel<TagLabel> {
+class CatalogItemSet extends AbstractListModel implements ComboBoxModel<CatalogItem> {
     
     String[] tags, labels
-    TagLabel selected = null
+    CatalogItem selected = null
     
-    def TagLabelSet(List<String> tags, List<String> labels) {
+    def CatalogItemSet(List<String> tags, List<String> labels) {
         this.tags = tags.toArray(new String[tags.size()])
         this.labels = labels.toArray(new String[labels.size()])
     }
@@ -73,8 +76,8 @@ class TagLabelSet extends AbstractListModel implements ComboBoxModel<TagLabel> {
         tags.length
     }
     
-    def TagLabel getElementAt(int i) {
-        new TagLabel(tag: tags[i], label: labels[i])
+    def CatalogItem getElementAt(int i) {
+        new CatalogItem(tag: tags[i], label: labels[i])
     }
     
     def getSelectedItem() {
@@ -82,12 +85,13 @@ class TagLabelSet extends AbstractListModel implements ComboBoxModel<TagLabel> {
     }
     
     def void setSelectedItem(Object o) {
-        selected = (TagLabel)o
+        selected = (CatalogItem)o
     }
     
 }
 
-class TagLabel {
+class CatalogItem {
+    
     String tag, label
     
     def String toString() {
@@ -98,6 +102,6 @@ class TagLabel {
         if (o == null)
             return false
         else
-            tag.equals(((TagLabel)o).tag)
+            tag.equals(((CatalogItem)o).tag)
     }
 }
