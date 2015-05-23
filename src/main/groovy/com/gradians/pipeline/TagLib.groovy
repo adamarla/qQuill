@@ -7,8 +7,8 @@ class TagLib {
     String[] concepts, qsn, part, subpart
     final String configFile = "config.xml", delim = ","
     
-    public TagLib(Path bank) {
-        def config = new XmlParser().parse(bank.resolve(configFile).toFile())
+    public TagLib(Path catalog) {
+        def config = new XmlParser().parse(catalog.resolve(configFile).toFile())
         concepts = getTags(config.tagset[0])
         qsn = getTags(config.tagset[1])
         part = getTags(config.tagset[2])

@@ -7,12 +7,12 @@ import javax.swing.ComboBoxModel
 class Catalog {
     
     def catalog
-    Path bank
+    Path catalogPath
     final String catalogFile = "main.xml"
     
-    public Catalog(Path bank) {
-        this.bank = bank
-        File xmlFile = bank.resolve(catalogFile).toFile()
+    public Catalog(Path catalogPath) {
+        this.catalogPath = catalogPath
+        File xmlFile = catalogPath.resolve(catalogFile).toFile()
         assert xmlFile.exists()
         catalog = new XmlSlurper().parse(xmlFile)
     }
@@ -39,7 +39,7 @@ class Catalog {
         def fileBookCatalog = catalog.books.'*'.find { node ->
             node.@tag == book
         }.text()
-        def xmlFile = bank.resolve(fileBookCatalog).toFile()
+        def xmlFile = catalogPath.resolve(fileBookCatalog).toFile()
         def bookCatalog = new XmlSlurper().parse(xmlFile)
         getCatalogItemSet(bookCatalog.chapter)
     }
@@ -48,7 +48,7 @@ class Catalog {
         def fileBookCatalog = catalog.books.'*'.find { node ->
             node.@tag == book
         }.text()
-        def xmlFile = bank.resolve(fileBookCatalog).toFile()
+        def xmlFile = catalogPath.resolve(fileBookCatalog).toFile()
         def bookCatalog = new XmlSlurper().parse(xmlFile)   
         def bookChapter = bookCatalog.'*'.find { node ->
             node.@tag == chapter

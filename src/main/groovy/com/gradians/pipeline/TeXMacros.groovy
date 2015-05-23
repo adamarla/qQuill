@@ -10,5 +10,5 @@ class TeXMacros {
     public Atom dd(TeXParser tp, String[] args) throws ParseException {
         return new TeXFormula(String.format("\\dfrac{d}{d%s}%s", args[2], args[1])).root;
     }
-
+    
 }

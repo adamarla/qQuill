@@ -28,22 +28,22 @@ class Question {
     
     final String SEP = "/", XML_FILE = "question.xml"
     
-    def Question(Path qpath, Path bank) {
+    def Question(Path qpath, Path catalog) {
         this.qpath = qpath
         def tokens = qpath.toString().split(SEP)
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"
         def xmlPath = qpath.resolve(XML_FILE)
         if (!Files.exists(xmlPath)) {
-            Files.copy(bank.resolve(XML_FILE), xmlPath, REPLACE_EXISTING)
+            Files.copy(catalog.resolve(XML_FILE), xmlPath, REPLACE_EXISTING)
         }
-        assert isValidXML(xmlPath, bank)
+        assert isValidXML(xmlPath, catalog)
         parse(xmlPath)
     }
     
     private def parse(Path xmlPath) {
         def xml = new XmlSlurper().parse(xmlPath.toFile())
         statement = new Statement()
-        statement.tex = xml.statement.tex.toString().replace("\\newline", "")
+        statement.tex = xml.statement.tex.toString()
         if (!xml.statement.image.isEmpty())
             statement.image = xml.statement.image.toString()
             
@@ -51,27 +51,33 @@ class Question {
         def step
         xml.step.eachWithIndex { it, i ->
             step = new Step()
-            step.context = it.context.toString().replace("\\newline", "")
-            
+            if (it.@swipe.isEmpty()) {
+                step.noswipe = false
+            } else if (it.@swipe.equals("false")) {
+                step.noswipe = true
+            }            
+            step.context = it.context.toString()            
             it.tex.each { tex ->
                 if (tex.@correct.equals("true")) {
-                    step.texRight = tex.toString().replace("\\newline", "")
+                    step.texRight = tex.toString()
                 } else {
-                    step.texWrong = tex.toString().replace("\\newline", "")
+                    step.texWrong = tex.toString()
                 }
             }            
-            step.reason = it.reason.toString().replace("\\newline", "")
+            step.reason = it.reason.toString()
             steps.add step
         }
         
-        choices = new Choices()
-        choices.texs = xml.choices.tex.collect { 
-            it.toString().replace("\\newline", "")
-        }
-        xml.choices.tex.eachWithIndex { it, i ->
-            if (it.@correct == true) {
-                choices.correct = i
+        if (!xml.choices.tex.isEmpty()) {
+            choices = new Choices()
+            choices.texs = xml.choices.tex.collect {
+                it.toString().replace("\\newline", "")
             }
+            xml.choices.tex.eachWithIndex { it, i ->
+                if (it.@correct == true) {
+                    choices.correct = i
+                }
+            }    
         }
     }
 
@@ -91,6 +97,7 @@ class Statement {
 }
 
 class Step {
+    boolean noswipe
     String context = "", reason = ""
     String texRight = "", texWrong = "", imageRight = "", imageWrong = ""
 }

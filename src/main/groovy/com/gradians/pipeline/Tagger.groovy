@@ -10,6 +10,7 @@ import java.awt.Color
 import java.awt.FlowLayout
 import java.awt.GridBagConstraints
 import java.awt.event.ActionEvent
+import java.nio.file.Path
 import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.BoxLayout
@@ -26,7 +27,7 @@ import static javax.swing.JFrame.EXIT_ON_CLOSE
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
 
-class UI {
+class Tagger {
     
     final String delim = "\n"
     
@@ -37,13 +38,13 @@ class UI {
     Question q
     
     // Widgets
-    SwingBuilder sb    
+    SwingBuilder sb
     
-    public UI(Catalog catalog, Network network, TagLib lib, Question q) {
-        this.lib = lib
+    public Tagger(Question q, Path catalogPath) {
         this.q = q
-        this.network = network
-        this.catalog = catalog
+        this.catalog = new Catalog(catalogPath)
+        this.lib = new TagLib(catalogPath)
+        this.network = new Network()
     }
 
     def go() {
@@ -107,9 +108,6 @@ class UI {
                     panel(border: BorderFactory.createTitledBorder("Actions"),
                         constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
     
-                        button(id: 'btnEdit', text: 'Edit', actionPerformed: edit)
-                        button(id: 'btnPreview', text: 'Preview', actionPerformed: showPreview)
-                        button(id: 'btnRender', text: 'Render', actionPerformed: render)
                         button(id: 'btnTag', text: 'Tag', enabled: false, actionPerformed: tag)
                     }
                 }
@@ -135,9 +133,9 @@ class UI {
     def addBundle = {
         def lblBundle = "${sb.cbBook.selectedItem.tag}-${sb.cbChapter.selectedItem.tag}-${sb.cbExercise.selectedItem.tag}"
         def lblQsn = "${sb.cbLabelQsn.selectedItem}"
-        def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "(${sb.cbLabelPart.selectedItem})"
-        def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "(${sb.cbLabelSubpart.selectedItem})"
-        def text = "${lblBundle}|${lblQsn}${lblPart}${lblSubpart}"
+        def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "${sb.cbLabelPart.selectedItem}"
+        def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "${sb.cbLabelSubpart.selectedItem}"
+        def text = "${lblBundle}|${lblQsn}-${lblPart}-${lblSubpart}"
         
         def target = sb.taBundles
         def targetText = target.getText()
@@ -217,31 +215,6 @@ class UI {
         } catch (Exception e) {
             println e
         }
-    }
-    
-    def showPreview = {
-        try {
-            (new Preview(sb)).display(q)
-        } catch (Exception e) {
-            println e
-        }
-    }
-    
-    def edit = {
-        try {
-            (new Editor(sb)).launch(q)
-        } catch (Exception e) {
-            println e
-        }
-    }
-    
-    def render = {
-        try {
-            (new Renderer(q)).toSVG(q.qpath)
-        } catch (Exception e) {
-            println e
-        }
-        sb.optionPane().showMessageDialog(null, "Rendered!", "Result", JOptionPane.INFORMATION_MESSAGE)
-    }
+    }        
 
 }

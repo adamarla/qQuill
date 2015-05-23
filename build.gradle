@@ -1,6 +1,7 @@
 apply plugin: 'groovy'
 apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'eclipse'
 
 mainClassName = 'com.gradians.pipeline.Driver'
 
@@ -23,9 +24,10 @@ dependencies {
     compile 'com.googlecode.json-simple:json-simple:1.1'
     compile 'org.apache.xmlgraphics:batik-svggen:1.7'
     compile 'org.apache.xmlgraphics:batik-swing:1.7'
+    compile 'commons-cli:commons-cli:1.3'
 }
 
-buildscript {    
+buildscript {
     
     repositories {
         jcenter()
@@ -33,5 +35,5 @@ buildscript {
     
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
-    }    
+    }
 }

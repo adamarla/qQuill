@@ -7,6 +7,7 @@ import java.awt.BorderLayout as BL
 import java.nio.file.Path
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
+import javax.swing.JOptionPane
 import javax.swing.JDialog
 import javax.swing.JLabel
 import javax.swing.JFileChooser
@@ -24,107 +25,100 @@ import static java.awt.BorderLayout.EAST
 import static java.awt.GridBagConstraints.VERTICAL
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
+import static java.awt.GridBagConstraints.CENTER
+import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 class Editor {
     
     SwingBuilder sb
     Question q
     
-    def Editor(SwingBuilder sb) {
-        this.sb = sb
-    }
-    
-    def launch(Question q) {
-        def panel = sb.panel() {
-            gridBagLayout()
-            
-            tabbedPane(id: 'tpQsn', border: BorderFactory.createTitledBorder("TeX"),
-                constraints: gbc(gridx: 0, gridy: 0, gridwidth: 2, 
-                    weightx: 1.0, weighty: 0.4, fill: BOTH)) {
-                panel(id: 'pnlQsnAns', name: 'Q / A') { qsnAnsTeX(q) }
-                [1, 2, 3, 4, 5, 6].each { idx ->
-                    panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(q, idx) }
-                }
-            }
-                
-            panel(id: 'pnlPreview', border: BorderFactory.createTitledBorder("Preview"),
-                constraints: gbc(gridx: 0, gridy: 1, weightx: 1.0, weighty: 0.6, fill: BOTH)) {
-                vbox(constraints: BL.EAST) {                    
-                    panel(id: 'pnlContext')
-                    panel(id: 'pnlStep') {
-                        panel(id: 'pnlPrevWrong', border: BorderFactory.createTitledBorder("Wrong")) {
-                            scrollPane {
-                                vbox(id: 'vbPrevWrong', constraints: BL.EAST)
-                            }
-                        }            
-                        panel(id: 'pnlPrevRight', border: BorderFactory.createTitledBorder("Right")) {
-                            scrollPane {
-                                vbox(id: 'vbPrevRight', constraints: BL.EAST)
-                            }
-                        }
-                    }                    
-                    panel(id: 'pnlReason')
-                }
-            }
-
-            panel(id: 'pnlButtons', border: BorderFactory.createTitledBorder("Actions"),
-                constraints: gbc(gridx: 0, gridy: 2, gridwidth: 2, weightx: 1.0, fill: HORIZONTAL)) {
-                button(id: 'btnPreview', text: 'Preview', actionPerformed: displayPreview)
-                button(id: 'btnSave', text: 'Save', actionPerformed: save)
-            }
-                                
-        }
-        
-        JDialog dialog = new JDialog(title: "Editor", size: [720, 600],
-            defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
-        dialog.add panel
-        dialog.setLocationByPlatform(true)
-        dialog.setVisible(true)
-        
+    def Editor(Question q) {
         this.q = q
     }
     
-    private def qsnAnsTeX = { Question q ->
-        sb.vbox(constraints: BL.EAST) {
-            sb.label(text: 'Problem Statement')
-            sb.scrollPane() {
-                sb.textArea(id: 'taQsnTex', text: q.statement.tex, rows: 12, columns: 30)
-            }
-            sb.panel() {
-                sb.button(id: 'btnFile', 
-                    text: 'Image (optional):', actionPerformed: { setImage('lblFile') }
-                )
-                sb.label(id: 'lblFile', text: q.statement.image)
-            }
-        }
-        sb.vbox(constraints: BL.EAST) {
-            sb.label(text: 'Answer Choices')
-            sb.scrollPane() {
-                sb.textArea(id: 'taAnsTex', q.choices.texs.join('\n'), rows: 12, columns: 30)
-            }
-            sb.panel() {
-                sb.label(id: 'lblPacking', text: 'One Choice Per Line')                
+    def launch() {
+        sb = new SwingBuilder()
+        sb.edt {
+            lookAndFeel: 'MetalLookAndFeel'
+            frame(title: q.uid, size: [600, 600], show: true, locationRelativeTo: null, 
+                defaultCloseOperation: EXIT_ON_CLOSE) {
+                panel() {
+                    gridBagLayout()
+                    
+                    tabbedPane(id: 'tpTeX', border: BorderFactory.createTitledBorder("TeX"),
+                        constraints: gbc(gridx: 0, gridy: 0, weightx: 1.0, weighty: 1, fill: BOTH)) {      
+                        panel(id: 'pnlQsnAns', name: 'Q / A') { qsnAnsTeX() }
+                        [1, 2, 3, 4, 5, 6].each { idx ->
+                            panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(idx) }
+                        }
+                    }
+                        
+                    panel(id: 'pnlButtons', border: BorderFactory.createTitledBorder("Actions"),
+                        constraints: gbc(gridx: 0, gridy: 1, weightx: 1.0, fill: HORIZONTAL)) {
+                        button(text: 'Preview', actionPerformed: previewAll)
+                        button(text: 'Save', actionPerformed: save)
+                        button(text: 'Render', actionPerformed: render)
+                        button(text: 'Tag', actionPerformed: tag)
+                    }
+                }
             }
         }
     }
     
-    private def stepTeX = { Question q, int idx ->
+    private def qsnAnsTeX = {
+        sb.vbox() {
+            sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
+                sb.scrollPane() {
+                    sb.textArea(id: 'taQsnTex', text: q.statement.tex, rows: 8, columns: 48)
+                }
+                sb.panel() {
+                    sb.button(id: 'btnFile', text: 'Image (optional):',
+                        actionPerformed: { setImage('lblFile', q.qpath) }
+                    )
+                    sb.label(id: 'lblFile', text: q.statement.image)
+                }
+            }
+            sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Answer Choices")) {
+                [['A', 'B'], ['C', 'D']].each { set ->
+                    sb.panel() {
+                        set.each { option ->
+                            def idx = (int)((char)option) - (int)'A'
+                            sb.textArea(id: "taAnsTex${(char)option}", rows: 4, columns: 24,
+                                text: (q.choices != null ? q.choices.texs[idx] : ""),
+                                border: BorderFactory.createTitledBorder("${option}"))
+                        }
+                    }
+                }
+            }
+            sb.panel() {
+                sb.label(text: 'Correct Option')
+                sb.comboBox(id: 'cbAns', items: ['A', 'B', 'C', 'D'])
+                sb.button(text: 'Preview', actionPerformed: preview)                
+            }
+        }
+    }
+    
+    private def stepTeX = { int idx ->
         def step
         if (idx > q.steps.size()) {
             step = new Step()
         } else {
             step = q.steps.get(idx-1)
         }
-        sb.vbox(constraints: BL.EAST) {
-            sb.scrollPane() {
-                textArea(id: "taCntxt${idx}", text: step.context, rows: 3, columns: 30)
-            }
+        sb.vbox(constraints: BL.EAST) {            
             sb.panel() {
-                ["Wrong", "Right"].each { side ->
-                    sb.vbox(constraints: BL.EAST) {
+                ["Context", "Reason"].each { tex ->
+                    sb.scrollPane(border: BorderFactory.createTitledBorder("${tex}")) {
+                        sb.textArea(id: "ta${tex}${idx}", text: step.context, rows: 6, columns: 24)
+                    }
+                }
+            }
+            sb.panel(border: BorderFactory.createTitledBorder("Options")) {
+                ["Right", "Wrong"].each { side ->
+                    sb.vbox(border: BorderFactory.createTitledBorder("${side}")) {
                         sb.scrollPane() {
-                            textArea(id: "ta${side}Step${idx}", 
-                                text: step."tex${side}", rows: 6, columns: 30)
+                            textArea(id: "ta${side}Step${idx}", text: step."tex${side}", rows: 10, columns: 24)
                         }
                         sb.panel() {
                             sb.button(id: "btn${side}File${idx}", text: 'Image (optional):',
@@ -132,35 +126,59 @@ class Editor {
                             sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
                         }    
                     }
-                }    
+                }
             }
-            sb.scrollPane() {
-                textArea(id: "taRsn${idx}", text: step.reason, rows: 3, columns: 30)
+            sb.panel() {
+                sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
+                sb.button(text: 'Preview', actionPerformed: preview)        
             }
-        }    
+        }
     }
     
-    private def displayPreview = {
-        [sb.pnlContext, sb.pnlReason].each { it.removeAll() }
-        ["Wrong", "Right"].each { side -> sb."vbPrev${side}".removeAll() }
-        int idx = sb.tpQsn.getSelectedIndex() 
-        switch (idx) {
+    private def preview = {
+        updateModel()
+        JDialog dialog = new JDialog(title: "Preview", size: [480, 240],
+            defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
+        def panel = sb.panel()
+        int tab = sb.tpTeX.getSelectedIndex()
+        switch (tab) {
             case 0: // Q and Choices
-                sb.vbPrevWrong.add(sb.label(icon: teXToIcon(sb.taQsnTex.getText())))
-                if (sb.lblFile.text.length() > 0)
-                    sb.vbPrevWrong.add(fileToIcon(sb.lblFile.text))
-                sb.vbPrevRight.add(sb.label(icon: teXToIcon(sb.taAnsTex.getText())))
+                panel.add((new Renderer()).toSwing(sb, q.statement))
+                if (q.choices != null) {
+                    panel.add((new Renderer()).toSwing(sb, q.choices))
+                }
                 break
             default: // Steps
-                sb.pnlContext.add(sb.label(icon: teXToIcon(sb."taCntxt${idx}".getText())))
-                ["Wrong", "Right"].each { side ->
-                    sb."vbPrev${side}".add(sb.label(icon: teXToIcon(sb."ta${side}Step${idx}".getText())))
-                }
-                sb.pnlReason.add(sb.label(icon: teXToIcon(sb."taRsn${idx}".getText())))
-                sb.doLater { [sb.pnlContext, sb.pnlReason].each { it.revalidate() } }
+                panel.add((new Renderer().toSwing(sb, q.steps[tab-1])))
                 break
+        }    
+        dialog.add(panel)
+        dialog.setLocationByPlatform(true)
+        dialog.setVisible(true)
+    }
+    
+    private def previewAll = {
+        updateModel()
+        JDialog dialog = new JDialog(title: "Preview", size: [600, 480],
+            defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
+        dialog.add((new Renderer(q)).toSwing(sb))
+        dialog.setLocationByPlatform(true)
+        dialog.setVisible(true)
+    }
+    
+    private def save = {
+        updateModel()
+        (new Renderer(q)).toXMLString(q.qpath)
+        sb.optionPane().showMessageDialog(null, "Saved!", "Result", JOptionPane.INFORMATION_MESSAGE)
+    }
+    
+    private def render = {
+        try {
+            (new Renderer(q, 12)).toSVG(q.qpath)
+        } catch (Exception e) {
+            println e
         }
-        sb.doLater { ["Wrong", "Right"].each { side -> sb."pnlPrev${side}".revalidate() } }
+        sb.optionPane().showMessageDialog(null, "Rendered!", "Result", JOptionPane.INFORMATION_MESSAGE)
     }
     
     private def setImage = { String it, Path qpath ->
@@ -171,7 +189,7 @@ class Editor {
         openSVGDialog.setFileView(new FileView() {
             @Override
             public Boolean isTraversable(File f) {
-                return (f.toPath().equals(qpath));
+                return (f.toPath().equals(qpath))
             }
         })
         if (openSVGDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -179,67 +197,46 @@ class Editor {
         }
     }
     
-    private def save = {
+    private def updateModel = {
         Statement statement = new Statement()
-        statement.tex = sb.taQsnTex.text.trim().replace("\\\\", "\n")
+        statement.tex = sb.taQsnTex.text.trim()
         statement.image = sb.lblFile.text
         q.statement = statement
         
         Step step
         [1, 2, 3, 4, 5, 6].each { idx ->
-            if (sb."taCntxt${idx}".text.length() > 0) {
+            if (sb."taContext${idx}".text.length() > 0) {
                 step = new Step()
-                step.context = sb."taCntxt${idx}".text
+                step.context = sb."taContext${idx}".text
                 step.texRight = sb."taRightStep${idx}".text
                 step.imageRight = sb."lblRightFile${idx}".text
                 step.texWrong = sb."taWrongStep${idx}".text
                 step.imageWrong = sb."lblWrongFile${idx}".text
-                step.reason = sb."taRsn${idx}".text
+                step.reason = sb."taReason${idx}".text
+                step.noswipe = sb."chkBxSwipe${idx}".selected
                 q.steps.set(idx-1, step)
             }
         }
         
-        Choices choices = new Choices()
-        def tokens = sb.taAnsTex.text.split("\n")
-        tokens.eachWithIndex { choice, idx ->
-            choices.texs[idx] = choice
-        }
-        choices.correct = 2
-        q.choices = choices
-        
-        (new Renderer(q)).toXMLString(q.qpath)
-        sb.optionPane().showMessageDialog(null, "Saved!", "Result", JOptionPane.INFORMATION_MESSAGE)        
+        if (sb.taAnsTexA.text.length() > 0) {
+            Choices choices = new Choices()
+            ['A', 'B', 'C', 'D'].eachWithIndex { option, idx ->  
+                choices.texs[idx] = sb."taAnsTex${option}".text
+            }
+            choices.correct = sb.cbAns.getSelectedIndex()
+            q.choices = choices
+        }        
     }
     
-    private def TeXIcon teXToIcon(String tex) {
-        TeXFormula formula
-        TeXIcon texIcon
-        tex = tex.replace("\n", "\\\\").replace("\\qquad", "\\quad\\quad")
+    private def tag = {
+        Path bank = q.qpath.getParent().getParent().getParent().getParent()
+        Path catalog = bank.resolve("common").resolve("catalog")
         try {
-            formula = new TeXFormula(tex)
+            Tagger tagger = new Tagger(q, catalog)
+            tagger.go()
         } catch (Exception e) {
-            def s = splitEqually(e.getMessage()).join("\\\\")
-            formula = new TeXFormula("\\text{${s}}")
+            println e
         }
-        formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15, TeXFormula.SANSSERIF)
     }
     
-    private def JSVGCanvas fileToIcon(String name) {
-        JSVGCanvas svgCanvas = new JSVGCanvas()
-        svgCanvas.setURI(q.qpath.resolve(name).toUri().toURL().toString())
-        svgCanvas
-    }
-    
-    private def String[] splitEqually(String s) {        
-        int n = (s.length() / WIDTH) + 1
-        def parts = new String[n]
-        for (int i = 0; i < n; i++) {
-            parts[i] = s.substring(i*WIDTH, 
-                i == n-1 ? s.length() : (i+1)*WIDTH)
-        }
-        parts
-    }
-    
-    private final int WIDTH = 35
-    private final def TXT_NO_FILE = "No File Selected"
 }
