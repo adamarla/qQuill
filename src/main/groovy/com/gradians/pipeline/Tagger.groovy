@@ -51,8 +51,7 @@ class Tagger {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [600, 480], show: true, locationRelativeTo: null, 
-                defaultCloseOperation: EXIT_ON_CLOSE) {
+            frame(title: q.uid, size: [600, 480], show: true, locationRelativeTo: null) {
                 panel(border: BorderFactory.createEmptyBorder()) {
                     gridBagLayout()
                     

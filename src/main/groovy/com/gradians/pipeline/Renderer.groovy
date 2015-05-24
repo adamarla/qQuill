@@ -219,7 +219,6 @@ class Renderer {
         TeXFormula.predefinedTeXFormulas.clear()
         TeXFormula formula
         TeXIcon texIcon
-//        tex = tex.replace("\n", "\\\\")
         try {
             formula = new TeXFormula(tex)
         } catch (Exception e) {
