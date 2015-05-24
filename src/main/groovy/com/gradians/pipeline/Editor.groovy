@@ -130,7 +130,7 @@ class Editor {
             }
             sb.panel() {
                 sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
-                sb.button(text: 'Preview', actionPerformed: preview)        
+                sb.button(text: 'Preview', actionPerformed: preview)
             }
         }
     }

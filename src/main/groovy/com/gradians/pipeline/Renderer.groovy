@@ -43,11 +43,10 @@ class Renderer {
     
     def Renderer(int fontSize = 15) {
         this.fontSize = fontSize
-        DefaultTeXFont.registerAlphabet(new GreekRegistration());
     }
     
-    def Renderer(Question q, int fontSize = 15) {
-        this(fontSize)
+    def Renderer(Question q) {
+        this()
         this.q = q
     }
     
@@ -63,7 +62,7 @@ class Renderer {
                 sb.widget(toSwing(sb, q.choices))
             }
                 
-            sb.scrollPane(constraints: sb.gbc(gridx: 0, gridy: 1, gridwidth: 2, weightx: 2, weighty: 1, fill: BOTH),
+            sb.scrollPane(constraints: sb.gbc(gridx: 0, gridy: 1, gridwidth: 2, weightx: 1, weighty: 1, fill: BOTH),
                 verticalScrollBarPolicy:JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED) {
                 sb.panel(constraints: EAST) {
                     sb.vbox {
@@ -78,18 +77,20 @@ class Renderer {
     
     def toSwing(SwingBuilder sb, Step step) {
         def panel = sb.panel(border: BorderFactory.createLineBorder(Color.BLACK)) {
-            sb.vbox(constraints: EAST) {
-                sb.label(icon: teXToIcon(step.context),
-                    border: BorderFactory.createTitledBorder("Context"))
-                sb.panel() {
-                    sb.label(icon: teXToIcon(step.texRight),
-                        border: BorderFactory.createTitledBorder("Right"))
-                    sb.label(icon: teXToIcon(step.texWrong),
-                        border: BorderFactory.createTitledBorder("Wrong"))
-                }
-                sb.label(icon: this.teXToIcon(step.reason),
-                    border: BorderFactory.createTitledBorder("Reason"))
-            }
+            gridBagLayout()
+            
+            sb.label(icon: teXToIcon(step.context),
+                border: BorderFactory.createTitledBorder("Context"),
+                constraints: sb.gbc(gridx: 0, gridy: 0, gridwidth: 2, fill: HORIZONTAL))
+            sb.label(icon: teXToIcon(step.texRight),
+                border: BorderFactory.createTitledBorder("Right"),
+                constraints: sb.gbc(gridx: 0, gridy: 1))
+            sb.label(icon: teXToIcon(step.texWrong),
+                border: BorderFactory.createTitledBorder("Wrong"),
+                constraints: sb.gbc(gridx: 1, gridy: 1))
+            sb.label(icon: this.teXToIcon(step.reason),
+                border: BorderFactory.createTitledBorder("Reason"),
+                constraints: sb.gbc(gridx: 0, gridy: 2, gridwidth: 2, fill: HORIZONTAL))
         }
     }
     
@@ -109,7 +110,6 @@ class Renderer {
                 choices.texs.eachWithIndex { tex, i ->
                     sb.label(icon: teXToIcon(tex))
                 }
-                println "choices.correct = ${choices.correct}"
                 char correct = (char)(((int)'A') + choices.correct)
                 sb.label(text: "Correct Ans ${correct}")
             }
