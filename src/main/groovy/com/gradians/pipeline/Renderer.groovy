@@ -41,8 +41,15 @@ class Renderer {
     Question q
     def fontSize
     
+    static {
+        Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
+        map.keySet().each {
+            TeXFormula.get(it)
+        }
+    }
+    
     def Renderer(int fontSize = 15) {
-        this.fontSize = fontSize
+        this.fontSize = fontSize        
     }
     
     def Renderer(Question q) {
@@ -81,16 +88,19 @@ class Renderer {
             
             sb.label(icon: teXToIcon(step.context),
                 border: BorderFactory.createTitledBorder("Context"),
-                constraints: sb.gbc(gridx: 0, gridy: 0, gridwidth: 2, fill: HORIZONTAL))
+                constraints: sb.gbc(gridx: 0, gridy: 0))
+            
+            sb.label(icon: this.teXToIcon(step.reason),
+                border: BorderFactory.createTitledBorder("Reason"),
+                constraints: sb.gbc(gridx: 1, gridy: 0))
+            
             sb.label(icon: teXToIcon(step.texRight),
                 border: BorderFactory.createTitledBorder("Right"),
                 constraints: sb.gbc(gridx: 0, gridy: 1))
+            
             sb.label(icon: teXToIcon(step.texWrong),
                 border: BorderFactory.createTitledBorder("Wrong"),
                 constraints: sb.gbc(gridx: 1, gridy: 1))
-            sb.label(icon: this.teXToIcon(step.reason),
-                border: BorderFactory.createTitledBorder("Reason"),
-                constraints: sb.gbc(gridx: 0, gridy: 2, gridwidth: 2, fill: HORIZONTAL))
         }
     }
     
@@ -216,9 +226,8 @@ class Renderer {
     }
 
     private TeXIcon teXToIcon(String tex) {
-        TeXFormula.predefinedTeXFormulas.clear()
-        TeXFormula formula
         TeXIcon texIcon
+        TeXFormula formula
         try {
             formula = new TeXFormula(tex)
         } catch (Exception e) {
