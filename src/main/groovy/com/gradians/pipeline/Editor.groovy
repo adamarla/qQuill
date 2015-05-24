@@ -110,7 +110,7 @@ class Editor {
             sb.panel() {
                 ["Context", "Reason"].each { tex ->
                     sb.scrollPane(border: BorderFactory.createTitledBorder("${tex}")) {
-                        sb.textArea(id: "ta${tex}${idx}", text: step.context, rows: 6, columns: 24)
+                        sb.textArea(id: "ta${tex}${idx}", text: step."${tex.toLowerCase()}", rows: 6, columns: 24)
                     }
                 }
             }
@@ -205,7 +205,8 @@ class Editor {
         
         Step step
         [1, 2, 3, 4, 5, 6].each { idx ->
-            if (sb."taContext${idx}".text.length() > 0) {
+            if (sb."taContext${idx}".text.length() > 0 ||
+                idx < 3) {
                 step = new Step()
                 step.context = sb."taContext${idx}".text
                 step.texRight = sb."taRightStep${idx}".text

@@ -132,9 +132,9 @@ class Tagger {
     def addBundle = {
         def lblBundle = "${sb.cbBook.selectedItem.tag}-${sb.cbChapter.selectedItem.tag}-${sb.cbExercise.selectedItem.tag}"
         def lblQsn = "${sb.cbLabelQsn.selectedItem}"
-        def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "${sb.cbLabelPart.selectedItem}"
-        def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "${sb.cbLabelSubpart.selectedItem}"
-        def text = "${lblBundle}|${lblQsn}-${lblPart}-${lblSubpart}"
+        def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "-${sb.cbLabelPart.selectedItem}"
+        def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "-${sb.cbLabelSubpart.selectedItem}"
+        def text = "${lblBundle}|${lblQsn}${lblPart}${lblSubpart}"
         
         def target = sb.taBundles
         def targetText = target.getText()
@@ -205,7 +205,8 @@ class Tagger {
     def tag = {
         q.bundles = sb.taBundles.getText().split(delim)
         q.concepts = sb.taTopiks.getText().split(delim)
-        println q.toJSONString(true)
+        Renderer r = new Renderer(q)
+        println r.toJSONString(true)
         try {
             sb.btnTag.setEnabled(false)
             network.updateTags(q)

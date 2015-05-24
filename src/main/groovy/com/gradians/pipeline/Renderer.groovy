@@ -52,7 +52,7 @@ class Renderer {
         this.fontSize = fontSize        
     }
     
-    def Renderer(Question q) {
+    def Renderer(Question q, int fontSize = 15) {
         this()
         this.q = q
     }
