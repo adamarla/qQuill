@@ -56,14 +56,16 @@ class Question {
             } else if (it.@swipe.equals("false")) {
                 step.noswipe = true
             }            
-            step.context = it.context.toString()            
-            it.tex.each { tex ->
-                if (tex.@correct.equals("true")) {
-                    step.texRight = tex.toString()
-                } else {
-                    step.texWrong = tex.toString()
+            step.context = it.context.toString()
+            ["tex", "image"].each { content ->
+                it."${content}".each { option ->
+                    if (option.@correct.equals("true")) {
+                        step."${content}Right" = option.toString()
+                    } else {
+                        step."${content}Wrong" = option.toString()
+                    }    
                 }
-            }            
+            }
             step.reason = it.reason.toString()
             steps.add step
         }

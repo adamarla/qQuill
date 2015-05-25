@@ -59,22 +59,22 @@ class Renderer {
     
     def toSwing(SwingBuilder sb) {
         def panel = sb.panel() {
-            sb.gridBagLayout()
+            gridBagLayout()
             
-            sb.panel(constraints: sb.gbc(gridx: 0, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
-                sb.widget(toSwing(sb, q.statement))
+            panel(constraints: gbc(gridx: 0, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
+                widget(toSwing(sb, q.statement))
             }
                 
-            sb.panel(constraints: sb.gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
-                sb.widget(toSwing(sb, q.choices))
+            panel(constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
+                widget(toSwing(sb, q.choices))
             }
                 
-            sb.scrollPane(constraints: sb.gbc(gridx: 0, gridy: 1, gridwidth: 2, weightx: 1, weighty: 1, fill: BOTH),
+            scrollPane(constraints: gbc(gridx: 0, gridy: 1, gridwidth: 2, weightx: 1, weighty: 1, fill: BOTH),
                 verticalScrollBarPolicy:JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED) {
-                sb.panel(constraints: EAST) {
-                    sb.vbox {
+                panel(constraints: EAST) {
+                    vbox {
                         q.steps.each { step ->
-                            sb.widget(toSwing(sb, step))
+                            widget(toSwing(sb, step))
                         }
                     }
                 }
@@ -86,42 +86,46 @@ class Renderer {
         def panel = sb.panel(border: BorderFactory.createLineBorder(Color.BLACK)) {
             gridBagLayout()
             
-            sb.label(icon: teXToIcon(step.context),
+            label(icon: teXToIcon(step.context),
                 border: BorderFactory.createTitledBorder("Context"),
-                constraints: sb.gbc(gridx: 0, gridy: 0))
+                constraints: gbc(gridx: 0, gridy: 0))
             
-            sb.label(icon: this.teXToIcon(step.reason),
+            label(icon: teXToIcon(step.reason),
                 border: BorderFactory.createTitledBorder("Reason"),
-                constraints: sb.gbc(gridx: 1, gridy: 0))
+                constraints: gbc(gridx: 1, gridy: 0))
             
-            sb.label(icon: teXToIcon(step.texRight),
-                border: BorderFactory.createTitledBorder("Right"),
-                constraints: sb.gbc(gridx: 0, gridy: 1))
-            
-            sb.label(icon: teXToIcon(step.texWrong),
-                border: BorderFactory.createTitledBorder("Wrong"),
-                constraints: sb.gbc(gridx: 1, gridy: 1))
+            ["Right", "Wrong"].each { side ->
+                panel(border: BorderFactory.createTitledBorder("${side}"),
+                    constraints: gbc(gridx: (side.equals("Right") ? 0 : 1), gridy: 1)) {
+                    scrollPane() {
+                        if (step."image${side}".length() > 0)
+                            widget(fileToIcon(step."image${side}"))
+                        else
+                            label(icon: teXToIcon(step."tex${side}"))                        
+                    }
+                }    
+            }            
         }
     }
     
     def toSwing(SwingBuilder sb, Statement statement) {
         def panel = sb.panel(border: BorderFactory.createTitledBorder("Statement")) {
-            sb.vbox(constraints: EAST) {
-                sb.label(icon: teXToIcon(statement.tex))
+            vbox(constraints: EAST) {
+                label(icon: teXToIcon(statement.tex))
                 if (statement.image.length() > 0)
-                    sb.widget(fileToIcon(statement.image))    
+                    widget(fileToIcon(statement.image))    
             }
         }
     }
     
     def toSwing(SwingBuilder sb, Choices choices) {
         def panel = sb.panel(border: BorderFactory.createTitledBorder("Choices")) {
-            sb.vbox(constraints: EAST) {
+            vbox(constraints: EAST) {
                 choices.texs.eachWithIndex { tex, i ->
-                    sb.label(icon: teXToIcon(tex))
+                    label(icon: teXToIcon(tex))
                 }
                 char correct = (char)(((int)'A') + choices.correct)
-                sb.label(text: "Correct Ans ${correct}")
+                label(text: "Correct Ans ${correct}")
             }
         }
     }
@@ -148,11 +152,17 @@ class Renderer {
                 tex(q.statement.tex)
             }
             
-            q.steps.each { stp ->                
+            q.steps.each { stp ->
                 def contents = {
                     context(stp.context)
-                    tex(correct: "true", stp.texRight)
-                    tex(stp.texWrong)
+                    if (stp.imageRight.length() > 0)
+                        image(correct: "true", stp.imageRight)
+                    else
+                        tex(correct: "true", stp.texRight)
+                    if (stp.imageWrong.length() > 0)
+                        image(stp.imageWrong)
+                    else
+                        tex(stp.texWrong)
                     reason(stp.reason)
                 }
                 

@@ -41,7 +41,7 @@ class Editor {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [600, 600], show: true, locationRelativeTo: null, 
+            frame(title: q.uid, size: [1120, 600], show: true, locationRelativeTo: null, 
                 defaultCloseOperation: EXIT_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
@@ -70,7 +70,7 @@ class Editor {
         sb.vbox() {
             sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
                 sb.scrollPane() {
-                    sb.textArea(id: 'taQsnTex', text: q.statement.tex, rows: 8, columns: 48)
+                    sb.textArea(id: 'taQsnTex', text: q.statement.tex, rows: 8, columns: 96)
                 }
                 sb.panel() {
                     sb.button(id: 'btnFile', text: 'Image (optional):',
@@ -84,7 +84,7 @@ class Editor {
                     sb.panel() {
                         set.each { option ->
                             def idx = (int)((char)option) - (int)'A'
-                            sb.textArea(id: "taAnsTex${(char)option}", rows: 4, columns: 24,
+                            sb.textArea(id: "taAnsTex${(char)option}", rows: 4, columns: 48,
                                 text: (q.choices != null ? q.choices.texs[idx] : ""),
                                 border: BorderFactory.createTitledBorder("${option}"))
                         }
@@ -97,6 +97,7 @@ class Editor {
                 sb.button(text: 'Preview', actionPerformed: preview)                
             }
         }
+        sb.cbAns.selectedIndex = q.choices.correct
     }
     
     private def stepTeX = { int idx ->
@@ -110,7 +111,8 @@ class Editor {
             sb.panel() {
                 ["Context", "Reason"].each { tex ->
                     sb.scrollPane(border: BorderFactory.createTitledBorder("${tex}")) {
-                        sb.textArea(id: "ta${tex}${idx}", text: step."${tex.toLowerCase()}", rows: 6, columns: 24)
+                        sb.textArea(id: "ta${tex}${idx}", 
+                            text: step."${tex.toLowerCase()}", rows: 6, columns: 48)
                     }
                 }
             }
@@ -118,7 +120,8 @@ class Editor {
                 ["Right", "Wrong"].each { side ->
                     sb.vbox(border: BorderFactory.createTitledBorder("${side}")) {
                         sb.scrollPane() {
-                            textArea(id: "ta${side}Step${idx}", text: step."tex${side}", rows: 10, columns: 24)
+                            textArea(id: "ta${side}Step${idx}", 
+                                text: step."tex${side}", rows: 10, columns: 48)
                         }
                         sb.panel() {
                             sb.button(id: "btn${side}File${idx}", text: 'Image (optional):',
@@ -137,19 +140,19 @@ class Editor {
     
     private def preview = {
         updateModel()
-        JDialog dialog = new JDialog(title: "Preview", size: [480, 240],
+        JDialog dialog = new JDialog(title: "Preview", size: [800, 400],
             defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
         def panel = sb.panel()
         int tab = sb.tpTeX.getSelectedIndex()
         switch (tab) {
             case 0: // Q and Choices
-                panel.add((new Renderer()).toSwing(sb, q.statement))
+                panel.add((new Renderer(q)).toSwing(sb, q.statement))
                 if (q.choices != null) {
-                    panel.add((new Renderer()).toSwing(sb, q.choices))
+                    panel.add((new Renderer(q)).toSwing(sb, q.choices))
                 }
                 break
             default: // Steps
-                panel.add((new Renderer().toSwing(sb, q.steps[tab-1])))
+                panel.add((new Renderer(q).toSwing(sb, q.steps[tab-1])))
                 break
         }    
         dialog.add(panel)
@@ -159,7 +162,7 @@ class Editor {
     
     private def previewAll = {
         updateModel()
-        JDialog dialog = new JDialog(title: "Preview", size: [600, 480],
+        JDialog dialog = new JDialog(title: "Preview", size: [800, 600],
             defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
         dialog.add((new Renderer(q)).toSwing(sb))
         dialog.setLocationByPlatform(true)
@@ -224,7 +227,7 @@ class Editor {
             ['A', 'B', 'C', 'D'].eachWithIndex { option, idx ->  
                 choices.texs[idx] = sb."taAnsTex${option}".text
             }
-            choices.correct = sb.cbAns.getSelectedIndex()
+            choices.correct = sb.cbAns.selectedIndex
             q.choices = choices
         }        
     }
