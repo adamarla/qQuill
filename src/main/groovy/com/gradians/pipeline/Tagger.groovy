@@ -69,25 +69,21 @@ class Tagger {
                         
                         ["Book", "Chapter", "Exercise"].eachWithIndex { content, i ->
                             label(id: "lbl${content}", text: "${content}",
-                                constraints: gbc(gridx: 0, gridy: i, weightx: 0.1, weighty: 0))
+                                constraints: gbc(gridx: 0, gridy: i))
                             comboBox(id: "cb${content}",
-                                constraints: gbc(gridx: 1, gridy: i, gridwidth: 4, weightx: 1, weighty: 0,
+                                constraints: gbc(gridx: 1, gridy: i, gridwidth: 4, weightx: 1,
                                     fill: HORIZONTAL, insets: [0, 5, 5, 0]))
                         }
 
-                        label(text:"Label (e.g. 4.(a)(i))",
-                            constraints: gbc(gridx: 0, gridy: 3, weightx: 0.1, weighty: 0))
-                        ["Qsn", "Part", "Subpart"].eachWithIndex { component, i ->
-                            comboBox(id: "cbLabel${component}", items: lib."get${component}"(), 
-                                constraints: gbc(gridx: (i+1), gridy: 3, fill: HORIZONTAL, insets: [0, 5, 5, 0]))
-                        }
-                        button(id: 'btnAddBundle', text: 'Add', actionPerformed: addBundle,
-                            constraints: gbc(gridx: 4, gridy: 3, weightx: 0.50, weighty: 0))
-                        
-                        scrollPane(id: 'spBundles',
-                            constraints: gbc(gridx: 0, gridy: 4, gridwidth: 5, weightx: 1, weighty: 1, 
-                                fill: BOTH, insets: [5, 0, 5, 0])) {
-                            textArea(id: 'taBundles', focusable: false)
+                        label(text:"Label",
+                            constraints: gbc(gridx: 0, gridy: 3))
+                        panel(constraints: gbc(gridx: 1, gridy: 3, gridwidth: 4, weightx: 1,
+                                    fill: HORIZONTAL, insets: [0, 5, 5, 0])) {
+                            ["Qsn", "Part", "Subpart"].eachWithIndex { component, i ->
+                                comboBox(id: "cbLabel${component}", items: lib."get${component}"())
+                            }
+                            button(id: 'btnAddBundle', text: 'Assign', actionPerformed: addBundle)
+                            label(id: 'lblBundles', text: q.bundle == null ? 'Not Assigned Bundle' : q.bundle)
                         }
                     }
                         
@@ -107,7 +103,7 @@ class Tagger {
                     panel(border: BorderFactory.createTitledBorder("Actions"),
                         constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
     
-                        button(id: 'btnTag', text: 'Tag', enabled: false, actionPerformed: tag)
+                        button(id: 'btnTag', text: 'Commit', enabled: false, actionPerformed: tag)
                     }
                 }
             }
@@ -136,14 +132,10 @@ class Tagger {
         def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "-${sb.cbLabelSubpart.selectedItem}"
         def text = "${lblBundle}|${lblQsn}${lblPart}${lblSubpart}"
         
-        def target = sb.taBundles
-        def targetText = target.getText()
-        if (!targetText.contains(text)) {
-            if (targetText.length() != 0)
-                target.append(delim)
-            target.append(text)
-        }
-        target.setFocusable(true)
+        sb.lblBundles.text = text
+        q.bundle = text
+        (new Renderer(q)).toXMLString(q.qpath) // Add bundleId to question.xml
+        
         sb.btnTag.enabled = true
     }
     
@@ -176,7 +168,8 @@ class Tagger {
     
     def typeahead = { ActionEvent ae ->
         if (!ae.getActionCommand().equals('comboBoxEdited'))
-            return            
+            return
+            
         JComboBox source 
         JTextArea target
         source = ae.getSource()
@@ -203,17 +196,17 @@ class Tagger {
     }
     
     def tag = {
-        q.bundles = sb.taBundles.getText().split(delim)
-        q.concepts = sb.taTopiks.getText().split(delim)
-        Renderer r = new Renderer(q)
-        println r.toJSONString(true)
-        try {
-            sb.btnTag.setEnabled(false)
-            network.updateTags(q)
-            sb.btnTag.setEnabled(true)
-            sb.optionPane().showMessageDialog(null, "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
-        } catch (Exception e) {
-            println e
+        def dialogResult = sb.optionPane().showConfirmDialog (null, 
+            "Did you git push the question?", "Checking", JOptionPane.YES_NO_OPTION)
+
+        if (dialogResult == JOptionPane.YES_OPTION) {
+            q.concepts = sb.taTopiks.getText().split(delim)
+            try {
+                network.addToBundle(q)
+                sb.optionPane().showMessageDialog(null, "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
+            } catch (Exception e) {
+                println e
+            }    
         }
     }        
 

@@ -36,7 +36,7 @@ class Driver {
         try {
             Question q = new Question(qpath, catalog)
             if (renderOnly) {
-                (new Renderer(q)).toXMLString(q.qpath)
+                (new Renderer(q, 12)).toSVG(q.qpath)
             } else if (tagOnly) {
                 (new Tagger(q, catalog)).go()
             } else {

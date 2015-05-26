@@ -4,10 +4,11 @@ import groovyx.net.http.HTTPBuilder
 
 import static groovyx.net.http.Method.POST
 import static groovyx.net.http.ContentType.JSON
+import static groovyx.net.http.ContentType.XML
 
 class Network {
     
-    def updateTags(Question q) throws Exception {
+    def addToBundle(Question q) throws Exception {
         
         def bodyMap = (new Renderer(q)).toJSONString()
         

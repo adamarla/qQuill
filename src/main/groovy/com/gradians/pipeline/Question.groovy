@@ -23,7 +23,7 @@ class Question {
     String uid
     
     //tags
-    String[] bundles
+    String bundle
     String[] concepts
     
     final String SEP = "/", XML_FILE = "question.xml"
@@ -81,6 +81,8 @@ class Question {
                 }
             }    
         }
+        
+        bundle = xml.bundleId.isEmpty() ? null : xml.bundleId.toString()
     }
 
     private def isValidXML(Path xmlPath, Path bank) {

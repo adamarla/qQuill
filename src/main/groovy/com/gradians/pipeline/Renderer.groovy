@@ -134,7 +134,7 @@ class Renderer {
         JsonBuilder builder = new JsonBuilder()
         builder.question {
             'uid' q.uid
-            'bundles' q.bundles
+            'bundles' q.bundle
             'concepts' q.concepts
         }
         if (pretty)
@@ -184,6 +184,9 @@ class Renderer {
                     }
                 }    
             }
+            
+            if (q.bundle != null)
+                bundleId(q.bundle)
         }
         path.resolve("question.xml").toFile().write(sw.toString())
     }

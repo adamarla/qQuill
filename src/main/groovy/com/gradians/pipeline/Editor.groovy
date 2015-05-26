@@ -41,7 +41,7 @@ class Editor {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [1120, 600], show: true, locationRelativeTo: null, 
+            frame(title: q.uid, size: [860, 600], show: true, locationRelativeTo: null, 
                 defaultCloseOperation: EXIT_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
@@ -70,7 +70,7 @@ class Editor {
         sb.vbox() {
             sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
                 sb.scrollPane() {
-                    sb.textArea(id: 'taQsnTex', text: q.statement.tex, rows: 8, columns: 96)
+                    sb.textArea(id: 'taQsnTex', text: q.statement.tex, rows: 8, columns: 72)
                 }
                 sb.panel() {
                     sb.button(id: 'btnFile', text: 'Image (optional):',
@@ -84,7 +84,7 @@ class Editor {
                     sb.panel() {
                         set.each { option ->
                             def idx = (int)((char)option) - (int)'A'
-                            sb.textArea(id: "taAnsTex${(char)option}", rows: 4, columns: 48,
+                            sb.textArea(id: "taAnsTex${(char)option}", rows: 4, columns: 36,
                                 text: (q.choices != null ? q.choices.texs[idx] : ""),
                                 border: BorderFactory.createTitledBorder("${option}"))
                         }
@@ -112,7 +112,7 @@ class Editor {
                 ["Context", "Reason"].each { tex ->
                     sb.scrollPane(border: BorderFactory.createTitledBorder("${tex}")) {
                         sb.textArea(id: "ta${tex}${idx}", 
-                            text: step."${tex.toLowerCase()}", rows: 6, columns: 48)
+                            text: step."${tex.toLowerCase()}", rows: 6, columns: 36)
                     }
                 }
             }
@@ -121,7 +121,7 @@ class Editor {
                     sb.vbox(border: BorderFactory.createTitledBorder("${side}")) {
                         sb.scrollPane() {
                             textArea(id: "ta${side}Step${idx}", 
-                                text: step."tex${side}", rows: 10, columns: 48)
+                                text: step."tex${side}", rows: 10, columns: 36)
                         }
                         sb.panel() {
                             sb.button(id: "btn${side}File${idx}", text: 'Image (optional):',
