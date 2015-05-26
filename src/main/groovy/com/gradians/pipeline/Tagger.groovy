@@ -45,6 +45,8 @@ class Tagger {
         this.catalog = new Catalog(catalogPath)
         this.lib = new TagLib(catalogPath)
         this.network = new Network()
+        
+        this.getBundleInfo()        
     }
 
     def go() {
@@ -64,7 +66,7 @@ class Tagger {
                     }
                         
                     panel(border: BorderFactory.createTitledBorder("Source Details"),
-                        constraints: gbc(gridx: 0, gridy: 1, weightx: 1, weighty: 1, fill: BOTH)) {
+                        constraints: gbc(gridx: 0, gridy: 1, weightx: 1, fill: HORIZONTAL)) {
                         gridBagLayout()
                         
                         ["Book", "Chapter", "Exercise"].eachWithIndex { content, i ->
@@ -75,15 +77,14 @@ class Tagger {
                                     fill: HORIZONTAL, insets: [0, 5, 5, 0]))
                         }
 
-                        label(text:"Label",
-                            constraints: gbc(gridx: 0, gridy: 3))
+                        label(text:"Label", constraints: gbc(gridx: 0, gridy: 3))
                         panel(constraints: gbc(gridx: 1, gridy: 3, gridwidth: 4, weightx: 1,
                                     fill: HORIZONTAL, insets: [0, 5, 5, 0])) {
                             ["Qsn", "Part", "Subpart"].eachWithIndex { component, i ->
                                 comboBox(id: "cbLabel${component}", items: lib."get${component}"())
                             }
-                            button(id: 'btnAddBundle', text: 'Assign', actionPerformed: addBundle)
-                            label(id: 'lblBundles', text: q.bundle == null ? 'Not Assigned Bundle' : q.bundle)
+                            button(id: 'btnAddBundle', text: 'Generate', actionPerformed: addBundle)
+                            label(id: 'lblBundles', q.bundle)
                         }
                     }
                         
@@ -101,8 +102,7 @@ class Tagger {
                     }
                         
                     panel(border: BorderFactory.createTitledBorder("Actions"),
-                        constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
-    
+                        constraints: gbc(gridx: 0, gridy: 4, weightx: 1, fill: HORIZONTAL)) {    
                         button(id: 'btnTag', text: 'Commit', enabled: false, actionPerformed: tag)
                     }
                 }
@@ -134,7 +134,6 @@ class Tagger {
         
         sb.lblBundles.text = text
         q.bundle = text
-        (new Renderer(q)).toXMLString(q.qpath) // Add bundleId to question.xml
         
         sb.btnTag.enabled = true
     }
@@ -200,14 +199,33 @@ class Tagger {
             "Did you git push the question?", "Checking", JOptionPane.YES_NO_OPTION)
 
         if (dialogResult == JOptionPane.YES_OPTION) {
-            q.concepts = sb.taTopiks.getText().split(delim)
-            try {
-                network.addToBundle(q)
-                sb.optionPane().showMessageDialog(null, "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
-            } catch (Exception e) {
-                println e
-            }    
+            if (q.bundle == null) {
+                sb.optionPane().showMessageDialog(null, 
+                    "Sorry, not assigned to bundle yet", 
+                    "Forbidden", JOptionPane.INFORMATION_MESSAGE)                
+            } else {
+                q.concepts = sb.taTopiks.getText().split(delim)
+                try {
+                    network.addToBundle(q)
+                    sb.optionPane().showMessageDialog(null, 
+                        "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
+                } catch (Exception e) {
+                    println e
+                }
+            }           
         }
     }        
+    
+    def getBundleInfo = {
+        try {
+            def bundleId = network.getBundleInfo(q)
+            q.bundle = bundleId.length() == 0 ? NO_BUNDLE_ASSIGNED : bundleId
+        } catch (Exception e) {
+            q.bundle = NO_BUNDLE_INFO
+        }
+    }
+    
+    def final NO_BUNDLE_INFO = "No Bundle Info"
+    def final NO_BUNDLE_ASSIGNED = "Not assigned Bundle"
 
 }

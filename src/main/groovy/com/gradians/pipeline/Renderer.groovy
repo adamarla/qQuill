@@ -184,9 +184,6 @@ class Renderer {
                     }
                 }    
             }
-            
-            if (q.bundle != null)
-                bundleId(q.bundle)
         }
         path.resolve("question.xml").toFile().write(sw.toString())
     }

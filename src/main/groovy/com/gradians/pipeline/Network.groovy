@@ -3,13 +3,29 @@ package com.gradians.pipeline
 import groovyx.net.http.HTTPBuilder
 
 import static groovyx.net.http.Method.POST
+import static groovyx.net.http.Method.GET
 import static groovyx.net.http.ContentType.JSON
 import static groovyx.net.http.ContentType.XML
 
 class Network {
     
-    def addToBundle(Question q) throws Exception {
-        
+    def getBundleInfo(Question q) throws Exception {        
+        def bundleId                
+        def httpClient = new HTTPBuilder("http://www.gradians.com/bundle/which?uid=${q.uid}")
+        httpClient.setHeaders(Accept: 'application/json')
+                
+        def results = httpClient.request(GET, JSON) {
+                         
+            response.success = { resp, json ->
+                println json.bundleId
+                assert resp.statusLine.statusCode == 200
+                bundleId = json.bundleId
+            }        
+        }
+        bundleId
+    }
+    
+    def addToBundle(Question q) throws Exception {        
         def bodyMap = (new Renderer(q)).toJSONString()
         
 //        def httpClient = new HTTPBuilder('http://localhost:3000/tag/question')
@@ -25,8 +41,7 @@ class Network {
                 assert resp.statusLine.statusCode == 200
             }
         
-        }
-        
+        }        
     }
     
 }

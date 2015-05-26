@@ -81,8 +81,6 @@ class Question {
                 }
             }    
         }
-        
-        bundle = xml.bundleId.isEmpty() ? null : xml.bundleId.toString()
     }
 
     private def isValidXML(Path xmlPath, Path bank) {
