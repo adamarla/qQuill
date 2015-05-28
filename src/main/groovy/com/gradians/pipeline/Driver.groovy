@@ -24,24 +24,25 @@ class Driver {
         Options options = new Options()
         options.addOption(Option.builder("r").argName("render").longOpt("render").build())
         options.addOption(Option.builder("t").argName("tag").longOpt("tag").build())
+        options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())
         
         CommandLine cl = (new DefaultParser()).parse(options, args)        
         boolean renderOnly = cl.hasOption('r')
         boolean tagOnly = cl.hasOption('t')
+        boolean bundleOnly = cl.hasOption('b')
         
-        Path qpath = (new File(pwd)).toPath()
-        Path bank = qpath.getParent().getParent().getParent().getParent()
-        Path catalog = bank.resolve("common").resolve("catalog")
-        
+        Path qpath = (new File(pwd)).toPath()        
         try {
-            Question q = new Question(qpath, catalog)
+            Question q = new Question(qpath)
             if (renderOnly) {
-                (new Renderer(q, 12)).toSVG(q.qpath)
+                (new Renderer(q, 12)).toSVG()
             } else if (tagOnly) {
-                (new Tagger(q, catalog)).go()
+                (new Tagger(q)).go()
+            } else if (bundleOnly) {
+                ((new Bundler(q)).bundle())
             } else {
                 (new Editor(q)).launch()
-            }        
+            }
         } catch (Exception e) {
             println e
         }

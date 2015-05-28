@@ -3,6 +3,7 @@ package com.gradians.pipeline
 import java.io.FileInputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 
 import groovy.util.slurpersupport.GPathResult
 
@@ -28,16 +29,37 @@ class Question {
     
     final String SEP = "/", XML_FILE = "question.xml"
     
-    def Question(Path qpath, Path catalog) {
+    def Question(Path qpath) {
         this.qpath = qpath
         def tokens = qpath.toString().split(SEP)
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"
         def xmlPath = qpath.resolve(XML_FILE)
+        Path bank = qpath.getParent().getParent().getParent().getParent()
+        Path catalog = bank.resolve("common").resolve("catalog")
         if (!Files.exists(xmlPath)) {
             Files.copy(catalog.resolve(XML_FILE), xmlPath, REPLACE_EXISTING)
         }
         assert isValidXML(xmlPath, catalog)
         parse(xmlPath)
+    }
+    
+    def getSHA1Sum() {
+        MessageDigest md = MessageDigest.getInstance("SHA-1")
+        int bytesRead = 0
+        byte[] byteBuf = new byte[1024]
+        File qsnXml = qpath.resolve(XML_FILE).toFile()
+        java.io.InputStream is = new FileInputStream(qsnXml)
+        while ((bytesRead = is.read(byteBuf)) != -1) {
+            md.update(byteBuf, 0, bytesRead)
+        }
+        is.close()
+        
+        byte[] SHA1digest = md.digest()
+        StringBuffer sb = new StringBuffer()
+        for (byte b : SHA1digest){
+            sb.append(String.format("%02x", b))
+        }
+        return sb.toString().substring(0, 12)
     }
     
     private def parse(Path xmlPath) {
@@ -83,9 +105,9 @@ class Question {
         }
     }
 
-    private def isValidXML(Path xmlPath, Path bank) {
+    private def isValidXML(Path xmlPath, Path catalog) {
         def xmlStream = new StreamSource(xmlPath.toFile())
-        def xsdStream = new StreamSource(bank.resolve("question.xsd").toFile())
+        def xsdStream = new StreamSource(catalog.resolve("question.xsd").toFile())
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(xsdStream)
             .newValidator()

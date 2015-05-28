@@ -7,6 +7,7 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.io.Writer
 import java.nio.file.Path
+import java.nio.file.Files
 
 import javax.swing.JDialog
 import javax.swing.JScrollPane
@@ -143,7 +144,7 @@ class Renderer {
             builder.toPrettyString()
     }
 
-    def toXMLString(Path path) {
+    def toXMLString() {
         def sw = new StringWriter()
         def xml = new groovy.xml.MarkupBuilder(sw)
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
@@ -185,23 +186,25 @@ class Renderer {
                 }    
             }
         }
-        path.resolve("question.xml").toFile().write(sw.toString())
+        q.qpath.resolve("question.xml").toFile().write(sw.toString())
     }
     
-    def toSVG(Path path) {
-        render(q.statement.tex, path.resolve("STMT_0.svg"))
+    def toSVG() {
+        Path path = q.qpath
+        renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
         q.steps.eachWithIndex { step, idx ->
-            render(step.context, path.resolve("CTX_${idx}.svg"))
-            render(step.texRight, path.resolve("CRT_${idx}.svg"))
-            render(step.texWrong, path.resolve("WRNG_${idx}.svg"))
-            render(step.reason, path.resolve("RSN_${idx}.svg"))
+            renderSVG(step.context, path.resolve("CTX_${idx}.svg"))
+            renderSVG(step.texRight, path.resolve("CRT_${idx}.svg"))
+            renderSVG(step.texWrong, path.resolve("WRNG_${idx}.svg"))
+            renderSVG(step.reason, path.resolve("RSN_${idx}.svg"))
         }
         q.choices.texs.eachWithIndex { tex, idx ->
-            render(tex, path.resolve("CH_${idx}.svg"))
+            renderSVG(tex, path.resolve("CH_${idx}.svg"))
         }
     }
 
-    private def render(String tex, Path path) {
+    private def renderSVG(String tex, Path path) {
+        Files.deleteIfExists(path)
         TeXIcon icon = teXToIcon(tex)
 
         // Get a DOMImplementation.

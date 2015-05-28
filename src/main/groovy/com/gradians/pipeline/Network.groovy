@@ -9,7 +9,7 @@ import static groovyx.net.http.ContentType.XML
 
 class Network {
     
-    def getBundleInfo(Question q) throws Exception {        
+    def getBundleInfo(Question q) {        
         def bundleId                
         def httpClient = new HTTPBuilder("http://www.gradians.com/bundle/which?uid=${q.uid}")
         httpClient.setHeaders(Accept: 'application/json')
@@ -25,7 +25,7 @@ class Network {
         bundleId
     }
     
-    def addToBundle(Question q) throws Exception {        
+    def addToBundle(Question q) {        
         def bodyMap = (new Renderer(q)).toJSONString()
         
 //        def httpClient = new HTTPBuilder('http://localhost:3000/tag/question')

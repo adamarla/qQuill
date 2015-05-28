@@ -40,8 +40,10 @@ class Tagger {
     // Widgets
     SwingBuilder sb
     
-    public Tagger(Question q, Path catalogPath) {
+    public Tagger(Question q) {
         this.q = q
+        Path bank = q.qpath.getParent().getParent().getParent().getParent()
+        Path catalogPath = bank.resolve("common").resolve("catalog")
         this.catalog = new Catalog(catalogPath)
         this.lib = new TagLib(catalogPath)
         this.network = new Network()

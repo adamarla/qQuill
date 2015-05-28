@@ -236,8 +236,7 @@ class Editor {
         Path bank = q.qpath.getParent().getParent().getParent().getParent()
         Path catalog = bank.resolve("common").resolve("catalog")
         try {
-            Tagger tagger = new Tagger(q, catalog)
-            tagger.go()
+            (new Tagger(q)).go()
         } catch (Exception e) {
             println e
         }
