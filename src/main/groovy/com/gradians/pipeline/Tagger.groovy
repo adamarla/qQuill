@@ -197,24 +197,13 @@ class Tagger {
     }
     
     def tag = {
-        def dialogResult = sb.optionPane().showConfirmDialog (null, 
-            "Did you git push the question?", "Checking", JOptionPane.YES_NO_OPTION)
-
-        if (dialogResult == JOptionPane.YES_OPTION) {
-            if (q.bundle == null) {
-                sb.optionPane().showMessageDialog(null, 
-                    "Sorry, not assigned to bundle yet", 
-                    "Forbidden", JOptionPane.INFORMATION_MESSAGE)                
-            } else {
-                q.concepts = sb.taTopiks.getText().split(delim)
-                try {
-                    network.addToBundle(q)
-                    sb.optionPane().showMessageDialog(null, 
-                        "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
-                } catch (Exception e) {
-                    println e
-                }
-            }           
+        q.concepts = sb.taTopiks.getText().split(delim)
+        try {
+            network.addToBundle(q)
+            sb.optionPane().showMessageDialog(null, 
+                "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
+        } catch (Exception e) {
+            println e
         }
     }        
     

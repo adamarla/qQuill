@@ -9,15 +9,14 @@ import static groovyx.net.http.ContentType.XML
 
 class Network {
     
-    def getBundleInfo(Question q) {        
-        def bundleId                
+    def getBundleInfo(Question q) {
+        def bundleId
         def httpClient = new HTTPBuilder("http://www.gradians.com/bundle/which?uid=${q.uid}")
         httpClient.setHeaders(Accept: 'application/json')
                 
         def results = httpClient.request(GET, JSON) {
                          
             response.success = { resp, json ->
-                println json.bundleId
                 assert resp.statusLine.statusCode == 200
                 bundleId = json.bundleId
             }        

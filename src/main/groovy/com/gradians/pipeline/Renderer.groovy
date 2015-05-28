@@ -135,7 +135,7 @@ class Renderer {
         JsonBuilder builder = new JsonBuilder()
         builder.question {
             'uid' q.uid
-            'bundles' q.bundle
+            'bundle' q.bundle
             'concepts' q.concepts
         }
         if (pretty)
