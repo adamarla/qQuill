@@ -205,6 +205,9 @@ class Renderer {
 
     private def renderSVG(String tex, Path path) {
         Files.deleteIfExists(path)
+        if (tex.length() == 0)
+            return
+            
         TeXIcon icon = teXToIcon(tex)
 
         // Get a DOMImplementation.
@@ -238,7 +241,7 @@ class Renderer {
         svgCanvas
     }
 
-    private TeXIcon teXToIcon(String tex) {
+    private def TeXIcon teXToIcon(String tex) {
         TeXIcon texIcon
         TeXFormula formula
         try {

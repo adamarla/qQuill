@@ -171,13 +171,13 @@ class Editor {
     
     private def save = {
         updateModel()
-        (new Renderer(q)).toXMLString(q.qpath)
+        (new Renderer(q)).toXMLString()
         sb.optionPane().showMessageDialog(null, "Saved!", "Result", JOptionPane.INFORMATION_MESSAGE)
     }
     
     private def render = {
         try {
-            (new Renderer(q, 12)).toSVG(q.qpath)
+            (new Renderer(q, 12)).toSVG()
         } catch (Exception e) {
             println e
         }
