@@ -23,9 +23,11 @@ import javax.swing.JTextArea
 import javax.swing.JTextField
 import javax.swing.JScrollPane
 import javax.swing.border.TitledBorder
-import static javax.swing.JFrame.EXIT_ON_CLOSE
+
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
+import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 class Tagger {
     
@@ -51,11 +53,12 @@ class Tagger {
         this.getBundleInfo()        
     }
 
-    def go() {
+    def go(boolean topLevel = false) {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [600, 480], show: true, locationRelativeTo: null) {
+            frame(title: q.uid, size: [600, 480], show: true, locationRelativeTo: null,
+                    defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 panel(border: BorderFactory.createEmptyBorder()) {
                     gridBagLayout()
                     

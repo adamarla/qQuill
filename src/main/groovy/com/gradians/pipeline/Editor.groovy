@@ -162,11 +162,7 @@ class Editor {
     
     private def previewAll = {
         updateModel()
-        JDialog dialog = new JDialog(title: "Preview", size: [800, 600],
-            defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
-        dialog.add((new Renderer(q)).toSwing(sb))
-        dialog.setLocationByPlatform(true)
-        dialog.setVisible(true)
+        (new Renderer(q)).toSwing()
     }
     
     private def save = {

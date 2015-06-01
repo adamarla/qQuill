@@ -1,5 +1,6 @@
 package com.gradians.pipeline
 
+import groovy.swing.SwingBuilder
 import java.nio.file.Path
 
 import org.apache.commons.cli.DefaultParser
@@ -23,6 +24,7 @@ class Driver {
         
         Options options = new Options()
         options.addOption(Option.builder("r").argName("render").longOpt("render").build())
+        options.addOption(Option.builder("p").argName("preview").longOpt("preview").build())
         options.addOption(Option.builder("t").argName("tag").longOpt("tag").build())
         options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())
         
@@ -30,6 +32,7 @@ class Driver {
         boolean renderOnly = cl.hasOption('r')
         boolean tagOnly = cl.hasOption('t')
         boolean bundleOnly = cl.hasOption('b')
+        boolean previewOnly = cl.hasOption('p')
         
         Path qpath = (new File(pwd)).toPath()        
         try {
@@ -37,9 +40,11 @@ class Driver {
             if (renderOnly) {
                 (new Renderer(q, 12)).toSVG()
             } else if (tagOnly) {
-                (new Tagger(q)).go()
+                (new Tagger(q)).go(true)
             } else if (bundleOnly) {
-                ((new Bundler(q)).bundle())
+                (new Bundler(q)).bundle()
+            } else if (previewOnly) {
+                (new Renderer(q)).toSwing(true)
             } else {
                 (new Editor(q)).launch()
             }

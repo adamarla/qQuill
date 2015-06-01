@@ -2,6 +2,7 @@ package com.gradians.pipeline
 
 import java.awt.Color
 import java.awt.Dimension;
+import java.awt.Insets
 import java.awt.geom.RoundRectangle2D
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
@@ -35,6 +36,8 @@ import groovy.swing.SwingBuilder
 import static java.awt.BorderLayout.EAST
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
+import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
+import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 
 class Renderer {
@@ -58,7 +61,8 @@ class Renderer {
         this.q = q
     }
     
-    def toSwing(SwingBuilder sb) {
+    def toSwing(boolean topLevel = false) {
+        def sb = new SwingBuilder()
         def panel = sb.panel() {
             gridBagLayout()
             
@@ -79,6 +83,13 @@ class Renderer {
                         }
                     }
                 }
+            }
+        }
+        sb.edt {
+            lookAndFeel: 'MetalLookAndFeel'
+            frame(title: q.uid, size: [860, 600], show: true, locationRelativeTo: null,
+                defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
+                widget(panel)
             }
         }
     }
@@ -209,11 +220,10 @@ class Renderer {
             return
             
         TeXIcon icon = teXToIcon(tex)
-
         // Get a DOMImplementation.
         DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation()
         // Create an instance of org.w3c.dom.Document.
-        String svgNS = "http://www.w3.org/2000/svg";
+        String svgNS = "http://www.w3.org/2000/svg"
         org.w3c.dom.Document document = domImpl.createDocument(svgNS, "svg", null)
         
         // Create an instance of the SVG Generator.
@@ -223,13 +233,12 @@ class Renderer {
         SVGGraphics2D svgGenerator = new SVGGraphics2D(ctx, glyphAsShape)
         
         // Ask the test to render into the SVG Graphics2D implementation.
-        svgGenerator.setSVGCanvasSize(
-            new Dimension(icon.getIconWidth() + OFFSET_X, icon.getIconHeight() + OFFSET_Y))
-        icon.paintIcon(null, svgGenerator, OFFSET_X, OFFSET_Y)
+        svgGenerator.setSVGCanvasSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()))
+        icon.paintIcon(null, svgGenerator, 0, 0)
+        svgGenerator.setBackground(Color.WHITE)
     
-        // Finally, stream out SVG to the standard output using
-        // UTF-8 encoding.
-        boolean useCSS = true; // we want to use CSS style attributes        
+        // Finally, stream out SVG to the standard output using UTF-8 encoding.
+        boolean useCSS = true // we want to use CSS style attributes
         Writer out = new OutputStreamWriter(new FileOutputStream(path.toFile()), "UTF-8")
         svgGenerator.stream(out, useCSS)
         out.close()
@@ -238,6 +247,10 @@ class Renderer {
     private def JSVGCanvas fileToIcon(String name) {
         JSVGCanvas svgCanvas = new JSVGCanvas()
         svgCanvas.setURI(q.qpath.resolve(name).toUri().toURL().toString())
+        Dimension d = svgCanvas.getSize()
+        if (d.width > 400) {
+            svgCanvas.setSize(new Dimension(400, 400*d.height/d.width))
+        }
         svgCanvas
     }
 
@@ -250,7 +263,9 @@ class Renderer {
             def s = splitEqually(e.getMessage()).join("\\\\")
             formula = new TeXFormula("\\text{${s}}")
         }
-        texIcon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, fontSize, TeXFormula.SANSSERIF)
+        texIcon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, fontSize, 
+            TeXFormula.SANSSERIF | TeXFormula.ROMAN)
+        texIcon
     }
     
     private def String[] splitEqually(String s) {
