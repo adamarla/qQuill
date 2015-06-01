@@ -144,7 +144,7 @@ class Editor {
             defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
         def panel = sb.panel()
         int tab = sb.tpTeX.getSelectedIndex()
-        switch (tab) {
+        switch(tab) {
             case 0: // Q and Choices
                 panel.add((new Renderer(q)).toSwing(sb, q.statement))
                 if (q.choices != null) {

@@ -66,22 +66,16 @@ class Renderer {
         def panel = sb.panel() {
             gridBagLayout()
             
-            panel(constraints: gbc(gridx: 0, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
-                widget(toSwing(sb, q.statement))
-            }
-                
-            panel(constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 0, fill: HORIZONTAL)) {
-                widget(toSwing(sb, q.choices))
-            }
-                
-            scrollPane(constraints: gbc(gridx: 0, gridy: 1, gridwidth: 2, weightx: 1, weighty: 1, fill: BOTH),
-                verticalScrollBarPolicy:JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED) {
-                panel(constraints: EAST) {
-                    vbox {
-                        q.steps.each { step ->
-                            widget(toSwing(sb, step))
-                        }
-                    }
+            widget(toSwing(sb, q.statement),
+                constraints: gbc(gridx: 0, gridy: 0, weightx: 1, fill: HORIZONTAL))
+            
+            widget(toSwing(sb, q.choices),
+                constraints: gbc(gridx: 1, gridy: 0, weightx: 1, fill: HORIZONTAL))
+                        
+            tabbedPane(constraints: gbc(gridx: 0, gridy: 1, gridwidth: 2, 
+                weightx: 1, weighty: 1, fill: BOTH)) {
+                q.steps.eachWithIndex { step, i ->
+                    widget(toSwing(sb, step), name: "Step${i+1}")
                 }
             }
         }
@@ -95,28 +89,27 @@ class Renderer {
     }
     
     def toSwing(SwingBuilder sb, Step step) {
-        def panel = sb.panel(border: BorderFactory.createLineBorder(Color.BLACK)) {
+        def panel = sb.panel() {
             gridBagLayout()
             
             label(icon: teXToIcon(step.context),
                 border: BorderFactory.createTitledBorder("Context"),
-                constraints: gbc(gridx: 0, gridy: 0))
+                constraints: gbc(gridx: 0, gridy: 0, weightx: 1, fill: HORIZONTAL))
             
             label(icon: teXToIcon(step.reason),
                 border: BorderFactory.createTitledBorder("Reason"),
-                constraints: gbc(gridx: 1, gridy: 0))
+                constraints: gbc(gridx: 1, gridy: 0, weightx: 1, fill: HORIZONTAL))
             
             ["Right", "Wrong"].each { side ->
-                panel(border: BorderFactory.createTitledBorder("${side}"),
-                    constraints: gbc(gridx: (side.equals("Right") ? 0 : 1), gridy: 1)) {
-                    scrollPane() {
-                        if (step."image${side}".length() > 0)
-                            widget(fileToIcon(step."image${side}"))
-                        else
-                            label(icon: teXToIcon(step."tex${side}"))                        
-                    }
+                scrollPane(border: BorderFactory.createTitledBorder("${side}"),
+                    constraints: gbc(gridx: (side.equals("Right") ? 0 : 1), 
+                        gridy: 1, weightx: 1, weighty: 1, fill: BOTH)) {
+                    if (step."image${side}".length() > 0)
+                        widget(fileToIcon(step."image${side}"))
+                    else
+                        label(icon: teXToIcon(step."tex${side}"))                        
                 }    
-            }            
+            }
         }
     }
     
@@ -247,10 +240,6 @@ class Renderer {
     private def JSVGCanvas fileToIcon(String name) {
         JSVGCanvas svgCanvas = new JSVGCanvas()
         svgCanvas.setURI(q.qpath.resolve(name).toUri().toURL().toString())
-        Dimension d = svgCanvas.getSize()
-        if (d.width > 400) {
-            svgCanvas.setSize(new Dimension(400, 400*d.height/d.width))
-        }
         svgCanvas
     }
 
