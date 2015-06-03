@@ -49,9 +49,11 @@ class Bundler {
         final Path root = fs.getPath("/")
         String manifestXML = String.format("%s.xml", bundleId)
         
+        Path tmpManifest = bundlePath.resolve(manifestXML)
         GPathResult manifest
         if (Files.exists(root.resolve(manifestXML))) {
-            manifest = new XmlSlurper().parse(root.resolve(String.format("%s.xml", bundleId)))
+            tmpManifest = Files.copy(root.resolve(manifestXML), tmpManifest, REPLACE_EXISTING)
+            manifest = new XmlSlurper().parse(tmpManifest.toFile())
         } else {
             manifest = new XmlSlurper().parseText(String.format(MANIFEST_TXT, bundleId))
         }
@@ -90,7 +92,6 @@ class Bundler {
         }
         Files.copy(srcDir.resolve(QSN_XML), destDir.resolve(QSN_XML), REPLACE_EXISTING)        
         
-        Path tmpManifest = bundlePath.resolve(manifestXML)
         (new XmlUtil()).serialize(manifest, new FileWriter(tmpManifest.toFile()))
         Files.copy(tmpManifest, root.resolve(manifestXML), REPLACE_EXISTING)
         Files.delete(tmpManifest)
