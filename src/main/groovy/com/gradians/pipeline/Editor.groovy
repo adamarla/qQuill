@@ -214,7 +214,11 @@ class Editor {
                 step.imageWrong = sb."lblWrongFile${idx}".text
                 step.reason = sb."taReason${idx}".text
                 step.noswipe = sb."chkBxSwipe${idx}".selected
-                q.steps.set(idx-1, step)
+                if (q.steps.size() > idx-1) {
+                    q.steps.set(idx-1, step)                    
+                } else {
+                    q.steps.add(idx-1, step)                
+                }
             }
         }
         
