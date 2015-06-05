@@ -214,11 +214,14 @@ class Editor {
                 step.imageWrong = sb."lblWrongFile${idx}".text
                 step.reason = sb."taReason${idx}".text
                 step.noswipe = sb."chkBxSwipe${idx}".selected
-                if (q.steps.size() > idx-1) {
+                
+                if (q.steps.size() > idx-1)
                     q.steps.set(idx-1, step)                    
-                } else {
-                    q.steps.add(idx-1, step)                
-                }
+                else
+                    q.steps.add(idx-1, step)
+            } else {
+                if (q.steps.size() > idx-1)
+                    q.steps.remove(idx-1)
             }
         }
         
@@ -229,6 +232,8 @@ class Editor {
             }
             choices.correct = sb.cbAns.selectedIndex
             q.choices = choices
+        } else {
+            q.choices = null
         }        
     }
     
