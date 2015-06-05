@@ -94,10 +94,9 @@ class Editor {
             sb.panel() {
                 sb.label(text: 'Correct Option')
                 sb.comboBox(id: 'cbAns', items: ['A', 'B', 'C', 'D'])
-                sb.button(text: 'Preview', actionPerformed: preview)                
             }
         }
-        sb.cbAns.selectedIndex = q.choices.correct
+        sb.cbAns.selectedIndex = q.choices == null ? 0 : q.choices.correct
     }
     
     private def stepTeX = { int idx ->
@@ -133,31 +132,8 @@ class Editor {
             }
             sb.panel() {
                 sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
-                sb.button(text: 'Preview', actionPerformed: preview)
             }
         }
-    }
-    
-    private def preview = {
-        updateModel()
-        JDialog dialog = new JDialog(title: "Preview", size: [800, 400],
-            defaultCloseOperation: JDialog.DISPOSE_ON_CLOSE)
-        def panel = sb.panel()
-        int tab = sb.tpTeX.getSelectedIndex()
-        switch(tab) {
-            case 0: // Q and Choices
-                panel.add((new Renderer(q)).toSwing(sb, q.statement))
-                if (q.choices != null) {
-                    panel.add((new Renderer(q)).toSwing(sb, q.choices))
-                }
-                break
-            default: // Steps
-                panel.add((new Renderer(q).toSwing(sb, q.steps[tab-1])))
-                break
-        }    
-        dialog.add(panel)
-        dialog.setLocationByPlatform(true)
-        dialog.setVisible(true)
     }
     
     private def previewAll = {

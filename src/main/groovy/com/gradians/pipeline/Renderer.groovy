@@ -69,7 +69,7 @@ class Renderer {
             widget(toSwing(sb, q.statement),
                 constraints: gbc(gridx: 0, gridy: 0, weightx: 1, fill: HORIZONTAL))
             
-            widget(toSwing(sb, q.choices),
+            widget(toSwing(sb, (Choices)q.choices),
                 constraints: gbc(gridx: 1, gridy: 0, weightx: 1, fill: HORIZONTAL))
                         
             tabbedPane(constraints: gbc(gridx: 0, gridy: 1, gridwidth: 2, 
@@ -124,7 +124,10 @@ class Renderer {
     }
     
     def toSwing(SwingBuilder sb, Choices choices) {
-        def panel = sb.panel(border: BorderFactory.createTitledBorder("Choices")) {
+        def panel = sb.panel(border: BorderFactory.createTitledBorder("Choices"))
+        if (choices == null)
+            return panel 
+        panel = {
             vbox(constraints: EAST) {
                 choices.texs.eachWithIndex { tex, i ->
                     label(icon: teXToIcon(tex))
