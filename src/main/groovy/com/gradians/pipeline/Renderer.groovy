@@ -124,16 +124,15 @@ class Renderer {
     }
     
     def toSwing(SwingBuilder sb, Choices choices) {
-        def panel = sb.panel(border: BorderFactory.createTitledBorder("Choices"))
-        if (choices == null)
-            return panel 
-        panel = {
+        def panel = sb.panel(border: BorderFactory.createTitledBorder("Choices")) {
             vbox(constraints: EAST) {
-                choices.texs.eachWithIndex { tex, i ->
-                    label(icon: teXToIcon(tex))
+                if (choices != null) {
+                    choices.texs.eachWithIndex { tex, i ->
+                        label(icon: teXToIcon(tex))
+                    }
+                    char correct = (char)(((int)'A') + choices.correct)
+                    label(text: "Correct Ans ${correct}")    
                 }
-                char correct = (char)(((int)'A') + choices.correct)
-                label(text: "Correct Ans ${correct}")
             }
         }
     }
