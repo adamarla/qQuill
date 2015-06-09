@@ -1,7 +1,9 @@
 package com.gradians.pipeline
 
 import java.awt.Color
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics
 import java.awt.Insets
 import java.awt.geom.RoundRectangle2D
 import java.io.FileOutputStream
@@ -35,7 +37,6 @@ import org.w3c.dom.DOMImplementation
 
 import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
-
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
 import static java.awt.BorderLayout.EAST
@@ -98,45 +99,35 @@ class Renderer {
             gridBagLayout()
             
             ["Context", "Reason"].eachWithIndex { part, idx ->
-                Icon icon = teXToIcon(step."${part.toLowerCase()}")
-                TitledBorder b = getBorder(icon, part)
-                label(icon: teXToIcon(step."${part.toLowerCase()}"),
-                    border: b,
+                widget(new TeXLabel(teXToIcon(step."${part.toLowerCase()}"), part), 
                     constraints: gbc(gridx: idx, gridy: 0, weightx: 1, fill: HORIZONTAL))            
             }
             
             ["Right", "Wrong"].each { side ->
                 def drawable
-                TitledBorder b
                 if (step."image${side}".length() > 0) {
                     drawable = fileToIcon(step."image${side}")
-                    b = BorderFactory.createTitledBorder("${side}")
+                    drawable.setBorder(BorderFactory.createTitledBorder("${side}"))
                 } else {
-                    drawable = teXToIcon(step."tex${side}")
-                    Icon icon = (Icon)drawable
-                    b = getBorder(icon, "${side}")
+                    drawable = new TeXLabel(teXToIcon(step."tex${side}"), "${side}")
                 }
                 
-                scrollPane(border: b, 
-                    constraints: gbc(gridx: (side.equals("Right") ? 0 : 1), 
+                scrollPane(constraints: gbc(gridx: (side.equals("Right") ? 0 : 1), 
                         gridy: 1, weightx: 1, weighty: 1, fill: BOTH)) {
-                    if (step."image${side}".length() > 0)
-                        widget(drawable)
-                    else
-                        label(icon: drawable)
+                    widget(drawable)
                 }    
             }
         }
     }
     
     def toSwing(SwingBuilder sb, Statement statement) {
-        Icon icon = teXToIcon(statement.tex)
-        TitledBorder b = getBorder(icon, "Problem")
-        def panel = sb.panel(border: b) {
+        def panel = sb.panel() {
             vbox(constraints: EAST) {
-                label(icon: icon)
-                if (statement.image.length() > 0)
-                    widget(fileToIcon(statement.image))    
+                if (statement.image.length() > 0)                
+                    widget(fileToIcon(statement.image))
+                else {
+                    widget(new TeXLabel(teXToIcon(statement.tex), "Problem"))
+                }    
             }
         }
     }
@@ -146,10 +137,8 @@ class Renderer {
             vbox(constraints: EAST) {
                 if (choices != null) {
                     choices.texs.eachWithIndex { tex, i ->
-                        Icon icon = teXToIcon(tex)
                         char c = (char)(((int)'A') + i)
-                        TitledBorder b = getBorder(icon, "${c}")
-                        label(icon: icon, border: b)
+                        widget(new TeXLabel(teXToIcon(tex), "${c}"))
                     }
                     char correct = (char)(((int)'A') + choices.correct)
                     label(text: "Correct Ans ${correct}")    
@@ -265,8 +254,8 @@ class Renderer {
         svgCanvas.setURI(q.qpath.resolve(name).toUri().toURL().toString())
         svgCanvas
     }
-
-    private def TeXIcon teXToIcon(String tex) {
+    
+    private def Icon teXToIcon(String tex) {
         TeXIcon texIcon
         TeXFormula formula
         try {
@@ -280,27 +269,49 @@ class Renderer {
         texIcon
     }
     
-    private def Border getBorder(Icon icon, String title) {
-        Border b = BorderFactory.createTitledBorder(title)
-        if (icon.iconWidth > ERROR_WIDTH)
-            b.setBorder(new LineBorder(RED, (icon.iconWidth - ERROR_WIDTH)%5+1))
-        else if (icon.iconWidth > WARNING_WIDTH)
-            b.setBorder(new LineBorder(ORANGE))
-        b
-    }
-    
     private def String[] splitEqually(String s) {
-        int n = (s.length() / WIDTH) + 1
+        int n = (s.length() / CHAR_WIDTH) + 1
         def parts = new String[n]
         for (int i = 0; i < n; i++) {
-            parts[i] = s.substring(i*WIDTH,
-                i == n-1 ? s.length() : (i+1)*WIDTH)
+            parts[i] = s.substring(i*CHAR_WIDTH,
+                i == n-1 ? s.length() : (i+1)*CHAR_WIDTH)
         }
         parts
     }    
 
-    private final int ERROR_WIDTH = 300, WARNING_WIDTH = 290
-    private final int WIDTH = 35
-    private final def OFFSET_X = 3, OFFSET_Y = 2
+    private final int CHAR_WIDTH = 45
+    
+}
+
+class TeXLabel extends JLabel {
+    
+    public TeXLabel(TeXIcon icon) {
+        this.icon = icon
+    }
+    
+    public TeXLabel(TeXIcon icon, String title) {
+        this.icon = icon
+        setBorder(title)
+    }
+    
+    public void setBorder(String title) {
+        TitledBorder b = BorderFactory.createTitledBorder(title)
+        if (icon.iconWidth > ERROR_WIDTH)
+            b.setBorder(new LineBorder(RED, (icon.iconWidth - ERROR_WIDTH)%5+1))
+        else if (icon.iconWidth > WARNING_WIDTH)
+            b.setBorder(new LineBorder(ORANGE))
+        super.setBorder(b)
+    }
+    
+    @Override
+    public void paintComponent(Graphics g){
+        super.paintComponent(g)        
+        if (icon.iconWidth > ERROR_WIDTH) {
+            g.setColor(Color.BLUE)
+            g.drawLine(ERROR_WIDTH, 0, ERROR_WIDTH, icon.iconHeight)
+        }
+    }
+    
+    private final int ERROR_WIDTH = 300, WARNING_WIDTH = 280
     
 }
