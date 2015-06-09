@@ -208,7 +208,7 @@ class Editor {
         
         Step step
         [1, 2, 3, 4, 5, 6].each { idx ->
-            if (taContext[idx-1].text.length() > 0) {
+            if (taContext[idx-1].text.length() > 0 || idx == 1) {
                 step = new Step()
                 step.context = taContext[idx-1].text
                 step.texRight = taRight[idx-1].text
