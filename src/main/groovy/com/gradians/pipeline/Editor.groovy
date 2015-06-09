@@ -4,16 +4,25 @@ import groovy.swing.SwingBuilder;
 
 import java.awt.MediaTracker
 import java.awt.BorderLayout as BL
+import java.awt.event.ActionEvent
+import java.awt.event.InputEvent
+import java.awt.event.KeyEvent
 import java.nio.file.Path
+import javax.swing.Action
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
 import javax.swing.JOptionPane
 import javax.swing.JDialog
 import javax.swing.JLabel
 import javax.swing.JFileChooser
+import javax.swing.JTextArea
+import javax.swing.KeyStroke
 import javax.swing.filechooser.FileFilter
 import javax.swing.border.TitledBorder
 import javax.swing.filechooser.FileView
+import javax.swing.text.JTextComponent
+import javax.swing.text.Keymap
+import javax.swing.text.TextAction
 
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
@@ -64,13 +73,15 @@ class Editor {
                 }
             }
         }
+        
+        sb.cbAns.selectedIndex = q.choices == null ? 0 : q.choices.correct
     }
     
     private def qsnAnsTeX = {
         sb.vbox() {
             sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
                 sb.scrollPane() {
-                    sb.textArea(id: 'taQsnTex', text: q.statement.tex, rows: 8, columns: 72)
+                    sb.textArea(id: 'taQsnTeX', text: q.statement.tex, rows: 8, columns: 72)
                 }
                 sb.panel() {
                     sb.button(id: 'btnFile', text: 'Image (optional):',
@@ -96,7 +107,10 @@ class Editor {
                 sb.comboBox(id: 'cbAns', items: ['A', 'B', 'C', 'D'])
             }
         }
-        sb.cbAns.selectedIndex = q.choices == null ? 0 : q.choices.correct
+        sb.taQsnTeX.setKeymap(addCtrlKeys(sb.taQsnTeX.getKeymap()))
+        ['A', 'B', 'C', 'D'].each { option ->
+            sb."taAnsTex${option}".setKeymap(addCtrlKeys(sb."taAnsTex${option}".getKeymap()))            
+        }
     }
     
     private def stepTeX = { int idx ->
@@ -113,6 +127,7 @@ class Editor {
                         sb.textArea(id: "ta${tex}${idx}", 
                             text: step."${tex.toLowerCase()}", rows: 6, columns: 36)
                     }
+                    sb."ta${tex}${idx}".setKeymap(addCtrlKeys(sb."ta${tex}${idx}".getKeymap()))
                 }
             }
             sb.panel(border: BorderFactory.createTitledBorder("Options")) {
@@ -128,6 +143,7 @@ class Editor {
                             sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
                         }    
                     }
+                    sb."ta${side}Step${idx}".setKeymap(addCtrlKeys(sb."ta${side}Step${idx}".getKeymap()))
                 }
             }
             sb.panel() {
@@ -174,7 +190,7 @@ class Editor {
     
     private def updateModel = {
         Statement statement = new Statement()
-        statement.tex = sb.taQsnTex.text.trim()
+        statement.tex = sb.taQsnTeX.text.trim()
         statement.image = sb.lblFile.text
         q.statement = statement
         
@@ -212,10 +228,23 @@ class Editor {
             q.choices = null
         }        
     }
+
+    private def Keymap addCtrlKeys(Keymap kmap) {
+        Keymap latexMap = JTextComponent.addKeymap("LaTeXMap", kmap)
+        KeyStroke t = KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK)
+        latexMap.addActionForKeyStroke(t, new LaTeXAction("\\text{}", 1))
+        KeyStroke p = KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
+        latexMap.addActionForKeyStroke(p, new LaTeXAction("\\left(\\right)", 7))
+        KeyStroke b = KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, InputEvent.CTRL_DOWN_MASK)
+        latexMap.addActionForKeyStroke(b, new LaTeXAction("\\left[\\right]", 7))
+        KeyStroke d = KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK)
+        latexMap.addActionForKeyStroke(d, new LaTeXAction("\\dfrac{}{}", 3))
+        KeyStroke a = KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK)
+        latexMap.addActionForKeyStroke(a, new LaTeXAction("\n\\begin{align}\n\\end{align}", 11))
+        latexMap
+    }
     
     private def tag = {
-        Path bank = q.qpath.getParent().getParent().getParent().getParent()
-        Path catalog = bank.resolve("common").resolve("catalog")
         try {
             (new Tagger(q)).go()
         } catch (Exception e) {
@@ -223,4 +252,26 @@ class Editor {
         }
     }
     
+}
+
+class LaTeXAction extends TextAction {
+    
+    String latex
+    int offset
+    
+    public LaTeXAction(String latex, int offset) {
+        super("laTeX-action")
+        this.latex = latex
+        this.offset = offset
+    }
+    
+    @Override
+    void actionPerformed(ActionEvent ae) {
+        JTextArea comp = (JTextArea)getTextComponent(ae)
+        if (comp == null)
+          return
+        comp.insert(latex, comp.getCaretPosition())
+        comp.setCaretPosition(comp.getCaretPosition() - offset)
+    }
+
 }

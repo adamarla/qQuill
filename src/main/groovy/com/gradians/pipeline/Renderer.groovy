@@ -12,10 +12,13 @@ import java.nio.file.Files
 
 import javax.swing.JDialog
 import javax.swing.JScrollPane
+import javax.swing.Icon
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.BorderFactory
+import javax.swing.border.Border
+import javax.swing.border.LineBorder
 import javax.swing.border.TitledBorder
 
 import org.apache.batik.dom.GenericDOMImplementation
@@ -33,6 +36,8 @@ import org.w3c.dom.DOMImplementation
 import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
 
+import static java.awt.Color.ORANGE
+import static java.awt.Color.RED
 import static java.awt.BorderLayout.EAST
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
@@ -92,31 +97,44 @@ class Renderer {
         def panel = sb.panel() {
             gridBagLayout()
             
-            label(icon: teXToIcon(step.context),
-                border: BorderFactory.createTitledBorder("Context"),
-                constraints: gbc(gridx: 0, gridy: 0, weightx: 1, fill: HORIZONTAL))
-            
-            label(icon: teXToIcon(step.reason),
-                border: BorderFactory.createTitledBorder("Reason"),
-                constraints: gbc(gridx: 1, gridy: 0, weightx: 1, fill: HORIZONTAL))
+            ["Context", "Reason"].eachWithIndex { part, idx ->
+                Icon icon = teXToIcon(step."${part.toLowerCase()}")
+                TitledBorder b = getBorder(icon, part)
+                label(icon: teXToIcon(step."${part.toLowerCase()}"),
+                    border: b,
+                    constraints: gbc(gridx: idx, gridy: 0, weightx: 1, fill: HORIZONTAL))            
+            }
             
             ["Right", "Wrong"].each { side ->
-                scrollPane(border: BorderFactory.createTitledBorder("${side}"),
+                def drawable
+                TitledBorder b
+                if (step."image${side}".length() > 0) {
+                    drawable = fileToIcon(step."image${side}")
+                    b = BorderFactory.createTitledBorder("${side}")
+                } else {
+                    drawable = teXToIcon(step."tex${side}")
+                    Icon icon = (Icon)drawable
+                    b = getBorder(icon, "${side}")
+                }
+                
+                scrollPane(border: b, 
                     constraints: gbc(gridx: (side.equals("Right") ? 0 : 1), 
                         gridy: 1, weightx: 1, weighty: 1, fill: BOTH)) {
                     if (step."image${side}".length() > 0)
-                        widget(fileToIcon(step."image${side}"))
+                        widget(drawable)
                     else
-                        label(icon: teXToIcon(step."tex${side}"))                        
+                        label(icon: drawable)
                 }    
             }
         }
     }
     
     def toSwing(SwingBuilder sb, Statement statement) {
-        def panel = sb.panel(border: BorderFactory.createTitledBorder("Statement")) {
+        Icon icon = teXToIcon(statement.tex)
+        TitledBorder b = getBorder(icon, "Problem")
+        def panel = sb.panel(border: b) {
             vbox(constraints: EAST) {
-                label(icon: teXToIcon(statement.tex))
+                label(icon: icon)
                 if (statement.image.length() > 0)
                     widget(fileToIcon(statement.image))    
             }
@@ -128,7 +146,10 @@ class Renderer {
             vbox(constraints: EAST) {
                 if (choices != null) {
                     choices.texs.eachWithIndex { tex, i ->
-                        label(icon: teXToIcon(tex))
+                        Icon icon = teXToIcon(tex)
+                        char c = (char)(((int)'A') + i)
+                        TitledBorder b = getBorder(icon, "${c}")
+                        label(icon: icon, border: b)
                     }
                     char correct = (char)(((int)'A') + choices.correct)
                     label(text: "Correct Ans ${correct}")    
@@ -259,6 +280,15 @@ class Renderer {
         texIcon
     }
     
+    private def Border getBorder(Icon icon, String title) {
+        Border b = BorderFactory.createTitledBorder(title)
+        if (icon.iconWidth > ERROR_WIDTH)
+            b.setBorder(new LineBorder(RED, (icon.iconWidth - ERROR_WIDTH)%5+1))
+        else if (icon.iconWidth > WARNING_WIDTH)
+            b.setBorder(new LineBorder(ORANGE))
+        b
+    }
+    
     private def String[] splitEqually(String s) {
         int n = (s.length() / WIDTH) + 1
         def parts = new String[n]
@@ -268,7 +298,8 @@ class Renderer {
         }
         parts
     }    
-    
+
+    private final int ERROR_WIDTH = 300, WARNING_WIDTH = 290
     private final int WIDTH = 35
     private final def OFFSET_X = 3, OFFSET_Y = 2
     
