@@ -17,12 +17,15 @@ import javax.swing.JLabel
 import javax.swing.JFileChooser
 import javax.swing.JTextArea
 import javax.swing.KeyStroke
+import javax.swing.event.UndoableEditEvent
+import javax.swing.event.UndoableEditListener
 import javax.swing.filechooser.FileFilter
 import javax.swing.border.TitledBorder
 import javax.swing.filechooser.FileView
 import javax.swing.text.JTextComponent
 import javax.swing.text.Keymap
 import javax.swing.text.TextAction
+import javax.swing.undo.UndoManager
 
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
@@ -42,16 +45,26 @@ class Editor {
     SwingBuilder sb
     Question q
     
+    // Standalone widget handles
+    def taQsnTeX
+    def taAnsTeX
+    def taContext, taReason, taRight, taWrong
+    
     def Editor(Question q) {
         this.q = q
+        taAnsTeX = new LaTeXArea[4]
+        taContext = new LaTeXArea[6] 
+        taReason = new LaTeXArea[6] 
+        taRight = new LaTeXArea[6] 
+        taWrong = new LaTeXArea[6]
     }
     
     def launch() {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [860, 600], show: true, locationRelativeTo: null, 
-                defaultCloseOperation: EXIT_ON_CLOSE) {
+            frame(title: q.uid, size: [800, 600], show: true, locationRelativeTo: null,
+                resizable: false, defaultCloseOperation: EXIT_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
                     
@@ -78,10 +91,11 @@ class Editor {
     }
     
     private def qsnAnsTeX = {
+        taQsnTeX = new LaTeXArea(q.statement.tex, 8, 40)
         sb.vbox() {
             sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
                 sb.scrollPane() {
-                    sb.textArea(id: 'taQsnTeX', text: q.statement.tex, rows: 8, columns: 72)
+                    widget(taQsnTeX)
                 }
                 sb.panel() {
                     sb.button(id: 'btnFile', text: 'Image (optional):',
@@ -95,9 +109,9 @@ class Editor {
                     sb.panel() {
                         set.each { option ->
                             def idx = (int)((char)option) - (int)'A'
-                            sb.textArea(id: "taAnsTex${(char)option}", rows: 4, columns: 36,
-                                text: (q.choices != null ? q.choices.texs[idx] : ""),
-                                border: BorderFactory.createTitledBorder("${option}"))
+                            taAnsTeX[idx] = new LaTeXArea(q.choices != null ? q.choices.texs[idx] : "", 4, 32)
+                            taAnsTeX[idx].setBorder(BorderFactory.createTitledBorder("${option}"))
+                            widget(taAnsTeX[idx])
                         }
                     }
                 }
@@ -106,10 +120,6 @@ class Editor {
                 sb.label(text: 'Correct Option')
                 sb.comboBox(id: 'cbAns', items: ['A', 'B', 'C', 'D'])
             }
-        }
-        sb.taQsnTeX.setKeymap(addCtrlKeys(sb.taQsnTeX.getKeymap()))
-        ['A', 'B', 'C', 'D'].each { option ->
-            sb."taAnsTex${option}".setKeymap(addCtrlKeys(sb."taAnsTex${option}".getKeymap()))            
         }
     }
     
@@ -120,22 +130,25 @@ class Editor {
         } else {
             step = q.steps.get(idx-1)
         }
-        sb.vbox(constraints: BL.EAST) {            
+        taContext[idx-1] = new LaTeXArea(step.context, 4, 32)
+        taReason[idx-1] = new LaTeXArea(step.reason, 4, 32)
+        taRight[idx-1] = new LaTeXArea(step.texRight, 10, 32)
+        taWrong[idx-1] = new LaTeXArea(step.texWrong, 10, 32)
+
+        sb.vbox(constraints: BL.EAST) {
             sb.panel() {
-                ["Context", "Reason"].each { tex ->
-                    sb.scrollPane(border: BorderFactory.createTitledBorder("${tex}")) {
-                        sb.textArea(id: "ta${tex}${idx}", 
-                            text: step."${tex.toLowerCase()}", rows: 6, columns: 36)
-                    }
-                    sb."ta${tex}${idx}".setKeymap(addCtrlKeys(sb."ta${tex}${idx}".getKeymap()))
+                sb.scrollPane(border: BorderFactory.createTitledBorder("Context")) {
+                    widget(taContext[idx-1])                    
+                }
+                sb.scrollPane(border: BorderFactory.createTitledBorder("Reason")) {
+                    widget(taReason[idx-1])
                 }
             }
             sb.panel(border: BorderFactory.createTitledBorder("Options")) {
                 ["Right", "Wrong"].each { side ->
                     sb.vbox(border: BorderFactory.createTitledBorder("${side}")) {
                         sb.scrollPane() {
-                            textArea(id: "ta${side}Step${idx}", 
-                                text: step."tex${side}", rows: 10, columns: 36)
+                            widget(side.equals("Right") ? taRight[idx-1] : taWrong[idx-1])
                         }
                         sb.panel() {
                             sb.button(id: "btn${side}File${idx}", text: 'Image (optional):',
@@ -143,7 +156,6 @@ class Editor {
                             sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
                         }    
                     }
-                    sb."ta${side}Step${idx}".setKeymap(addCtrlKeys(sb."ta${side}Step${idx}".getKeymap()))
                 }
             }
             sb.panel() {
@@ -190,21 +202,20 @@ class Editor {
     
     private def updateModel = {
         Statement statement = new Statement()
-        statement.tex = sb.taQsnTeX.text.trim()
+        statement.tex = taQsnTeX.text.trim()
         statement.image = sb.lblFile.text
         q.statement = statement
         
         Step step
         [1, 2, 3, 4, 5, 6].each { idx ->
-            if (sb."taContext${idx}".text.length() > 0 ||
-                idx < 3) {
+            if (taContext[idx-1].text.length() > 0) {
                 step = new Step()
-                step.context = sb."taContext${idx}".text
-                step.texRight = sb."taRightStep${idx}".text
+                step.context = taContext[idx-1].text
+                step.texRight = taRight[idx-1].text
                 step.imageRight = sb."lblRightFile${idx}".text
-                step.texWrong = sb."taWrongStep${idx}".text
+                step.texWrong = taWrong[idx-1].text
                 step.imageWrong = sb."lblWrongFile${idx}".text
-                step.reason = sb."taReason${idx}".text
+                step.reason = taReason[idx-1].text
                 step.noswipe = sb."chkBxSwipe${idx}".selected
                 
                 if (q.steps.size() > idx-1)
@@ -217,10 +228,10 @@ class Editor {
             }
         }
         
-        if (sb.taAnsTexA.text.length() > 0) {
+        if (taAnsTeX[0].text.length() > 0) {
             Choices choices = new Choices()
             ['A', 'B', 'C', 'D'].eachWithIndex { option, idx ->  
-                choices.texs[idx] = sb."taAnsTex${option}".text
+                choices.texs[idx] = taAnsTeX[idx].text
             }
             choices.correct = sb.cbAns.selectedIndex
             q.choices = choices
@@ -229,8 +240,34 @@ class Editor {
         }        
     }
 
-    private def Keymap addCtrlKeys(Keymap kmap) {
-        Keymap latexMap = JTextComponent.addKeymap("LaTeXMap", kmap)
+    private def tag = {
+        try {
+            (new Tagger(q)).go()
+        } catch (Exception e) {
+            println e
+        }
+    }
+    
+}
+
+class LaTeXArea extends JTextArea {
+    
+    UndoManager undoManager    
+    public LaTeXArea(String tex, int row, int col) {
+        super(tex, row, col)
+        undoManager = new UndoManager()
+        
+        getDocument().addUndoableEditListener(
+            new UndoableEditListener() {
+                public void undoableEditHappened(UndoableEditEvent e) {
+                    undoManager.addEdit(e.getEdit())
+                }
+            })        
+        addCtrlKeys()
+    }
+    
+    private def addCtrlKeys() {
+        Keymap latexMap = JTextComponent.addKeymap("LaTeXMap", this.keymap)
         KeyStroke t = KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK)
         latexMap.addActionForKeyStroke(t, new LaTeXAction("\\text{}", 1))
         KeyStroke p = KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
@@ -241,15 +278,11 @@ class Editor {
         latexMap.addActionForKeyStroke(d, new LaTeXAction("\\dfrac{}{}", 3))
         KeyStroke a = KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK)
         latexMap.addActionForKeyStroke(a, new LaTeXAction("\n\\begin{align}\n\\end{align}", 11))
-        latexMap
-    }
-    
-    private def tag = {
-        try {
-            (new Tagger(q)).go()
-        } catch (Exception e) {
-            println e
-        }
+        KeyStroke z = KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK)
+        latexMap.addActionForKeyStroke(z, new LaTeXAction("undo", 0))
+        KeyStroke Z = KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
+        latexMap.addActionForKeyStroke(Z, new LaTeXAction("redo", 0))
+        this.keymap = latexMap
     }
     
 }
@@ -270,8 +303,19 @@ class LaTeXAction extends TextAction {
         JTextArea comp = (JTextArea)getTextComponent(ae)
         if (comp == null)
           return
-        comp.insert(latex, comp.getCaretPosition())
-        comp.setCaretPosition(comp.getCaretPosition() - offset)
+        
+        if (latex.equals("undo")) {
+            if (ae.getSource().undoManager.canUndo()) {
+                ae.getSource().undoManager.undo()
+            }
+        } else if (latex.equals("redo")) {
+            if (ae.getSource().undoManager.canRedo()) {
+                ae.getSource().undoManager.redo()
+            }
+        } else {
+            comp.insert(latex, comp.getCaretPosition())
+            comp.setCaretPosition(comp.getCaretPosition() - offset)
+        }          
     }
 
 }
