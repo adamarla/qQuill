@@ -214,8 +214,10 @@ class Renderer {
             renderSVG(step.texWrong, path.resolve("WRNG_${idx}.svg"))
             renderSVG(step.reason, path.resolve("RSN_${idx}.svg"))
         }
-        q.choices.texs.eachWithIndex { tex, idx ->
-            renderSVG(tex, path.resolve("CH_${idx}.svg"))
+        if (q.choices != null) {
+            q.choices.texs.eachWithIndex { tex, idx ->
+                renderSVG(tex, path.resolve("CH_${idx}.svg"))
+            }    
         }
     }
 
