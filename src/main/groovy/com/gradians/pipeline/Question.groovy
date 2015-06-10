@@ -40,12 +40,13 @@ class Question {
         def xmlPath = qpath.resolve(XML_FILE)
         Path bank = qpath.getParent().getParent().getParent().getParent()
         Path catalog = bank.resolve("common").resolve("catalog")
-        if (!Files.exists(xmlPath)) {
-            Files.copy(catalog.resolve(XML_FILE), xmlPath, REPLACE_EXISTING)
+        if (Files.notExists(xmlPath)) {
+            parse(catalog.resolve(XML_FILE))
+        } else {
+            assert isValidXML(xmlPath, catalog)
+            parse(xmlPath)
+            getLabel()
         }
-        assert isValidXML(xmlPath, catalog)
-        parse(xmlPath)
-        getLabel()
     }
     
     def getSHA1Sum() {
