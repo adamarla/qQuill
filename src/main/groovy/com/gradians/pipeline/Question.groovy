@@ -1,8 +1,11 @@
 package com.gradians.pipeline
 
 import java.io.FileInputStream
+import java.nio.file.DirectoryStream
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.PathMatcher
 import java.security.MessageDigest
 
 import groovy.util.slurpersupport.GPathResult
@@ -33,6 +36,7 @@ class Question {
         this.qpath = qpath
         def tokens = qpath.toString().split(SEP)
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"
+        
         def xmlPath = qpath.resolve(XML_FILE)
         Path bank = qpath.getParent().getParent().getParent().getParent()
         Path catalog = bank.resolve("common").resolve("catalog")
@@ -41,6 +45,7 @@ class Question {
         }
         assert isValidXML(xmlPath, catalog)
         parse(xmlPath)
+        getLabel()
     }
     
     def getSHA1Sum() {
@@ -102,7 +107,7 @@ class Question {
                     choices.correct = i
                 }
             }    
-        }
+        }        
     }
 
     private def isValidXML(Path xmlPath, Path catalog) {
@@ -113,6 +118,13 @@ class Question {
             .newValidator()
             .validate(xmlStream)
         true        
+    }
+    
+    private def getLabel() {
+        DirectoryStream<Path> stream = Files.newDirectoryStream(qpath, "*.lbl")
+        for (Path path : stream) {
+            bundle = path.getFileName().toString().split("\\.")[0]
+        }
     }
 }
 

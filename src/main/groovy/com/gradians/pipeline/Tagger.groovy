@@ -3,6 +3,8 @@ package com.gradians.pipeline
 import ca.odell.glazedlists.GlazedLists
 import ca.odell.glazedlists.matchers.TextMatcherEditor
 import ca.odell.glazedlists.swing.AutoCompleteSupport
+
+import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -10,7 +12,10 @@ import java.awt.Color
 import java.awt.FlowLayout
 import java.awt.GridBagConstraints
 import java.awt.event.ActionEvent
+import java.nio.file.DirectoryStream
 import java.nio.file.Path
+import java.nio.file.Files
+
 import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.BoxLayout
@@ -24,6 +29,7 @@ import javax.swing.JTextField
 import javax.swing.JScrollPane
 import javax.swing.border.TitledBorder
 
+import static java.nio.file.LinkOption.NOFOLLOW_LINKS
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
@@ -33,31 +39,34 @@ class Tagger {
     
     final String delim = "\n"
     
+    Question[] qsns
+    Path path
+    
     // Workers
     TagLib lib
     Catalog catalog
     Network network
-    Question q
     
     // Widgets
     SwingBuilder sb
     
-    public Tagger(Question q) {
-        this.q = q
-        Path bank = q.qpath.getParent().getParent().getParent().getParent()
+    public Tagger(Path path) {
+        this.path = path
+        Path bank = path.getParent().getParent().getParent()
+        
         Path catalogPath = bank.resolve("common").resolve("catalog")
         this.catalog = new Catalog(catalogPath)
         this.lib = new TagLib(catalogPath)
         this.network = new Network()
         
-        this.getBundleInfo()        
+        this.getBundleInfo(path)
     }
 
-    def go(boolean topLevel = false) {
+    def go(boolean topLevel = false) {        
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [600, 480], show: true, locationRelativeTo: null,
+            frame(title: path.getFileName(), size: [600, 600], show: true, locationRelativeTo: null,
                     defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 panel(border: BorderFactory.createEmptyBorder()) {
                     gridBagLayout()
@@ -88,13 +97,31 @@ class Tagger {
                             ["Qsn", "Part", "Subpart"].eachWithIndex { component, i ->
                                 comboBox(id: "cbLabel${component}", items: lib."get${component}"())
                             }
-                            button(id: 'btnAddBundle', text: 'Generate', actionPerformed: addBundle)
-                            label(id: 'lblBundles', q.bundle)
+                            button(text: 'Generate', actionPerformed: genLabel)
+                            label(id: 'lblBundle', NO_BUNDLE_ASSIGNED)
                         }
+                    }
+                    
+                    panel(border: BorderFactory.createTitledBorder("Bundles"),
+                        constraints: gbc(gridx: 0, gridy: 2, weightx: 1, weighty: 1, fill: BOTH)) {
+                        gridBagLayout()
+                        
+                        scrollPane(constraints: gbc(gridx: 0, gridy: 0, gridwidth: 3, 
+                            weightx: 1.0, weighty: 1, fill: BOTH)) {
+                            table(id: 'tblSlots') {
+                                tableModel(list: getTableData()) {
+                                    propertyColumn(header: 'UID', propertyName: 'uid', editable: false)
+                                    propertyColumn(header: 'Bundle', propertyName: 'bundle', editable: false)
+                                    propertyColumn(header: 'Label', propertyName: 'label', editable: false)
+                                }
+                            }
+                        }
+                        button(text: 'Update', actionPerformed: updateLabel,
+                            constraints: gbc(gridx: 0, gridy: 1, weightx: 1.0))    
                     }
                         
                     panel(border: BorderFactory.createTitledBorder("Concepts"), 
-                        constraints: gbc(gridx: 0, gridy: 2, weightx: 1, weighty: 1, fill: BOTH)) {
+                        constraints: gbc(gridx: 0, gridy: 3, weightx: 1, weighty: 1, fill: BOTH)) {
                         gridBagLayout()
         
                         scrollPane(constraints: gbc(gridx: 0, gridy: 0, gridwidth: 3, 
@@ -130,17 +157,35 @@ class Tagger {
         }
     }
     
-    def addBundle = {
+    def updateLabel = {
+        int row = sb.tblSlots.getSelectedRow()        
+        if (sb.lblBundle.text.equals(NO_BUNDLE_ASSIGNED)) {
+            return
+        }
+        if (row < 0) {
+            sb.optionPane().showMessageDialog(null, "Select a row to update", 
+                "Check", JOptionPane.INFORMATION_MESSAGE)
+            return
+        }
+        
+        def tokens = sb.lblBundle.text.split(BNDL_DELIM)
+        sb.tblSlots.dataModel.setValueAt(tokens[0], row, 1)
+        sb.tblSlots.dataModel.setValueAt(tokens[1], row, 2)
+        sb.tblSlots.dataModel.fireTableCellUpdated(row, 1)
+        sb.tblSlots.dataModel.fireTableCellUpdated(row, 2)
+        
+        sb.lblBundle.text = NO_BUNDLE_ASSIGNED
+        sb.btnTag.enabled = true        
+    }
+    
+    def genLabel = {
         def lblBundle = "${sb.cbBook.selectedItem.tag}-${sb.cbChapter.selectedItem.tag}-${sb.cbExercise.selectedItem.tag}"
         def lblQsn = "${sb.cbLabelQsn.selectedItem}"
         def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "-${sb.cbLabelPart.selectedItem}"
         def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "-${sb.cbLabelSubpart.selectedItem}"
         def text = "${lblBundle}|${lblQsn}${lblPart}${lblSubpart}"
         
-        sb.lblBundles.text = text
-        q.bundle = text
-        
-        sb.btnTag.enabled = true
+        sb.lblBundle.text = text
     }
     
     def popChapters = { ActionEvent ae ->
@@ -179,7 +224,7 @@ class Tagger {
         source = ae.getSource()
         switch (ae.getSource()) {
             case sb.cbTopik:
-                target = sb.taTopiks                    
+                target = sb.taTopiks
                 break
             case sb.cbSource:
                 target = sb.taSources
@@ -199,27 +244,75 @@ class Tagger {
         source.setSelectedItem(null)
     }
     
-    def tag = {
-        q.concepts = sb.taTopiks.getText().split(delim)
-        try {
-            network.addToBundle(q)
-            sb.optionPane().showMessageDialog(null, 
-                "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
-        } catch (Exception e) {
-            println e
+    def tag = {        
+        boolean diff = false
+        def model = sb.tblSlots.dataModel
+        qsns.eachWithIndex { Question q, int i ->
+            String bundleId = "${model.getValueAt(i, 1)}|${model.getValueAt(i, 2)}"
+            def lblFile
+            if (!q.bundle.equals(bundleId)) {
+                diff = true
+                if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
+                    lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
+                    Files.deleteIfExists(lblFile)                    
+                }
+                q.bundle = bundleId
+                q.concepts = sb.taTopiks.getText().split(delim)
+                try {
+                    network.addToBundle(q)
+                    lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
+                    Files.createFile(q.qpath.resolve(lblFile))
+                } catch (Exception e) {
+                    println e
+                }
+            }
         }
-    }        
+        if (diff)
+            sb.optionPane().showMessageDialog(null,
+                "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
+    }
     
-    def getBundleInfo = {
-        try {
-            def bundleId = network.getBundleInfo(q)
-            q.bundle = bundleId.length() == 0 ? NO_BUNDLE_ASSIGNED : bundleId
-        } catch (Exception e) {
-            q.bundle = NO_BUNDLE_INFO
+    def getTableData = {
+        def data = []
+        qsns.each { Question q ->
+            def row
+            if (q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
+                row = [uid: q.uid, bundle: '', label: '']
+            } else {
+                def tokens = q.bundle.split(BNDL_DELIM)
+                row = [uid: q.uid, bundle: tokens[0], label: tokens[1]]           
+            }
+            data << row
+        }
+        data
+    }
+    
+    def getBundleInfo(Path parent) {
+        DirectoryStream<Path> stream = Files.newDirectoryStream(parent)
+        ArrayList<Question> list = new ArrayList<Question>()
+        for (Path path : stream) {
+            if (Files.isDirectory(path, NOFOLLOW_LINKS)) {
+                list.add(new Question(path))
+            }
+        }        
+        this.qsns = list.toArray(new Question[list.size()])
+        for (Question q : qsns) {
+            try {
+                def bundleId = network.getBundleInfo(q)
+                q.bundle = bundleId.length() == 0 ? NO_BUNDLE_ASSIGNED : bundleId
+                if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
+                    def lblFilePath = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
+                    if (!Files.exists(lblFilePath))
+                        Files.createFile(lblFilePath)
+                }                
+            } catch (Exception e) {
+                q.bundle = NO_BUNDLE_INFO
+            }
         }
     }
     
-    def final NO_BUNDLE_INFO = "No Bundle Info"
-    def final NO_BUNDLE_ASSIGNED = "Not assigned Bundle"
+    final String BNDL_DELIM = "\\|"
+    final String NO_BUNDLE_INFO = "No Bundle Info"
+    final String NO_BUNDLE_ASSIGNED = "No Label"
 
 }

@@ -40,7 +40,7 @@ class Driver {
             if (renderOnly) {
                 (new Renderer(q, 12)).toSVG()
             } else if (tagOnly) {
-                (new Tagger(q)).go(true)
+                (new Tagger(qpath.getParent())).go(true)
             } else if (bundleOnly) {
                 (new Bundler(q)).bundle()
             } else if (previewOnly) {

@@ -46,8 +46,7 @@ class Editor {
     Question q
     
     // Standalone widget handles
-    def taQsnTeX
-    def taAnsTeX
+    def taQsnTeX, taAnsTeX
     def taContext, taReason, taRight, taWrong
     
     def Editor(Question q) {
@@ -63,7 +62,7 @@ class Editor {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [800, 600], show: true, locationRelativeTo: null,
+            frame(title: "${q.uid}(${q.bundle})", size: [800, 600], show: true, locationRelativeTo: null,
                 resizable: false, defaultCloseOperation: EXIT_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
@@ -242,7 +241,7 @@ class Editor {
 
     private def tag = {
         try {
-            (new Tagger(q)).go()
+            (new Tagger(q.qpath.getParent())).go()
         } catch (Exception e) {
             println e
         }
