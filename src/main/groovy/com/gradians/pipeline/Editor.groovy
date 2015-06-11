@@ -275,12 +275,18 @@ class LaTeXArea extends JTextArea {
         latexMap.addActionForKeyStroke(b, new LaTeXAction("\\left[\\right]", 7))
         KeyStroke d = KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK)
         latexMap.addActionForKeyStroke(d, new LaTeXAction("\\dfrac{}{}", 3))
-        KeyStroke a = KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK)
-        latexMap.addActionForKeyStroke(a, new LaTeXAction("\n\\begin{align}\n\\end{align}", 11))
+        KeyStroke A = KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
+        latexMap.addActionForKeyStroke(A, new LaTeXAction("\n\\begin{align}\n\\end{align}", 11))
         KeyStroke z = KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK)
         latexMap.addActionForKeyStroke(z, new LaTeXAction("undo", 0))
         KeyStroke Z = KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
         latexMap.addActionForKeyStroke(Z, new LaTeXAction("redo", 0))
+        KeyStroke la = KeyStroke.getKeyStroke(KeyEvent.VK_COMMA, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
+        latexMap.addActionForKeyStroke(la, new LaTeXAction("\\leftarrow", 0))
+        KeyStroke ra = KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
+        latexMap.addActionForKeyStroke(ra, new LaTeXAction("\\rightarrow", 0))
+        KeyStroke i = KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK)
+        latexMap.addActionForKeyStroke(i, new LaTeXAction("\\implies", 0))
         this.keymap = latexMap
     }
     
