@@ -250,7 +250,7 @@ class Tagger {
         qsns.eachWithIndex { Question q, int i ->
             String bundleId = "${model.getValueAt(i, 1)}|${model.getValueAt(i, 2)}"
             def lblFile
-            if (bundleId.length > 1 && !q.bundle.equals(bundleId)) {
+            if (bundleId.length() > 1 && !q.bundle.equals(bundleId)) {
                 diff = true
                 if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
                     lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
