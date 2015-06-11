@@ -250,7 +250,7 @@ class Tagger {
         qsns.eachWithIndex { Question q, int i ->
             String bundleId = "${model.getValueAt(i, 1)}|${model.getValueAt(i, 2)}"
             def lblFile
-            if (!q.bundle.equals(bundleId)) {
+            if (bundleId.length > 1 && !q.bundle.equals(bundleId)) {
                 diff = true
                 if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
                     lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
@@ -280,7 +280,8 @@ class Tagger {
                 row = [uid: q.uid, bundle: '', label: '']
             } else {
                 def tokens = q.bundle.split(BNDL_DELIM)
-                row = [uid: q.uid, bundle: tokens[0], label: tokens[1]]           
+                def hasXml = Files.exists(q.qpath.resolve(QSN_XML)) ? "(filled)" : ""
+                row = [uid: "${q.uid} ${hasXml}", bundle: tokens[0], label: tokens[1]]           
             }
             data << row
         }
@@ -298,8 +299,8 @@ class Tagger {
         this.qsns = list.toArray(new Question[list.size()])
         for (Question q : qsns) {
             try {
-                def bundleId = network.getBundleInfo(q)
-                q.bundle = bundleId.length() == 0 ? NO_BUNDLE_ASSIGNED : bundleId
+                String bundleId = network.getBundleInfo(q)
+                q.bundle = bundleId.length() > 1 ? bundleId : NO_BUNDLE_ASSIGNED
                 if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
                     def lblFilePath = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
                     if (!Files.exists(lblFilePath))
@@ -310,7 +311,8 @@ class Tagger {
             }
         }
     }
-    
+
+    final String QSN_XML = "question.xml"    
     final String BNDL_DELIM = "\\|"
     final String NO_BUNDLE_INFO = "No Bundle Info"
     final String NO_BUNDLE_ASSIGNED = "No Label"
