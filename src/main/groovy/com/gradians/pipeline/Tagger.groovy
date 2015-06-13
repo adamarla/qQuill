@@ -56,7 +56,6 @@ class Tagger {
         Path tmp = p.getParent()
         while (!tmp.getFileName().toString().equals("vault") &&            
             !tmp.equals(p.getRoot())) {
-            println tmp
             tmp = tmp.getParent()
         }
         assert tmp.getFileName().toString().equals("vault")
