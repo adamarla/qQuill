@@ -28,7 +28,6 @@ class Driver {
         options.addOption(Option.builder("t").argName("tag").longOpt("tag").build())
         options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())        
         
-        Path qpath = (new File(pwd)).toPath()        
         try {
             
             CommandLine cl = (new DefaultParser()).parse(options, args)
@@ -37,18 +36,22 @@ class Driver {
             boolean bundleOnly = cl.hasOption('b')
             boolean previewOnly = cl.hasOption('p')
             
-            Question q = new Question(qpath)
-            if (renderOnly) {
-                (new Renderer(q, 12)).toSVG()
-            } else if (tagOnly) {
-                (new Tagger(qpath.getParent())).go(true)
-            } else if (bundleOnly) {
-                (new Bundler(q)).bundle()
-            } else if (previewOnly) {
-                (new Renderer(q)).toSwing(true)
+            Path path = (new File(pwd)).toPath()
+            if (tagOnly) {
+                (new Tagger(path)).go(true)
             } else {
-                (new Editor(q)).launch()
+                Question q = new Question(path)
+                if (renderOnly) {
+                    (new Renderer(q, 12)).toSVG()
+                } else if (bundleOnly) {
+                    (new Bundler(q)).bundle()
+                } else if (previewOnly) {
+                    (new Renderer(q)).toSwing(true)
+                } else {
+                    (new Editor(q)).launch()
+                }
             }
+            
         } catch (Exception e) {
             println e
         }

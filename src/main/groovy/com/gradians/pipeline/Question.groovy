@@ -34,12 +34,13 @@ class Question {
     
     def Question(Path qpath) {
         this.qpath = qpath
-        def tokens = qpath.toString().split(SEP)
-        uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"
+        Path vault = qpath.getParent().getParent().getParent()        
+        assert vault.getFileName().toString().equals("vault")
+        
+        Path bank = vault.getParent()
+        Path catalog = bank.resolve("common").resolve("catalog")
         
         def xmlPath = qpath.resolve(XML_FILE)
-        Path bank = qpath.getParent().getParent().getParent().getParent()
-        Path catalog = bank.resolve("common").resolve("catalog")
         if (Files.notExists(xmlPath)) {
             parse(catalog.resolve(XML_FILE))
         } else {
@@ -47,6 +48,9 @@ class Question {
             parse(xmlPath)
             getLabel()
         }
+        
+        def tokens = qpath.toString().split(SEP)
+        uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"        
     }
     
     def getSHA1Sum() {

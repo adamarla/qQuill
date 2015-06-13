@@ -50,16 +50,33 @@ class Tagger {
     // Widgets
     SwingBuilder sb
     
-    public Tagger(Path path) {
-        this.path = path
-        Path bank = path.getParent().getParent().getParent()
+    public Tagger(Path p) {
+        Path vault
+        int level
+        Path tmp = p.getParent()
+        while (!tmp.getFileName().toString().equals("vault") &&            
+            !tmp.equals(p.getRoot())) {
+            println tmp
+            tmp = tmp.getParent()
+        }
+        assert tmp.getFileName().toString().equals("vault")
         
+        Path relative = tmp.relativize(p)
+        if (relative.getNameCount() == 2) {
+            this.path = p
+        } else if (relative.getNameCount() == 3) {
+            this.path = p.getParent()
+        } else {
+            throw new Exception("Run tagger from question dir or 1 level up")
+        }
+        
+        Path bank = this.path.getParent().getParent().getParent()        
         Path catalogPath = bank.resolve("common").resolve("catalog")
         this.catalog = new Catalog(catalogPath)
         this.lib = new TagLib(catalogPath)
         this.network = new Network()
         
-        this.getBundleInfo(path)
+        this.getBundleInfo(this.path)
     }
 
     def go(boolean topLevel = false) {        
@@ -93,31 +110,25 @@ class Tagger {
 
                         label(text:"Label", constraints: gbc(gridx: 0, gridy: 3))
                         panel(constraints: gbc(gridx: 1, gridy: 3, gridwidth: 4, weightx: 1,
-                                    fill: HORIZONTAL, insets: [0, 5, 5, 0])) {
+                            fill: HORIZONTAL, insets: [0, 5, 5, 0])) {
                             ["Qsn", "Part", "Subpart"].eachWithIndex { component, i ->
                                 comboBox(id: "cbLabel${component}", items: lib."get${component}"())
                             }
-                            button(text: 'Generate', actionPerformed: genLabel)
-                            label(id: 'lblBundle', NO_BUNDLE_ASSIGNED)
                         }
                     }
                     
-                    panel(border: BorderFactory.createTitledBorder("Bundles"),
+                    vbox(border: BorderFactory.createTitledBorder("Bundles"), 
                         constraints: gbc(gridx: 0, gridy: 2, weightx: 1, weighty: 1, fill: BOTH)) {
-                        gridBagLayout()
-                        
-                        scrollPane(constraints: gbc(gridx: 0, gridy: 0, gridwidth: 3, 
-                            weightx: 1.0, weighty: 1, fill: BOTH)) {
-                            table(id: 'tblSlots') {
+                        checkBox(id: 'chkBoxEditable', text: 'Editable', selected: false)
+                        scrollPane() {
+                            table(id: 'tblSlots', mouseClicked: updateLabel) {
                                 tableModel(list: getTableData()) {
                                     propertyColumn(header: 'UID', propertyName: 'uid', editable: false)
                                     propertyColumn(header: 'Bundle', propertyName: 'bundle', editable: false)
                                     propertyColumn(header: 'Label', propertyName: 'label', editable: false)
                                 }
                             }
-                        }
-                        button(text: 'Update', actionPerformed: updateLabel,
-                            constraints: gbc(gridx: 0, gridy: 1, weightx: 1.0))    
+                        }    
                     }
                         
                     panel(border: BorderFactory.createTitledBorder("Concepts"), 
@@ -132,7 +143,7 @@ class Tagger {
                             constraints: gbc(gridx: 0, gridy: 1, 
                                 weightx: 1.0, weighty: 0, fill: HORIZONTAL, insets: [0, 0, 5, 0]))
                     }
-                        
+                                                
                     panel(border: BorderFactory.createTitledBorder("Actions"),
                         constraints: gbc(gridx: 0, gridy: 4, weightx: 1, fill: HORIZONTAL)) {    
                         button(id: 'btnTag', text: 'Commit', enabled: false, actionPerformed: tag)
@@ -158,34 +169,23 @@ class Tagger {
     }
     
     def updateLabel = {
-        int row = sb.tblSlots.getSelectedRow()        
-        if (sb.lblBundle.text.equals(NO_BUNDLE_ASSIGNED)) {
+        if (!sb.chkBoxEditable.selected) {
             return
         }
-        if (row < 0) {
-            sb.optionPane().showMessageDialog(null, "Select a row to update", 
-                "Check", JOptionPane.INFORMATION_MESSAGE)
-            return
-        }
+        int row = sb.tblSlots.getSelectedRow()
         
-        def tokens = sb.lblBundle.text.split(BNDL_DELIM)
-        sb.tblSlots.dataModel.setValueAt(tokens[0], row, 1)
-        sb.tblSlots.dataModel.setValueAt(tokens[1], row, 2)
+        def qsn = sb.cbLabelQsn.selectedItem.empty ? "" : "${sb.cbLabelQsn.selectedItem}"
+        def bundle = sb.cbLabelQsn.selectedItem.empty ? "" : 
+            "${sb.cbBook.selectedItem.tag}-${sb.cbChapter.selectedItem.tag}-${sb.cbExercise.selectedItem.tag}"
+        def part = sb.cbLabelPart.selectedItem.empty ? "" : "-${sb.cbLabelPart.selectedItem}"
+        def subpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "-${sb.cbLabelSubpart.selectedItem}"
+        
+        sb.tblSlots.dataModel.setValueAt("${bundle}", row, 1)
+        sb.tblSlots.dataModel.setValueAt("${qsn}${part}${subpart}", row, 2)
         sb.tblSlots.dataModel.fireTableCellUpdated(row, 1)
         sb.tblSlots.dataModel.fireTableCellUpdated(row, 2)
         
-        sb.lblBundle.text = NO_BUNDLE_ASSIGNED
         sb.btnTag.enabled = true        
-    }
-    
-    def genLabel = {
-        def lblBundle = "${sb.cbBook.selectedItem.tag}-${sb.cbChapter.selectedItem.tag}-${sb.cbExercise.selectedItem.tag}"
-        def lblQsn = "${sb.cbLabelQsn.selectedItem}"
-        def lblPart = sb.cbLabelPart.selectedItem.empty ? "" : "-${sb.cbLabelPart.selectedItem}"
-        def lblSubpart = sb.cbLabelSubpart.selectedItem.empty ? "" : "-${sb.cbLabelSubpart.selectedItem}"
-        def text = "${lblBundle}|${lblQsn}${lblPart}${lblSubpart}"
-        
-        sb.lblBundle.text = text
     }
     
     def popChapters = { ActionEvent ae ->
@@ -244,8 +244,9 @@ class Tagger {
         source.setSelectedItem(null)
     }
     
-    def tag = {        
+    def tag = {
         boolean diff = false
+        boolean error = false
         def model = sb.tblSlots.dataModel
         qsns.eachWithIndex { Question q, int i ->
             String bundleId = "${model.getValueAt(i, 1)}|${model.getValueAt(i, 2)}"
@@ -263,11 +264,14 @@ class Tagger {
                     lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
                     Files.createFile(q.qpath.resolve(lblFile))
                 } catch (Exception e) {
-                    println e
+                    error = true 
                 }
             }
         }
-        if (diff)
+        if (error)
+            sb.optionPane().showMessageDialog(null,
+                "Network Error", "Result", JOptionPane.ERROR_MESSAGE)
+        else if (diff)
             sb.optionPane().showMessageDialog(null,
                 "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
     }

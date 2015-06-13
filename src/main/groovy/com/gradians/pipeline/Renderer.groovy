@@ -39,7 +39,6 @@ import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
-import static java.awt.BorderLayout.EAST
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
