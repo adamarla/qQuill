@@ -16,7 +16,7 @@ class Driver {
         
         def pwd = System.getProperty("user.dir")
         if (pwd.endsWith("Qquill")) {
-            pwd = "/home/adamarla/work/gutenberg/vault/2/gai/z37wi"
+            pwd = "/home/adamarla/work/gutenberg/vault/2/9ai/9bfrg"
         } else if (!pwd.contains("vault")) {
             println "Run from within a Question folder in vault"
             return
@@ -26,16 +26,17 @@ class Driver {
         options.addOption(Option.builder("r").argName("render").longOpt("render").build())
         options.addOption(Option.builder("p").argName("preview").longOpt("preview").build())
         options.addOption(Option.builder("t").argName("tag").longOpt("tag").build())
-        options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())
-        
-        CommandLine cl = (new DefaultParser()).parse(options, args)        
-        boolean renderOnly = cl.hasOption('r')
-        boolean tagOnly = cl.hasOption('t')
-        boolean bundleOnly = cl.hasOption('b')
-        boolean previewOnly = cl.hasOption('p')
+        options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())        
         
         Path qpath = (new File(pwd)).toPath()        
         try {
+            
+            CommandLine cl = (new DefaultParser()).parse(options, args)
+            boolean renderOnly = cl.hasOption('r')
+            boolean tagOnly = cl.hasOption('t')
+            boolean bundleOnly = cl.hasOption('b')
+            boolean previewOnly = cl.hasOption('p')
+            
             Question q = new Question(qpath)
             if (renderOnly) {
                 (new Renderer(q, 12)).toSVG()

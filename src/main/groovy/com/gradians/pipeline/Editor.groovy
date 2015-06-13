@@ -90,8 +90,8 @@ class Editor {
     }
     
     private def qsnAnsTeX = {
-        taQsnTeX = new LaTeXArea(q.statement.tex, 8, 40)
-        sb.vbox() {
+        taQsnTeX = new LaTeXArea(q.statement.tex, 16, 32)
+        sb.panel() {
             sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
                 sb.scrollPane() {
                     widget(taQsnTeX)
@@ -104,20 +104,16 @@ class Editor {
                 }
             }
             sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Answer Choices")) {
-                [['A', 'B'], ['C', 'D']].each { set ->
-                    sb.panel() {
-                        set.each { option ->
-                            def idx = (int)((char)option) - (int)'A'
-                            taAnsTeX[idx] = new LaTeXArea(q.choices != null ? q.choices.texs[idx] : "", 4, 32)
-                            taAnsTeX[idx].setBorder(BorderFactory.createTitledBorder("${option}"))
-                            widget(taAnsTeX[idx])
-                        }
-                    }
+                ['A', 'B', 'C', 'D'].each { option ->
+                    def idx = (int)((char)option) - (int)'A'
+                    taAnsTeX[idx] = new LaTeXArea(q.choices != null ? q.choices.texs[idx] : "", 4, 32)
+                    taAnsTeX[idx].setBorder(BorderFactory.createTitledBorder("${option}"))
+                    widget(taAnsTeX[idx])
                 }
-            }
-            sb.panel() {
-                sb.label(text: 'Correct Option')
-                sb.comboBox(id: 'cbAns', items: ['A', 'B', 'C', 'D'])
+                sb.panel() {
+                    sb.label(text: 'Correct Option')
+                    sb.comboBox(id: 'cbAns', items: ['A', 'B', 'C', 'D'])
+                }
             }
         }
     }
@@ -171,16 +167,20 @@ class Editor {
     private def save = {
         updateModel()
         (new Renderer(q)).toXMLString()
-        sb.optionPane().showMessageDialog(null, "Saved!", "Result", JOptionPane.INFORMATION_MESSAGE)
+        sb.optionPane().showMessageDialog(null, "Saved!", "Result", 
+            JOptionPane.INFORMATION_MESSAGE)
     }
     
     private def render = {
+        if (preview == null)
+            preview = new Renderer(q, 12)
         try {
-            (new Renderer(q, 12)).toSVG()
+            preview.toSVG()
         } catch (Exception e) {
             println e
         }
-        sb.optionPane().showMessageDialog(null, "Rendered!", "Result", JOptionPane.INFORMATION_MESSAGE)
+        sb.optionPane().showMessageDialog(null, "Rendered!", "Result", 
+            JOptionPane.INFORMATION_MESSAGE)
     }
     
     private def setImage = { String it, Path qpath ->
@@ -246,6 +246,8 @@ class Editor {
             println e
         }
     }
+    
+    private Renderer preview
     
 }
 

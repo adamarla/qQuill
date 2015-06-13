@@ -68,34 +68,23 @@ class Renderer {
     }
     
     def toSwing(boolean topLevel = false) {
-        def sb = new SwingBuilder()
-        def panel = sb.panel() {
-            gridBagLayout()
-            
-            widget(toSwing(sb, q.statement),
-                constraints: gbc(gridx: 0, gridy: 0, weightx: 1, fill: HORIZONTAL))
-            
-            widget(toSwing(sb, (Choices)q.choices),
-                constraints: gbc(gridx: 1, gridy: 0, weightx: 1, fill: HORIZONTAL))
-                        
-            tabbedPane(constraints: gbc(gridx: 0, gridy: 1, gridwidth: 2, 
-                weightx: 1, weighty: 1, fill: BOTH)) {
-                q.steps.eachWithIndex { step, i ->
-                    widget(toSwing(sb, step), name: "Step${i+1}")
-                }
-            }
-        }
+        SwingBuilder sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [860, 600], show: true, locationRelativeTo: null,
+            frame(title: q.uid, size: [720, 480], show: true, locationRelativeTo: null,
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
-                widget(panel)
+                tabbedPane() {
+                    toSwing(sb, q.statement, q.choices)
+                    q.steps.eachWithIndex { step, i ->
+                        toSwing(sb, step, i)
+                    }
+                }
             }
         }
     }
     
-    def toSwing(SwingBuilder sb, Step step) {
-        def panel = sb.panel() {
+    def toSwing(SwingBuilder sb, Step step, int i) {
+        sb.panel(name: "Step ${i+1}") {
             gridBagLayout()
             
             ["Context", "Reason"].eachWithIndex { part, idx ->
@@ -120,30 +109,30 @@ class Renderer {
         }
     }
     
-    def toSwing(SwingBuilder sb, Statement statement) {
-        def panel = sb.panel() {
-            vbox(constraints: EAST) {
-                if (statement.image.length() > 0)                
+    def toSwing(SwingBuilder sb, Statement statement, Choices choices) {
+        sb.panel(name: "Q / A") {
+            gridBagLayout()
+
+            sb.vbox(border: BorderFactory.createTitledBorder("Problem Statement"),
+                constraints: gbc(gridx: 0, gridy: 0, fill: BOTH)) {
+                if (statement.image.length() > 0)
                     widget(fileToIcon(statement.image))
                 else {
-                    widget(new TeXLabel(teXToIcon(statement.tex), "Problem"))
-                }    
+                    widget(new TeXLabel(teXToIcon(statement.tex), ""))
+                }
             }
-        }
-    }
-    
-    def toSwing(SwingBuilder sb, Choices choices) {
-        def panel = sb.panel(border: BorderFactory.createTitledBorder("Choices")) {
-            vbox(constraints: EAST) {
+                
+            sb.vbox(border: BorderFactory.createTitledBorder("Answer Choices"),
+                constraints: gbc(gridx: 1, gridy: 0, fill: BOTH)) {
                 if (choices != null) {
                     choices.texs.eachWithIndex { tex, i ->
                         char c = (char)(((int)'A') + i)
                         widget(new TeXLabel(teXToIcon(tex), "${c}"))
                     }
                     char correct = (char)(((int)'A') + choices.correct)
-                    label(text: "Correct Ans ${correct}")    
+                    label(text: "Correct Ans ${correct}")
                 }
-            }
+            }    
         }
     }
     
