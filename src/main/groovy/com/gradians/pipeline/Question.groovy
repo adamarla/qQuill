@@ -6,7 +6,6 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.PathMatcher
-import java.security.MessageDigest
 
 import groovy.util.slurpersupport.GPathResult
 
@@ -51,25 +50,6 @@ class Question {
         
         def tokens = qpath.toString().split(SEP)
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"        
-    }
-    
-    def getSHA1Sum() {
-        MessageDigest md = MessageDigest.getInstance("SHA-1")
-        int bytesRead = 0
-        byte[] byteBuf = new byte[1024]
-        File qsnXml = qpath.resolve(XML_FILE).toFile()
-        java.io.InputStream is = new FileInputStream(qsnXml)
-        while ((bytesRead = is.read(byteBuf)) != -1) {
-            md.update(byteBuf, 0, bytesRead)
-        }
-        is.close()
-        
-        byte[] SHA1digest = md.digest()
-        StringBuffer sb = new StringBuffer()
-        for (byte b : SHA1digest){
-            sb.append(String.format("%02x", b))
-        }
-        return sb.toString().substring(0, 12)
     }
     
     private def parse(Path xmlPath) {

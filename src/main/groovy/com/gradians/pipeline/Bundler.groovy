@@ -4,6 +4,7 @@ import groovy.util.slurpersupport.GPathResult
 import groovy.xml.MarkupBuilder
 import groovy.xml.StreamingMarkupBuilder
 import groovy.xml.XmlUtil
+
 import java.io.FileInputStream
 import java.io.PrintWriter
 import java.net.URI
@@ -50,29 +51,30 @@ class Bundler {
         String manifestXML = String.format("%s.xml", bundleId)
         
         Path tmpManifest = bundlePath.resolve(manifestXML)
-        GPathResult manifest
+        GPathResult manifestXml
         if (Files.exists(root.resolve(manifestXML))) {
             tmpManifest = Files.copy(root.resolve(manifestXML), tmpManifest, REPLACE_EXISTING)
-            manifest = new XmlSlurper().parse(tmpManifest.toFile())
+            manifestXml = new XmlSlurper().parse(tmpManifest.toFile())
         } else {
-            manifest = new XmlSlurper().parseText(String.format(MANIFEST_TXT, bundleId))
+            manifestXml = new XmlSlurper().parseText(String.format(MANIFEST_TXT, bundleId))
         }
+        assert manifestXml != null
         
-        def qsnEntry = manifest.'*'.find { node ->
+        def qsnEntry = manifestXml.'*'.find { node ->
                 node.@id == bundleXml.questionId.toString()
         }
         if (qsnEntry.isEmpty()) {
-            manifest.appendNode {
+            manifestXml.appendNode {
                 question(
                     tag: q.uid.replace('/', '-'),
                     label: bundleXml.label.toString(),
                     id: bundleXml.questionId.toString(),
-                    signature: q.getSHA1Sum()
+                    signature: getSHA1Sum(q.qpath.resolve(this.QSN_XML))
                 )
             }
         } else {
             qsnEntry.@label = bundleXml.label.toString()
-            qsnEntry.@signature = q.getSHA1Sum()
+            qsnEntry.@signature = getSHA1Sum(q.qpath.resolve(this.QSN_XML))
         }
 
         Path srcDir = vaultPath.resolve(q.qpath)
@@ -92,10 +94,12 @@ class Bundler {
         }
         Files.copy(srcDir.resolve(QSN_XML), destDir.resolve(QSN_XML), REPLACE_EXISTING)        
         
-        (new XmlUtil()).serialize(manifest, new FileWriter(tmpManifest.toFile()))
+        (new XmlUtil()).serialize(manifestXml, new FileWriter(tmpManifest.toFile()))
         Files.copy(tmpManifest, root.resolve(manifestXML), REPLACE_EXISTING)
         Files.delete(tmpManifest)
         fs.close()
+        
+        (new Network()).updateBundleSignature(bundleId, getSHA1Sum(zip))
     }    
     
     private def create(Path zipPath) {
@@ -104,7 +108,26 @@ class Bundler {
         env.put("create", "true")
         FileSystems.newFileSystem(uri, env)
     }
+    
+    def getSHA1Sum(Path path) {
+        MessageDigest md = MessageDigest.getInstance("SHA-1")
+        int bytesRead = 0
+        byte[] byteBuf = new byte[1024]
+        File file = path.toFile()
+        java.io.InputStream is = new FileInputStream(file)
+        while ((bytesRead = is.read(byteBuf)) != -1) {
+            md.update(byteBuf, 0, bytesRead)
+        }
+        is.close()
         
+        byte[] SHA1digest = md.digest()
+        StringBuffer sb = new StringBuffer()
+        for (byte b : SHA1digest){
+            sb.append(String.format("%02x", b))
+        }
+        return sb.toString().substring(0, 12)
+    }
+    
     final String QSN_XML = "question.xml"
-    final String MANIFEST_TXT = "<exercise tag='%s'/>"
+    final String MANIFEST_TXT = '''<exercise tag="%s"></exercise>'''
 }

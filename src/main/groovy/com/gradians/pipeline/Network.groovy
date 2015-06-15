@@ -9,6 +9,19 @@ import static groovyx.net.http.ContentType.XML
 
 class Network {
     
+    def updateBundleSignature(String bundleId, String signature) {
+        def httpClient = new HTTPBuilder(
+            "http://www.gradians.com/bundle/update/?id=${bundleId}&signature=${signature}")
+        httpClient.setHeaders(Accept: 'application/json')
+        println "uid=${bundleId}&signature=${signature}"
+        def results = httpClient.request(POST, JSON) { req ->
+            
+            response.success = { resp ->
+                assert resp.statusLine.statusCode == 200
+            }        
+        }
+    }
+    
     def getBundleInfo(Question q) {
         def bundleId
         def httpClient = new HTTPBuilder("http://www.gradians.com/bundle/which?uid=${q.uid}")
@@ -27,8 +40,7 @@ class Network {
     def addToBundle(Question q) {        
         def bodyMap = (new Renderer(q)).toJSONString()
         
-//        def httpClient = new HTTPBuilder('http://localhost:3000/tag/question')
-        def httpClient = new HTTPBuilder('http://www.gradians.com/tag/question')
+        def httpClient = new HTTPBuilder("http://www.gradians.com/tag/question")
         httpClient.setHeaders(Accept: 'application/json')
         
         def results = httpClient.request(POST, JSON) { req ->
