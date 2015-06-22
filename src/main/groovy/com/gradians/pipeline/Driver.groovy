@@ -1,6 +1,7 @@
 package com.gradians.pipeline
 
 import groovy.swing.SwingBuilder
+import java.nio.file.Files
 import java.nio.file.Path
 
 import org.apache.commons.cli.DefaultParser
@@ -36,7 +37,12 @@ class Driver {
             boolean bundleOnly = cl.hasOption('b')
             boolean previewOnly = cl.hasOption('p')
             
-            Path path = (new File(pwd)).toPath()
+            Path path = (new File(pwd)).toPath().resolve()
+            if (!cl.argList.empty)
+                path = path.resolve(cl.argList.get(0))
+                
+            assert Files.isDirectory(path)
+                
             if (tagOnly) {
                 (new Tagger(path)).go(true)
             } else {
