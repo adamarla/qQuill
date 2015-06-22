@@ -9,6 +9,7 @@ import java.awt.geom.RoundRectangle2D
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.io.Writer
+import java.nio.file.DirectoryStream
 import java.nio.file.Path
 import java.nio.file.Files
 
@@ -162,11 +163,12 @@ class Renderer {
                     context(stp.context)
                     if (stp.imageRight.length() > 0)
                         image(correct: "true", stp.imageRight)
-                    else
+                    else if (stp.texRight.length() > 0)
                         tex(correct: "true", stp.texRight)
+                        
                     if (stp.imageWrong.length() > 0)
                         image(stp.imageWrong)
-                    else
+                    else if (stp.texWrong.length() > 0)
                         tex(stp.texWrong)
                     reason(stp.reason)
                 }
@@ -195,13 +197,25 @@ class Renderer {
     
     def toSVG() {
         Path path = q.qpath
+        DirectoryStream<Path> svgs = Files.newDirectoryStream(path, "*.svg")
+        for (Path p : svgs) {
+            def s = p.getFileName().toString()
+            if (s.startsWith("CTX") || s.startsWith("RSN") ||
+                s.startsWith("CRT") || s.startsWith("WRNG")) {
+                Files.deleteIfExists(p)
+            }
+        }
+        
         renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
         q.steps.eachWithIndex { step, idx ->
-            renderSVG(step.context, path.resolve("CTX_${idx}.svg"))
-            renderSVG(step.texRight, path.resolve("CRT_${idx}.svg"))
-            renderSVG(step.texWrong, path.resolve("WRNG_${idx}.svg"))
-            renderSVG(step.reason, path.resolve("RSN_${idx}.svg"))
+            def content = [step.context, step.texRight, step.texWrong, step.reason] 
+            ["CTX_${idx}.svg", "CRT_${idx}.svg", 
+                "WRNG_${idx}.svg", "RSN_${idx}.svg"].eachWithIndex { part, posn ->
+                if (content[posn].length() > 0)
+                    renderSVG(content[posn], path.resolve(part))
+            }
         }
+        
         if (q.choices != null) {
             q.choices.texs.eachWithIndex { tex, idx ->
                 renderSVG(tex, path.resolve("CH_${idx}.svg"))

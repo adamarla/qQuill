@@ -42,6 +42,8 @@ import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 class Editor {
     
+    final VERSION = "1.0.0"
+    
     SwingBuilder sb
     Question q
     
@@ -62,8 +64,8 @@ class Editor {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: "${q.uid}(${q.bundle})", size: [800, 600], show: true, locationRelativeTo: null,
-                resizable: false, defaultCloseOperation: EXIT_ON_CLOSE) {
+            frame(title: "Quill - ${VERSION} - ${q.uid} (${q.bundle})", size: [800, 600], show: true, 
+                locationRelativeTo: null, resizable: false, defaultCloseOperation: EXIT_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
                     
@@ -289,9 +291,14 @@ class LaTeXArea extends JTextArea {
         latexMap.addActionForKeyStroke(ra, new LaTeXAction("\\rightarrow", 0))
         KeyStroke i = KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK)
         latexMap.addActionForKeyStroke(i, new LaTeXAction("\\implies", 0))
+        KeyStroke M = KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
+        latexMap.addActionForKeyStroke(M, new LaTeXAction(MATRIX_TEX, 0))
         this.keymap = latexMap
     }
     
+    final String MATRIX_TEX = 
+        "\\left[\\begin{array}{ccc}\n a & b & c \\\\ \n" +
+        "d & e & f \\\\\n g & h & i \\end{array} \\right]"    
 }
 
 class LaTeXAction extends TextAction {
