@@ -121,11 +121,9 @@ class Editor {
     }
     
     private def stepTeX = { int idx ->
-        def step
-        if (idx > q.steps.size()) {
+        def step = q.steps[idx-1]
+        if (step == null) {
             step = new Step()
-        } else {
-            step = q.steps.get(idx-1)
         }
         taContext[idx-1] = new LaTeXArea(step.context, 4, 32)
         taReason[idx-1] = new LaTeXArea(step.reason, 4, 32)
@@ -148,15 +146,19 @@ class Editor {
                             widget(side.equals("Right") ? taRight[idx-1] : taWrong[idx-1])
                         }
                         sb.panel() {
-                            sb.button(id: "btn${side}File${idx}", text: 'Image (optional):',
-                                actionPerformed: { setImage("lbl${side}File${idx}", q.qpath) })
-                            sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
+                            sb.button(text: 'Image (optional):',
+                                actionPerformed: { setImage("lbl${side}File${idx-1}", q.qpath) })
+                            sb.label(id: "lbl${side}File${idx-1}", text: step."image${side}")
                         }    
                     }
                 }
             }
             sb.panel() {
-                sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
+                sb.checkBox(id: "chkBxSwipe${idx-1}", text: 'No Swipe', selected: step.noswipe)
+                sb.button(text: 'Clear', actionPerformed: clearCurrent)
+                sb.button(text: 'Duplicate', actionPerformed: duplicateStep)
+                sb.button(text: 'Insert', actionPerformed: insertStep)
+                sb.button(text: 'Delete', actionPerformed: deleteStep)
             }
         }
     }
@@ -199,34 +201,56 @@ class Editor {
         if (openSVGDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             sb."${it}".text = openSVGDialog.getSelectedFile().getName()
         }
+    }    
+    
+    private def clearCurrent = {
+        clear(sb.tpTeX.selectedIndex-1)
     }
     
+    private def clear(int idx) {
+        taContext[idx].text = ""
+        taRight[idx].text = ""
+        taWrong[idx].text = ""
+        taReason[idx].text = ""
+        sb."lblRightFile${idx}".text = ""
+        sb."lblWrongFile${idx}".text = ""
+    }
+    
+    private def duplicateStep = {
+        def idx = sb.tpTeX.selectedIndex
+        if (idx > 4)
+            return
+        shiftRight(idx)
+    }
+    
+    private def insertStep = {
+        def idx = sb.tpTeX.selectedIndex-1
+        shiftRight(idx)
+        clear(idx)
+    }
+    
+    private def deleteStep = {
+        def idx = sb.tpTeX.selectedIndex-1
+        shiftLeft(idx)
+        clear(5)
+    }
+
     private def updateModel = {
         Statement statement = new Statement()
         statement.tex = taQsnTeX.text.trim()
         statement.image = sb.lblFile.text
         q.statement = statement
         
-        Step step
-        [1, 2, 3, 4, 5, 6].each { idx ->
-            if (taContext[idx-1].text.length() > 0 || idx == 1) {
-                step = new Step()
-                step.context = taContext[idx-1].text
-                step.texRight = taRight[idx-1].text
-                step.imageRight = sb."lblRightFile${idx}".text
-                step.texWrong = taWrong[idx-1].text
-                step.imageWrong = sb."lblWrongFile${idx}".text
-                step.reason = taReason[idx-1].text
-                step.noswipe = sb."chkBxSwipe${idx}".selected
-                
-                if (q.steps.size() > idx-1)
-                    q.steps.set(idx-1, step)                    
-                else
-                    q.steps.add(idx-1, step)
-            } else {
-                if (q.steps.size() > idx-1)
-                    q.steps.remove(idx-1)
-            }
+        [0, 1, 2, 3, 4, 5].each { idx ->
+            def step = new Step()
+            step.context = taContext[idx].text
+            step.texRight = taRight[idx].text
+            step.imageRight = sb."lblRightFile${idx}".text
+            step.texWrong = taWrong[idx].text
+            step.imageWrong = sb."lblWrongFile${idx}".text
+            step.reason = taReason[idx].text
+            step.noswipe = sb."chkBxSwipe${idx}".selected
+            q.steps[idx] = step
         }
         
         if (taAnsTeX[0].text.length() > 0) {
@@ -240,7 +264,35 @@ class Editor {
             q.choices = null
         }        
     }
-
+    
+    private def boolean shiftRight(int idx) {
+        if (idx > 4)
+            return false
+        for (int i = 4; i >= idx; i--) {
+            taContext[i].text = taContext[i-1].text 
+            taRight[i].text = taRight[i-1].text
+            taWrong[i].text = taWrong[i-1].text
+            taReason[i].text = taReason[i-1].text
+            sb."lblRightFile${i}".text = sb."lblRightFile${i-1}".text
+            sb."lblWrongFile${i}".text = sb."lblWrongFile${i-1}".text
+            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${i-1}".selected
+        }
+    }
+    
+    private def boolean shiftLeft(int idx) {
+        if (idx == 0)
+            return false
+        for (int i = idx; i < 5; i++) {
+            taContext[i].text = taContext[i+1].text 
+            taRight[i].text = taRight[i+1].text
+            taWrong[i].text = taWrong[i+1].text
+            taReason[i].text = taReason[i+1].text
+            sb."lblRightFile${i}".text = sb."lblRightFile${i+1}".text
+            sb."lblWrongFile${i}".text = sb."lblWrongFile${i+1}".text
+            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${i+1}".selected
+        }
+    }
+    
     private def tag = {
         try {
             (new Tagger(q.qpath.getParent())).go()

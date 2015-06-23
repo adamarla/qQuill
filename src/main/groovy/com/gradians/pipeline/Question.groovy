@@ -18,7 +18,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
 class Question {
     
     Statement statement
-    List<Step> steps
+    Step[] steps
     Choices choices
     
     //question
@@ -52,6 +52,20 @@ class Question {
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"        
     }
     
+    def Step[] getPrintableSteps() {
+        int length = 0
+        for (int i = steps.length-1; i >= 0; i--) {
+            if (steps[i].context.length() > 0) {                
+                length = i+1
+                break
+            }
+        }
+        Step[] validSteps = new Step[length]
+        for (int i = 0; i < length; i++)
+            validSteps[i] = steps[i]
+        validSteps
+    }
+    
     private def parse(Path xmlPath) {
         def xml = new XmlSlurper().parse(xmlPath.toFile())
         statement = new Statement()
@@ -59,10 +73,9 @@ class Question {
         if (!xml.statement.image.isEmpty())
             statement.image = xml.statement.image.toString()
             
-        steps = new ArrayList<Step>()
-        def step
+        steps = new Step[6]
         xml.step.eachWithIndex { it, i ->
-            step = new Step()
+            def step = new Step()
             if (it.@swipe.isEmpty()) {
                 step.noswipe = false
             } else if (it.@swipe.equals("false")) {
@@ -79,13 +92,13 @@ class Question {
                 }
             }
             step.reason = it.reason.toString()
-            steps.add step
+            steps[i] = step
         }
         
         if (!xml.choices.tex.isEmpty()) {
             choices = new Choices()
             choices.texs = xml.choices.tex.collect {
-                it.toString().replace("\\newline", "")
+                it.toString()
             }
             xml.choices.tex.eachWithIndex { it, i ->
                 if (it.@correct == true) {

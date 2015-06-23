@@ -158,7 +158,7 @@ class Renderer {
                 tex(q.statement.tex)
             }
             
-            q.steps.each { stp ->
+            q.getPrintableSteps().each { stp ->
                 def contents = {
                     context(stp.context)
                     if (stp.imageRight.length() > 0)
@@ -300,10 +300,13 @@ class TeXLabel extends JLabel {
     
     public void setBorder(String title) {
         TitledBorder b = BorderFactory.createTitledBorder(title)
-        if (icon.iconWidth > ERROR_WIDTH)
-            b.setBorder(new LineBorder(RED, (icon.iconWidth - ERROR_WIDTH)%5+1))
-        else if (icon.iconWidth > WARNING_WIDTH)
+        if (icon.iconWidth > ERROR_WIDTH) {
+            int overflowPcnt = (icon.iconWidth - ERROR_WIDTH)*100/ERROR_WIDTH
+            b.title += "(${overflowPcnt}%)"
+            b.setBorder(new LineBorder(RED, (int)overflowPcnt/10+1))
+        } else if (icon.iconWidth > WARNING_WIDTH) {
             b.setBorder(new LineBorder(ORANGE))
+        }
         super.setBorder(b)
     }
     
