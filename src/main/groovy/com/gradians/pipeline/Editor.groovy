@@ -132,6 +132,13 @@ class Editor {
 
         sb.vbox(constraints: BL.EAST) {
             sb.panel() {
+                sb.checkBox(id: "chkBxSwipe${idx-1}", text: 'No Swipe', selected: step.noswipe)
+                sb.button(text: 'Clear', actionPerformed: clearCurrent)
+                sb.button(text: 'Duplicate', actionPerformed: duplicateStep)
+                sb.button(text: 'Insert', actionPerformed: insertStep)
+                sb.button(text: 'Delete', actionPerformed: deleteStep)
+            }
+            sb.panel() {
                 sb.scrollPane(border: BorderFactory.createTitledBorder("Context")) {
                     widget(taContext[idx-1])                    
                 }
@@ -152,13 +159,6 @@ class Editor {
                         }    
                     }
                 }
-            }
-            sb.panel() {
-                sb.checkBox(id: "chkBxSwipe${idx-1}", text: 'No Swipe', selected: step.noswipe)
-                sb.button(text: 'Clear', actionPerformed: clearCurrent)
-                sb.button(text: 'Duplicate', actionPerformed: duplicateStep)
-                sb.button(text: 'Insert', actionPerformed: insertStep)
-                sb.button(text: 'Delete', actionPerformed: deleteStep)
             }
         }
     }
