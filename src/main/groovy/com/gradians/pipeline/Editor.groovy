@@ -17,9 +17,11 @@ import javax.swing.JLabel
 import javax.swing.JFileChooser
 import javax.swing.JTextArea
 import javax.swing.KeyStroke
+import javax.swing.UIManager
 import javax.swing.event.UndoableEditEvent
 import javax.swing.event.UndoableEditListener
 import javax.swing.filechooser.FileFilter
+import javax.swing.UIManager.LookAndFeelInfo
 import javax.swing.border.TitledBorder
 import javax.swing.filechooser.FileView
 import javax.swing.text.JTextComponent
@@ -42,29 +44,34 @@ import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 class Editor {
     
-    final VERSION = "1.0.0"
+    final VERSION = "2.0"
     
     SwingBuilder sb
     Question q
     
     // Standalone widget handles
     def taQsnTeX, taAnsTeX
-    def taContext, taReason, taRight, taWrong
+    def taContext, taReason, taCorrect, taIncorrect
     
     def Editor(Question q) {
         this.q = q
         taAnsTeX = new LaTeXArea[4]
         taContext = new LaTeXArea[6] 
         taReason = new LaTeXArea[6] 
-        taRight = new LaTeXArea[6] 
-        taWrong = new LaTeXArea[6]
+        taCorrect = new LaTeXArea[6] 
+        taIncorrect = new LaTeXArea[6]
     }
     
     def launch() {
+        for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            if ("Nimbus".equals(info.getName())) {
+                UIManager.setLookAndFeel(info.getClassName())
+                break
+            }
+        }
         sb = new SwingBuilder()
         sb.edt {
-            lookAndFeel: 'MetalLookAndFeel'
-            frame(title: "Quill - ${VERSION} - ${q.uid} (${q.bundle})", size: [800, 600], show: true, 
+            frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", size: [840, 640], show: true, 
                 locationRelativeTo: null, resizable: false, defaultCloseOperation: EXIT_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
@@ -73,7 +80,7 @@ class Editor {
                         constraints: gbc(gridx: 0, gridy: 0, weightx: 1.0, weighty: 1, fill: BOTH)) {      
                         panel(id: 'pnlQsnAns', name: 'Q / A') { qsnAnsTeX() }
                         [1, 2, 3, 4, 5, 6].each { idx ->
-                            panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(idx) }
+                            panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(idx-1) }
                         }
                     }
                         
@@ -86,13 +93,12 @@ class Editor {
                     }
                 }
             }
-        }
-        
+        }        
         sb.cbAns.selectedIndex = q.choices == null ? 0 : q.choices.correct
     }
     
     private def qsnAnsTeX = {
-        taQsnTeX = new LaTeXArea(q.statement.tex, 16, 32)
+        taQsnTeX = new LaTeXArea(q.statement.tex, 18, 32)
         sb.panel() {
             sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
                 sb.scrollPane() {
@@ -121,18 +127,18 @@ class Editor {
     }
     
     private def stepTeX = { int idx ->
-        def step = q.steps[idx-1]
+        def step = q.steps[idx]
         if (step == null) {
             step = new Step()
         }
-        taContext[idx-1] = new LaTeXArea(step.context, 4, 32)
-        taReason[idx-1] = new LaTeXArea(step.reason, 4, 32)
-        taRight[idx-1] = new LaTeXArea(step.texRight, 10, 32)
-        taWrong[idx-1] = new LaTeXArea(step.texWrong, 10, 32)
+        taContext[idx] = new LaTeXArea(step.context, 4, 32)
+        taReason[idx] = new LaTeXArea(step.reason, 4, 32)
+        taCorrect[idx] = new LaTeXArea(step.texCorrect, 10, 32)
+        taIncorrect[idx] = new LaTeXArea(step.texIncorrect, 10, 32)
 
         sb.vbox(constraints: BL.EAST) {
             sb.panel() {
-                sb.checkBox(id: "chkBxSwipe${idx-1}", text: 'No Swipe', selected: step.noswipe)
+                sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
                 sb.button(text: 'Clear', actionPerformed: clearCurrent)
                 sb.button(text: 'Duplicate', actionPerformed: duplicateStep)
                 sb.button(text: 'Insert', actionPerformed: insertStep)
@@ -140,23 +146,23 @@ class Editor {
             }
             sb.panel() {
                 sb.scrollPane(border: BorderFactory.createTitledBorder("Context")) {
-                    widget(taContext[idx-1])                    
+                    widget(taContext[idx])                    
                 }
                 sb.scrollPane(border: BorderFactory.createTitledBorder("Reason")) {
-                    widget(taReason[idx-1])
+                    widget(taReason[idx])
                 }
             }
-            sb.panel(border: BorderFactory.createTitledBorder("Options")) {
-                ["Right", "Wrong"].each { side ->
-                    sb.vbox(border: BorderFactory.createTitledBorder("${side}")) {
+            sb.panel() {
+                ["Correct", "Incorrect"].each { side ->
+                    sb.vbox(border: BorderFactory.createTitledBorder("${side} Option")) {
                         sb.scrollPane() {
-                            widget(side.equals("Right") ? taRight[idx-1] : taWrong[idx-1])
+                            widget(side.equals("Correct") ? taCorrect[idx] : taIncorrect[idx])
                         }
                         sb.panel() {
                             sb.button(text: 'Image (optional):',
-                                actionPerformed: { setImage("lbl${side}File${idx-1}", q.qpath) })
-                            sb.label(id: "lbl${side}File${idx-1}", text: step."image${side}")
-                        }    
+                                actionPerformed: { setImage("lbl${side}File${idx}", q.qpath) })
+                            sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
+                        }
                     }
                 }
             }
@@ -209,23 +215,25 @@ class Editor {
     
     private def clear(int idx) {
         taContext[idx].text = ""
-        taRight[idx].text = ""
-        taWrong[idx].text = ""
+        taCorrect[idx].text = ""
+        taIncorrect[idx].text = ""
         taReason[idx].text = ""
-        sb."lblRightFile${idx}".text = ""
-        sb."lblWrongFile${idx}".text = ""
+        sb."lblCorrectFile${idx}".text = ""
+        sb."lblIncorrectFile${idx}".text = ""
     }
     
     private def duplicateStep = {
-        def idx = sb.tpTeX.selectedIndex
-        if (idx > 4)
+        def idx = sb.tpTeX.selectedIndex-1
+        if (idx == 5)
             return
-        shiftRight(idx)
+        shiftCorrect(idx)
     }
     
     private def insertStep = {
         def idx = sb.tpTeX.selectedIndex-1
-        shiftRight(idx)
+        if (idx == 5)
+            return
+        shiftCorrect(idx)
         clear(idx)
     }
     
@@ -244,10 +252,10 @@ class Editor {
         [0, 1, 2, 3, 4, 5].each { idx ->
             def step = new Step()
             step.context = taContext[idx].text
-            step.texRight = taRight[idx].text
-            step.imageRight = sb."lblRightFile${idx}".text
-            step.texWrong = taWrong[idx].text
-            step.imageWrong = sb."lblWrongFile${idx}".text
+            step.texCorrect = taCorrect[idx].text
+            step.imageCorrect = sb."lblCorrectFile${idx}".text
+            step.texIncorrect = taIncorrect[idx].text
+            step.imageIncorrect = sb."lblIncorrectFile${idx}".text
             step.reason = taReason[idx].text
             step.noswipe = sb."chkBxSwipe${idx}".selected
             q.steps[idx] = step
@@ -265,31 +273,29 @@ class Editor {
         }        
     }
     
-    private def boolean shiftRight(int idx) {
-        if (idx > 4)
+    private def boolean shiftCorrect(int idx) {
+        if (idx == 5)
             return false
-        for (int i = 4; i >= idx; i--) {
+        for (int i = 5; i > idx; i--) {
             taContext[i].text = taContext[i-1].text 
-            taRight[i].text = taRight[i-1].text
-            taWrong[i].text = taWrong[i-1].text
+            taCorrect[i].text = taCorrect[i-1].text
+            taIncorrect[i].text = taIncorrect[i-1].text
             taReason[i].text = taReason[i-1].text
-            sb."lblRightFile${i}".text = sb."lblRightFile${i-1}".text
-            sb."lblWrongFile${i}".text = sb."lblWrongFile${i-1}".text
-            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${i-1}".selected
+            sb."lblCorrectFile${i}".text = sb."lblCorrectFile${(i-1)}".text
+            sb."lblIncorrectFile${i}".text = sb."lblIncorrectFile${(i-1)}".text
+            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i-1)}".selected
         }
     }
     
     private def boolean shiftLeft(int idx) {
-        if (idx == 0)
-            return false
         for (int i = idx; i < 5; i++) {
             taContext[i].text = taContext[i+1].text 
-            taRight[i].text = taRight[i+1].text
-            taWrong[i].text = taWrong[i+1].text
+            taCorrect[i].text = taCorrect[i+1].text
+            taIncorrect[i].text = taIncorrect[i+1].text
             taReason[i].text = taReason[i+1].text
-            sb."lblRightFile${i}".text = sb."lblRightFile${i+1}".text
-            sb."lblWrongFile${i}".text = sb."lblWrongFile${i+1}".text
-            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${i+1}".selected
+            sb."lblCorrectFile${i}".text = sb."lblCorrectFile${(i+1)}".text
+            sb."lblIncorrectFile${i}".text = sb."lblIncorrectFile${(i+1)}".text
+            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i+1)}".selected
         }
     }
     

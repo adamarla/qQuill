@@ -85,10 +85,10 @@ class Question {
             ["tex", "image"].each { content ->
                 it."${content}".each { option ->
                     if (option.@correct.equals("true")) {
-                        step."${content}Right" = option.toString()
+                        step."${content}Correct" = option.toString()
                     } else {
-                        step."${content}Wrong" = option.toString()
-                    }    
+                        step."${content}Incorrect" = option.toString()
+                    }
                 }
             }
             step.reason = it.reason.toString()
@@ -133,7 +133,7 @@ class Statement {
 class Step {
     boolean noswipe
     String context = "", reason = ""
-    String texRight = "", texWrong = "", imageRight = "", imageWrong = ""
+    String texCorrect = "", texIncorrect = "", imageCorrect = "", imageIncorrect = ""
 }
 
 class Choices {

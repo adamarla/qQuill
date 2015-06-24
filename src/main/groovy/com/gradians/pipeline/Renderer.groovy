@@ -92,7 +92,7 @@ class Renderer {
                     constraints: gbc(gridx: idx, gridy: 0, weightx: 1, fill: HORIZONTAL))            
             }
             
-            ["Right", "Wrong"].each { side ->
+            ["Correct", "Incorrect"].each { side ->
                 def drawable
                 if (step."image${side}".length() > 0) {
                     drawable = fileToIcon(step."image${side}")
@@ -101,7 +101,7 @@ class Renderer {
                     drawable = new TeXLabel(teXToIcon(step."tex${side}"), "${side}")
                 }
                 
-                scrollPane(constraints: gbc(gridx: (side.equals("Right") ? 0 : 1), 
+                scrollPane(constraints: gbc(gridx: (side.equals("Correct") ? 0 : 1), 
                         gridy: 1, weightx: 1, weighty: 1, fill: BOTH)) {
                     widget(drawable)
                 }    
@@ -161,15 +161,15 @@ class Renderer {
             q.getPrintableSteps().each { stp ->
                 def contents = {
                     context(stp.context)
-                    if (stp.imageRight.length() > 0)
-                        image(correct: "true", stp.imageRight)
-                    else if (stp.texRight.length() > 0)
-                        tex(correct: "true", stp.texRight)
+                    if (stp.imageCorrect.length() > 0)
+                        image(correct: "true", stp.imageCorrect)
+                    else if (stp.texCorrect.length() > 0)
+                        tex(correct: "true", stp.texCorrect)
                         
-                    if (stp.imageWrong.length() > 0)
-                        image(stp.imageWrong)
-                    else if (stp.texWrong.length() > 0)
-                        tex(stp.texWrong)
+                    if (stp.imageIncorrect.length() > 0)
+                        image(stp.imageIncorrect)
+                    else if (stp.texIncorrect.length() > 0)
+                        tex(stp.texIncorrect)
                     reason(stp.reason)
                 }
                 
@@ -208,7 +208,7 @@ class Renderer {
         
         renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
         q.steps.eachWithIndex { step, idx ->
-            def content = [step.context, step.texRight, step.texWrong, step.reason] 
+            def content = [step.context, step.texCorrect, step.texIncorrect, step.reason] 
             ["CTX_${idx}.svg", "CRT_${idx}.svg", 
                 "WRNG_${idx}.svg", "RSN_${idx}.svg"].eachWithIndex { part, posn ->
                 if (content[posn].length() > 0)
@@ -255,7 +255,10 @@ class Renderer {
     
     private def JSVGCanvas fileToIcon(String name) {
         JSVGCanvas svgCanvas = new JSVGCanvas()
-        svgCanvas.setURI(q.qpath.resolve(name).toUri().toURL().toString())
+        try {
+            svgCanvas.setURI(q.qpath.resolve(name).toUri().toURL().toString())            
+        } catch (Exception e) { 
+        }
         svgCanvas
     }
     
