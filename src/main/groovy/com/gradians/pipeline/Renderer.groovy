@@ -76,7 +76,9 @@ class Renderer {
                 tabbedPane() {
                     toSwing(sb, q.statement, q.choices)
                     q.steps.eachWithIndex { step, i ->
-                        toSwing(sb, step, i)
+                        if (step != null && step.context.length() != 0) {
+                            toSwing(sb, step, i)
+                        }
                     }
                 }
             }

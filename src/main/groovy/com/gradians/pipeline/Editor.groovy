@@ -65,7 +65,7 @@ class Editor {
     def launch() {
         sb = new SwingBuilder()
         sb.edt {
-            frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", size: [840, 640], show: true, 
+            frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", size: [800, 600], show: true, 
                 locationRelativeTo: null, resizable: false, defaultCloseOperation: EXIT_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
