@@ -159,7 +159,7 @@ class Renderer {
             }
             
             q.steps.each { stp ->
-                if (stp != null) {
+                if (stp != null && stp.context.length() != 0) {
                     def contents = {
                         context(stp.context)
                         if (stp.imageCorrect.length() > 0)
