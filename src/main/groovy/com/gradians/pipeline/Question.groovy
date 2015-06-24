@@ -52,20 +52,6 @@ class Question {
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"        
     }
     
-    def Step[] getPrintableSteps() {
-        int length = 0
-        for (int i = steps.length-1; i >= 0; i--) {
-            if (steps[i].context.length() > 0) {                
-                length = i+1
-                break
-            }
-        }
-        Step[] validSteps = new Step[length]
-        for (int i = 0; i < length; i++)
-            validSteps[i] = steps[i]
-        validSteps
-    }
-    
     private def parse(Path xmlPath) {
         def xml = new XmlSlurper().parse(xmlPath.toFile())
         statement = new Statement()

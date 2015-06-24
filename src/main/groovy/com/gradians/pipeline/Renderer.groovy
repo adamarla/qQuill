@@ -158,25 +158,27 @@ class Renderer {
                 tex(q.statement.tex)
             }
             
-            q.getPrintableSteps().each { stp ->
-                def contents = {
-                    context(stp.context)
-                    if (stp.imageCorrect.length() > 0)
-                        image(correct: "true", stp.imageCorrect)
-                    else if (stp.texCorrect.length() > 0)
-                        tex(correct: "true", stp.texCorrect)
-                        
-                    if (stp.imageIncorrect.length() > 0)
-                        image(stp.imageIncorrect)
-                    else if (stp.texIncorrect.length() > 0)
-                        tex(stp.texIncorrect)
-                    reason(stp.reason)
-                }
-                
-                if (stp.noswipe) {
-                    step(swipe: "false", contents)
-                } else {
-                    step(contents)
+            q.steps.each { stp ->
+                if (stp != null) {
+                    def contents = {
+                        context(stp.context)
+                        if (stp.imageCorrect.length() > 0)
+                            image(correct: "true", stp.imageCorrect)
+                        else if (stp.texCorrect.length() > 0)
+                            tex(correct: "true", stp.texCorrect)
+                            
+                        if (stp.imageIncorrect.length() > 0)
+                            image(stp.imageIncorrect)
+                        else if (stp.texIncorrect.length() > 0)
+                            tex(stp.texIncorrect)
+                        reason(stp.reason)
+                    }
+                    
+                    if (stp.noswipe) {
+                        step(swipe: "false", contents)
+                    } else {
+                        step(contents)
+                    }    
                 }
             }
             
@@ -207,12 +209,15 @@ class Renderer {
         }
         
         renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
-        q.steps.eachWithIndex { step, idx ->
-            def content = [step.context, step.texCorrect, step.texIncorrect, step.reason] 
-            ["CTX_${idx}.svg", "CRT_${idx}.svg", 
-                "WRNG_${idx}.svg", "RSN_${idx}.svg"].eachWithIndex { part, posn ->
-                if (content[posn].length() > 0)
-                    renderSVG(content[posn], path.resolve(part))
+        for (int idx = 0; idx < q.steps.length; idx++) {
+            def step = q.steps[idx]
+            if (step != null && step.context.length() != 0) {
+                def content = [step.context, step.texCorrect, step.texIncorrect, step.reason] 
+                ["CTX_${idx}.svg", "CRT_${idx}.svg", 
+                    "WRNG_${idx}.svg", "RSN_${idx}.svg"].eachWithIndex { part, posn ->
+                    if (content[posn].length() > 0)
+                        renderSVG(content[posn], path.resolve(part))
+                }
             }
         }
         

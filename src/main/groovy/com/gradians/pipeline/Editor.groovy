@@ -63,12 +63,6 @@ class Editor {
     }
     
     def launch() {
-        for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-            if ("Nimbus".equals(info.getName())) {
-                UIManager.setLookAndFeel(info.getClassName())
-                break
-            }
-        }
         sb = new SwingBuilder()
         sb.edt {
             frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", size: [840, 640], show: true, 
