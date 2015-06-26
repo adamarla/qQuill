@@ -13,7 +13,6 @@ class Network {
         def httpClient = new HTTPBuilder(
             "http://www.gradians.com/bundle/update/?id=${bundleId}&signature=${signature}")
         httpClient.setHeaders(Accept: 'application/json')
-        println "uid=${bundleId}&signature=${signature}"
         def results = httpClient.request(POST, JSON) { req ->
             
             response.success = { resp ->

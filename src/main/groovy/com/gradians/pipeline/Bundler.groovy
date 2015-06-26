@@ -24,42 +24,75 @@ import static java.nio.charset.StandardCharsets.UTF_8
 class Bundler {
     
     Question q
+    Path bank, vault, bundles
     
     def Bundler(Question q) {
         this.q = q
     }
     
     def bundle() {
-        Path bank = q.qpath.getParent().getParent().getParent().getParent()
-        Path vaultPath = bank.resolve("vault") 
-        Path bundlePath = bank.resolve("bundles")
+        bank = q.qpath.getParent().getParent().getParent().getParent()
+        vault = bank.resolve("vault") 
+        bundles = bank.resolve("bundles")
         
         def xmlPath = q.qpath.resolve("bundle.xml")
         assert Files.exists(xmlPath)
         
+        // Add
         def bundleXml = new XmlSlurper().parse(xmlPath.toFile())
         def bundleId = bundleXml.bundleId.toString()
         
-        Path zip = bundlePath.resolve(String.format("%s.zip", bundleId));
+        Path zip = bundles.resolve(String.format("%s.zip", bundleId))
         FileSystem fs
         if (Files.notExists(zip))
             fs = create(zip)
         else
             fs = FileSystems.newFileSystem(zip, null)
         
-        final Path root = fs.getPath("/")
-        String manifestXML = String.format("%s.xml", bundleId)
+        (new Renderer(q, 12)).toSVG()
         
-        Path tmpManifest = bundlePath.resolve(manifestXML)
-        GPathResult manifestXml
-        if (Files.exists(root.resolve(manifestXML))) {
-            tmpManifest = Files.copy(root.resolve(manifestXML), tmpManifest, REPLACE_EXISTING)
-            manifestXml = new XmlSlurper().parse(tmpManifest.toFile())
-        } else {
-            manifestXml = new XmlSlurper().parseText(String.format(MANIFEST_TXT, bundleId))
+        Path srcDir = vault.resolve(q.qpath)
+        Path destDir = fs.getPath(fs.getPath("/").toString(), q.uid.replace('/', '-'))
+        addQuestion(q.qpath, destDir)        
+        addToOrUpdateManifest(fs, bundleId, bundleXml)
+        (new Network()).updateBundleSignature(bundleId, getSHA1Sum(zip))
+        
+        Path oldBundleXml = q.qpath.resolve("old_bundle.xml")
+        if (Files.notExists(oldBundleXml)) {
+            return
         }
-        assert manifestXml != null
         
+        // Remove        
+        bundleXml = new XmlSlurper().parse(oldBundleXml.toFile())
+        if (bundleId.equals(bundleXml.bundleId.toString()))
+            return
+        else
+            bundleId = bundleXml.bundleId.toString()
+        
+        zip = bundles.resolve(String.format("%s.zip", bundleId))
+        if (Files.notExists(zip)) {
+            return
+        }
+        
+        fs = FileSystems.newFileSystem(zip, null)
+        destDir = fs.getPath(fs.getPath("/").toString(), q.uid.replace('/', '-'))
+        deleteQuestion(destDir)
+        removeFromManifest(fs, bundleId, bundleXml)
+        (new Network()).updateBundleSignature(bundleId, getSHA1Sum(zip))        
+    }
+    
+    private def addToOrUpdateManifest(FileSystem fs, String bundleId, GPathResult bundleXml) {
+        String manifestName = String.format("%s.xml", bundleId)
+        Path tmpManifest = bundles.resolve(manifestName)
+        final Path root = fs.getPath("/")
+        if (Files.exists(root.resolve(manifestName))) {
+            tmpManifest = Files.copy(fs.getPath("/").resolve(manifestName),
+                tmpManifest, REPLACE_EXISTING)
+        } else {
+            tmpManifest.toFile().write(String.format(MANIFEST_TXT, bundleId))
+        }
+        
+        GPathResult manifestXml = new XmlSlurper().parse(tmpManifest.toFile())
         def qsnEntry = manifestXml.'*'.find { node ->
                 node.@id == bundleXml.questionId.toString()
         }
@@ -77,30 +110,62 @@ class Bundler {
             qsnEntry.@signature = getSHA1Sum(q.qpath.resolve(this.QSN_XML))
         }
 
-        Path srcDir = vaultPath.resolve(q.qpath)
-        Path destDir = fs.getPath(root.toString(), q.uid.replace('/', '-'))
+        (new XmlUtil()).serialize(manifestXml, new FileWriter(tmpManifest.toFile()))
+        Files.copy(tmpManifest, root.resolve(manifestName), REPLACE_EXISTING)
+        Files.delete(tmpManifest)
+        fs.close()
+    }    
+
+    private def removeFromManifest(FileSystem fs, String bundleId, GPathResult bundleXml) {
+        String manifestName = String.format("%s.xml", bundleId)
+        Path tmpManifest = bundles.resolve(manifestName)
+        final Path root = fs.getPath("/")
+        if (Files.exists(root.resolve(manifestName))) {
+            tmpManifest = Files.copy(fs.getPath("/").resolve(manifestName),
+                tmpManifest, REPLACE_EXISTING)
+        } else {
+            return
+        }
+        
+        GPathResult manifestXml = new XmlSlurper().parse(tmpManifest.toFile())
+        def qsnEntry = manifestXml.'*'.find { node ->
+                node.@id == bundleXml.questionId.toString()
+        }        
+        if (!qsnEntry.isEmpty()) {
+           qsnEntry.replaceNode { }
+        }
+
+        (new XmlUtil()).serialize(manifestXml, new FileWriter(tmpManifest.toFile()))
+        Files.copy(tmpManifest, root.resolve(manifestName), REPLACE_EXISTING)
+        Files.delete(tmpManifest)
+        fs.close()
+    }    
+
+    private def addQuestion(Path srcDir, Path destDir) {
         if (Files.notExists(destDir)) 
             Files.createDirectory(destDir)
                  
-        (new Renderer(q, 12)).toSVG()
-        
         DirectoryStream<Path> stream = Files.newDirectoryStream(srcDir, "*.svg")
         for (Path entry: stream) {
             // http://stackoverflow.com/questions/22605666/java-access-files-in-jar-causes-java-nio-file-filesystemnotfoundexception
-            // Yes, that is something which is not very well documented... You 
-            // should .resolve() or .relativize() the .toString() values of other paths 
-            // if these paths are not from the same filesystem provider            
+            // Yes, that is something which is not very well documented... You
+            // should .resolve() or .relativize() the .toString() values of other paths
+            // if these paths are not from the same filesystem provider
             Files.copy(entry, destDir.resolve(entry.getFileName().toString()), REPLACE_EXISTING)
         }
-        Files.copy(srcDir.resolve(QSN_XML), destDir.resolve(QSN_XML), REPLACE_EXISTING)        
-        
-        (new XmlUtil()).serialize(manifestXml, new FileWriter(tmpManifest.toFile()))
-        Files.copy(tmpManifest, root.resolve(manifestXML), REPLACE_EXISTING)
-        Files.delete(tmpManifest)
-        fs.close()
-        
-        (new Network()).updateBundleSignature(bundleId, getSHA1Sum(zip))
-    }    
+        Files.copy(srcDir.resolve(QSN_XML), destDir.resolve(QSN_XML), REPLACE_EXISTING)
+    }
+    
+    private def deleteQuestion(Path destDir) {
+        if (Files.notExists(destDir))
+            return                 
+        DirectoryStream<Path> stream = Files.newDirectoryStream(destDir, "*.svg")
+        for (Path entry: stream) {
+            Files.delete(destDir.resolve(entry.getFileName().toString()))
+        }
+        Files.delete(destDir.resolve(QSN_XML))
+        Files.delete(destDir)
+    }
     
     private def create(Path zipPath) {
         final URI uri = URI.create("jar:file:" + zipPath.toUri().getPath())       
