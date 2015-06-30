@@ -6,14 +6,20 @@ function main() {
         #echo $2
         usage
     else 
-        if [ "$1" == "-u" ] ; then
-            update $2
+        if [[ ! "$1" =~ ^-.* ]] ; then
+            usage
+            return
         else
-            if [ "$1" == "-d" ] ; then
-                download $2
+            if [ "$1" == "-u" ] ; then
+                update $2
             else
-                run_quill $1 $2
+                if [ "$1" == "-d" ] ; then
+                    download $2
+                else
+                    run_quill $1 $2
+                fi
             fi
+
         fi
     fi
 }
@@ -55,6 +61,7 @@ function download() {
         dir=$1
     fi
     curl "http://109.74.201.62:8080/quill/Qquill-all.jar" > $dir/Qquill-all.jar
+    ls -lrt $dir/Qquill-all.jar
 }
 
 function update() {
