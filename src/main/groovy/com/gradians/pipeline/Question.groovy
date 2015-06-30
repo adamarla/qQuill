@@ -45,8 +45,8 @@ class Question {
         } else {
             assert isValidXML(xmlPath, catalog)
             parse(xmlPath)
-            getLabel()
         }
+        getLabel()
         
         def tokens = qpath.toString().split(SEP)
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"        

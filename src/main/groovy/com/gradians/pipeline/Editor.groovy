@@ -1,11 +1,5 @@
 package com.gradians.pipeline
 
-import static java.awt.BorderLayout.EAST
-import static java.awt.GridBagConstraints.BOTH
-import static java.awt.GridBagConstraints.CENTER
-import static java.awt.GridBagConstraints.HORIZONTAL
-import static java.awt.GridBagConstraints.VERTICAL
-import static javax.swing.JFrame.EXIT_ON_CLOSE
 import groovy.swing.SwingBuilder
 
 import java.awt.BorderLayout as BL
@@ -19,6 +13,14 @@ import javax.swing.filechooser.FileView
 
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
+
+import static java.awt.BorderLayout.EAST
+import static java.awt.GridBagConstraints.BOTH
+import static java.awt.GridBagConstraints.CENTER
+import static java.awt.GridBagConstraints.HORIZONTAL
+import static java.awt.GridBagConstraints.VERTICAL
+import static javax.swing.JFrame.EXIT_ON_CLOSE
+import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
@@ -40,11 +42,12 @@ class Editor {
         taIncorrect = new LaTeXArea[6]
     }
     
-    def launch() {
+    def launch(boolean topLevel = true) {
         sb = new SwingBuilder()
         sb.edt {
-            frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", size: [960, 600], show: true, 
-                locationRelativeTo: null, resizable: false, defaultCloseOperation: EXIT_ON_CLOSE) {                
+            frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", 
+                size: [960, 600], show: true, locationRelativeTo: null, resizable: false, 
+                defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {                
                 panel() {
                     gridBagLayout()
                     

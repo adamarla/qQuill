@@ -115,36 +115,40 @@ class Tagger {
                             }
                         }
                     }
-                    
-                    vbox(border: BorderFactory.createTitledBorder("Bundles"), 
-                        constraints: gbc(gridx: 0, gridy: 2, weightx: 1, weighty: 1, fill: BOTH)) {
-                        checkBox(id: 'chkBoxEditable', text: 'Editable', selected: false)
-                        scrollPane() {
-                            table(id: 'tblSlots', mouseClicked: updateLabel) {
-                                tableModel(list: getTableData()) {
-                                    propertyColumn(header: 'UID', propertyName: 'uid', editable: false)
-                                    propertyColumn(header: 'Bundle', propertyName: 'bundle', editable: false)
-                                    propertyColumn(header: 'Label', propertyName: 'label', editable: false)
+                        
+                    tabbedPane(constraints: gbc(gridx: 0, gridy: 2, weightx: 1, weighty: 1, fill: BOTH)) {
+                        
+                        vbox(name: "Bundles") {
+                            panel() {
+                                checkBox(id: 'chkBoxEditable', text: 'Editable', selected: false)
+                                button(text: 'Launch Editor', actionPerformed: launchEditor)    
+                            }
+                            scrollPane() {
+                                table(id: 'tblSlots', mouseClicked: updateLabel) {
+                                    tableModel(list: getTableData()) {
+                                        propertyColumn(header: 'UID', propertyName: 'uid', editable: false)
+                                        propertyColumn(header: 'Bundle', propertyName: 'bundle', editable: false)
+                                        propertyColumn(header: 'Label', propertyName: 'label', editable: false)
+                                    }
                                 }
                             }
+                        }
+                        
+                        panel(name: "Concepts") {
+                            gridBagLayout()
+            
+                            scrollPane(constraints: gbc(gridx: 0, gridy: 0, gridwidth: 3,
+                                weightx: 1.0, weighty: 1, fill: BOTH, insets: [5, 0, 5, 0])) {
+                                textArea(id: 'taTopiks', focusable: false)
+                            }
+                            comboBox(id: 'cbTopik', actionPerformed: typeahead,
+                                constraints: gbc(gridx: 0, gridy: 1,
+                                    weightx: 1.0, weighty: 0, fill: HORIZONTAL, insets: [0, 0, 5, 0]))
                         }    
                     }
-                        
-                    panel(border: BorderFactory.createTitledBorder("Concepts"), 
-                        constraints: gbc(gridx: 0, gridy: 3, weightx: 1, weighty: 1, fill: BOTH)) {
-                        gridBagLayout()
-        
-                        scrollPane(constraints: gbc(gridx: 0, gridy: 0, gridwidth: 3, 
-                            weightx: 1.0, weighty: 1, fill: BOTH, insets: [5, 0, 5, 0])) {
-                            textArea(id: 'taTopiks', focusable: false)
-                        }                        
-                        comboBox(id: 'cbTopik', actionPerformed: typeahead,
-                            constraints: gbc(gridx: 0, gridy: 1, 
-                                weightx: 1.0, weighty: 0, fill: HORIZONTAL, insets: [0, 0, 5, 0]))
-                    }
-                                                
+                    
                     panel(border: BorderFactory.createTitledBorder("Actions"),
-                        constraints: gbc(gridx: 0, gridy: 4, weightx: 1, fill: HORIZONTAL)) {    
+                        constraints: gbc(gridx: 0, gridy: 3, weightx: 1, fill: HORIZONTAL)) {    
                         button(id: 'btnTag', text: 'Commit', enabled: false, actionPerformed: tag)
                     }
                 }
@@ -164,6 +168,13 @@ class Tagger {
             acs1.setFilterMode(TextMatcherEditor.CONTAINS)
             acs1.setSelectsTextOnFocusGain(true)
             acs1.setHidesPopupOnFocusLost(true)
+        }
+    }
+    
+    def launchEditor = {
+        int row = sb.tblSlots.getSelectedRow()
+        if (row >= 0) {
+            (new Editor(qsns[row])).launch(false)            
         }
     }
     
