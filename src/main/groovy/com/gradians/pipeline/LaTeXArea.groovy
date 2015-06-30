@@ -30,7 +30,6 @@ class LaTeXArea extends RSyntaxTextArea {
             completionProvider = new DefaultCompletionProvider()
             
             Path path = new File(System.getProperty("user.home")).toPath().resolve("quill.shortcuts")
-            println path
             def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("quill.shortcuts")            
             if (Files.notExists(path)) {
                 Files.copy(ostream, path)
@@ -39,7 +38,6 @@ class LaTeXArea extends RSyntaxTextArea {
             
             Properties p = new Properties()
             p.load(Files.newInputStream(path))            
-            println "${p.size()} short cuts"
             Iterator iter = p.iterator()
             while (iter.hasNext()) {
                 def key = iter.next().toString()
