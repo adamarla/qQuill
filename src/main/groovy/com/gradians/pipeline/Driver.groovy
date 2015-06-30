@@ -24,6 +24,7 @@ class Driver {
         }
         
         Options options = new Options()
+        options.addOption(Option.builder("e").argName("edit").longOpt("edit").build())
         options.addOption(Option.builder("r").argName("render").longOpt("render").build())
         options.addOption(Option.builder("p").argName("preview").longOpt("preview").build())
         options.addOption(Option.builder("t").argName("tag").longOpt("tag").build())
@@ -32,6 +33,7 @@ class Driver {
         try {
             
             CommandLine cl = (new DefaultParser()).parse(options, args)
+            boolean editOnly = cl.hasOption('e')
             boolean renderOnly = cl.hasOption('r')
             boolean tagOnly = cl.hasOption('t')
             boolean bundleOnly = cl.hasOption('b')
@@ -53,7 +55,7 @@ class Driver {
                     (new Bundler(q)).bundle()
                 } else if (previewOnly) {
                     (new Renderer(q)).toSwing(true)
-                } else {
+                } else if (editOnly) {
                     (new Editor(q)).launch()
                 }
             }

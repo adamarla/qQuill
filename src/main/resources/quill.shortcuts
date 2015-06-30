@@ -1,0 +1,16 @@
+begalign=\begin{align}\n\end{align}
+begarray=\begin{array}\n\end{array}
+mult=\times
+frac=\dfrac{}{}
+div=\dfrac{}{}
+space1=\,
+space2=\quad
+space3=\qquad
+sin=\sin
+sintheta=\sin\theta
+cos=\cos
+costheta=\cos\theta
+dydx=\dfrac{dy}{dx}
+()=\left(\right)
+{}=\left\{\right\}
+[]=\left[\right]
