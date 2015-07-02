@@ -48,6 +48,8 @@ import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 class Renderer {
     
+    Editor e
+    
     Question q
     def fontSize
     
@@ -63,8 +65,14 @@ class Renderer {
     }
     
     def Renderer(Question q, int fontSize = 15) {
-        this()
+        this(fontSize)
         this.q = q
+    }
+    
+    def Renderer(Editor e, Question q, int fontSize = 15) {
+        this(fontSize)
+        this.q = q
+        this.e = e    
     }
     
     def toSwing(boolean topLevel = false) {
@@ -90,7 +98,7 @@ class Renderer {
             gridBagLayout()
             
             ["Context", "Reason"].eachWithIndex { part, idx ->
-                widget(new TeXLabel(teXToIcon(step."${part.toLowerCase()}"), part), 
+                widget(new TeXLabel(step."${part.toLowerCase()}", part), 
                     constraints: gbc(gridx: idx, gridy: 0, weightx: 1, fill: HORIZONTAL))            
             }
             
@@ -100,7 +108,7 @@ class Renderer {
                     drawable = fileToIcon(step."image${side}")
                     drawable.setBorder(BorderFactory.createTitledBorder("${side}"))
                 } else {
-                    drawable = new TeXLabel(teXToIcon(step."tex${side}"), "${side}")
+                    drawable = new TeXLabel(step."tex${side}", "${side}")
                 }
                 
                 scrollPane(constraints: gbc(gridx: (side.equals("Correct") ? 0 : 1), 
@@ -120,7 +128,7 @@ class Renderer {
                 if (statement.image.length() > 0)
                     widget(fileToIcon(statement.image))
                 else {
-                    widget(new TeXLabel(teXToIcon(statement.tex), ""))
+                    widget(new TeXLabel(statement.tex, ""))
                 }
             }
                 
@@ -129,7 +137,7 @@ class Renderer {
                 if (choices != null) {
                     choices.texs.eachWithIndex { tex, i ->
                         char c = (char)(((int)'A') + i)
-                        widget(new TeXLabel(teXToIcon(tex), "${c}"))
+                        widget(new TeXLabel(tex, "${c}"))
                     }
                     char correct = (char)(((int)'A') + choices.correct)
                     label(text: "Correct Ans ${correct}")
@@ -197,6 +205,7 @@ class Renderer {
             }
         }
         q.qpath.resolve("question.xml").toFile().write(sw.toString())
+        e.done("saving")
     }
     
     def toSVG() {
@@ -235,7 +244,10 @@ class Renderer {
         if (tex.length() == 0)
             return
             
-        TeXIcon icon = teXToIcon(tex)
+        TeXFormula formula = new TeXFormula(tex)
+        Icon icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, fontSize, 
+            TeXFormula.SANSSERIF | TeXFormula.ROMAN)
+            
         // Get a DOMImplementation.
         DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation()
         // Create an instance of org.w3c.dom.Document.
@@ -269,32 +281,6 @@ class Renderer {
         svgCanvas
     }
     
-    private def Icon teXToIcon(String tex) {
-        TeXIcon texIcon
-        TeXFormula formula
-        try {
-            formula = new TeXFormula(tex)
-        } catch (Exception e) {
-            def s = splitEqually(e.getMessage()).join("\\\\")
-            formula = new TeXFormula("\\text{${s}}")
-        }
-        texIcon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, fontSize, 
-            TeXFormula.SANSSERIF | TeXFormula.ROMAN)
-        texIcon
-    }
-    
-    private def String[] splitEqually(String s) {
-        int n = (s.length() / CHAR_WIDTH) + 1
-        def parts = new String[n]
-        for (int i = 0; i < n; i++) {
-            parts[i] = s.substring(i*CHAR_WIDTH,
-                i == n-1 ? s.length() : (i+1)*CHAR_WIDTH)
-        }
-        parts
-    }    
-
-    private final int CHAR_WIDTH = 45
-    
 }
 
 class TeXLabel extends JLabel {
@@ -308,27 +294,49 @@ class TeXLabel extends JLabel {
         setBorder(title)
     }
     
+    public TeXLabel(String tex, String title) {        
+        teXToIcon(tex)
+        setBorder(title)
+    }
+    
     public void setBorder(String title) {
         TitledBorder b = BorderFactory.createTitledBorder(title)
-        if (icon.iconWidth > ERROR_WIDTH) {
-            int overflowPcnt = (icon.iconWidth - ERROR_WIDTH)*100/ERROR_WIDTH
-            b.title += "(${overflowPcnt}%)"
-            b.setBorder(new LineBorder(RED, (int)overflowPcnt/10+1))
-        } else if (icon.iconWidth > WARNING_WIDTH) {
-            b.setBorder(new LineBorder(ORANGE))
+        if (icon != null) {
+            if (icon.iconWidth > ERROR_WIDTH) {
+                int overflowPcnt = (icon.iconWidth - ERROR_WIDTH)*100/ERROR_WIDTH
+                b.title += "(${overflowPcnt}%)"
+                b.setBorder(new LineBorder(RED, (int)overflowPcnt/10+1))
+            } else if (icon.iconWidth > WARNING_WIDTH) {
+                b.setBorder(new LineBorder(ORANGE))
+            }    
+        } else {
+            b.setBorder(new LineBorder(RED))
         }
         super.setBorder(b)
     }
     
     @Override
     public void paintComponent(Graphics g){
-        super.paintComponent(g)        
-        if (icon.iconWidth > ERROR_WIDTH) {
-            g.setColor(Color.BLUE)
-            g.drawLine(ERROR_WIDTH, 0, ERROR_WIDTH, icon.iconHeight)
-        }
-    }
+        super.paintComponent(g)
+        if (icon != null) {
+            if (icon.iconWidth > ERROR_WIDTH) {
+                g.setColor(Color.BLUE)
+                g.drawLine(ERROR_WIDTH, 0, ERROR_WIDTH, icon.iconHeight)
+            }    
+        }        
+    }    
     
+    private def teXToIcon(String tex) {
+        try {
+            TeXFormula formula = new TeXFormula(tex)
+            this.icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
+                TeXFormula.SANSSERIF | TeXFormula.ROMAN)
+        } catch (Exception e) {
+            this.text = "<html>${e.getMessage()}</html>"
+        }
+    }    
+
+    private final int CHAR_WIDTH = 45    
     private final int ERROR_WIDTH = 300, WARNING_WIDTH = 280
     
 }

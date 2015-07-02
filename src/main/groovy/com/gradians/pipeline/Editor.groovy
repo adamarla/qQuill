@@ -72,7 +72,7 @@ class Editor {
                     panel(id: 'pnlButtons', border: BorderFactory.createTitledBorder("Actions"),
                         constraints: gbc(gridx: 0, gridy: 2, weightx: 1.0, fill: HORIZONTAL)) {
                         button(text: 'Preview', actionPerformed: previewAll)
-                        button(text: 'Save', actionPerformed: save)
+                        button(id: 'btnSave', text: 'Save', actionPerformed: save)
                         button(text: 'Render', actionPerformed: render)
                         button(text: 'Tag', actionPerformed: tag)
                     }
@@ -142,16 +142,21 @@ class Editor {
         }
     }
     
+    public void done(String doneWhat) {
+        if (doneWhat.equals("saving")) {
+            sb.btnSave.enabled = true
+        }
+    }
+    
     private def previewAll = {
         updateModel()
         (new Renderer(q)).toSwing()
     }
     
     private def save = {
+        sb.btnSave.enabled = false
         updateModel()
-        (new Renderer(q)).toXMLString()
-        sb.optionPane().showMessageDialog(null, "Saved!", "Result", 
-            JOptionPane.INFORMATION_MESSAGE)
+        sb.doLater{(new Renderer(this, q)).toXMLString()}
     }
     
     private def render = {

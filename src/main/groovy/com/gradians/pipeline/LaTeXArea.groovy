@@ -29,18 +29,18 @@ class LaTeXArea extends RSyntaxTextArea {
         if (completionProvider == null) {
             completionProvider = new DefaultCompletionProvider()
             
-            Path path = new File(System.getProperty("user.home")).toPath().resolve("quill.shortcuts")
-            def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("quill.shortcuts")            
+            Path path = new File(System.getProperty("user.home")).toPath().resolve(".quill").resolve("shortcuts")
+            def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("shortcuts")
             if (Files.notExists(path)) {
                 Files.copy(ostream, path)
             }
             assert Files.exists(path)
             
             Properties p = new Properties()
-            p.load(Files.newInputStream(path))            
-            Iterator iter = p.iterator()
-            while (iter.hasNext()) {
-                def key = iter.next().toString()
+            p.load(Files.newInputStream(path))
+            Enumeration e = p.propertyNames()
+            while (e.hasMoreElements()) {
+                def key = e.nextElement()
                 completionProvider.addCompletion(new ShorthandCompletion(
                     completionProvider, key, p.getProperty(key)))
             }
@@ -89,6 +89,8 @@ class LaTeXArea extends RSyntaxTextArea {
     
     private def addCtrlKeys() {
         Keymap latexMap = JTextComponent.addKeymap("LaTeXMap", this.keymap)
+        KeyStroke s = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
+        latexMap.addActionForKeyStroke(s, new LaTeXAction(this, "save", 0))
         KeyStroke t = KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK)
         latexMap.addActionForKeyStroke(t, new LaTeXAction("\\text{}", 1))
         KeyStroke p = KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
@@ -120,13 +122,19 @@ class LaTeXArea extends RSyntaxTextArea {
 
 class LaTeXAction extends TextAction {
     
+    Editor editor
     String latex
     int offset
     
     public LaTeXAction(String latex, int offset) {
         super("laTeX-action")
         this.latex = latex
-        this.offset = offset
+        this.offset = offset        
+    }
+    
+    public LaTeXAction(Editor editor, String latex, int offset) {
+        this(latex, offset)
+        this.editor = editor
     }
     
     @Override
@@ -134,9 +142,12 @@ class LaTeXAction extends TextAction {
         JTextArea comp = (JTextArea)getTextComponent(ae)
         if (comp == null)
           return
-        
-        comp.insert(latex, comp.getCaretPosition())
-        comp.setCaretPosition(comp.getCaretPosition() - offset)
+        if (latex.equals("save") && editor != null) {
+            editor.save()
+        } else {
+            comp.insert(latex, comp.getCaretPosition())
+            comp.setCaretPosition(comp.getCaretPosition() - offset)
+        }
     }
 
 }
