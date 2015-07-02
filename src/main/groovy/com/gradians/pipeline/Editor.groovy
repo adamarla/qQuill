@@ -40,6 +40,8 @@ class Editor {
         taReason = new LaTeXArea[6] 
         taCorrect = new LaTeXArea[6] 
         taIncorrect = new LaTeXArea[6]
+        
+        LaTeXArea.editor = this
     }
     
     def launch(boolean topLevel = true) {

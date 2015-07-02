@@ -90,7 +90,7 @@ class LaTeXArea extends RSyntaxTextArea {
     private def addCtrlKeys() {
         Keymap latexMap = JTextComponent.addKeymap("LaTeXMap", this.keymap)
         KeyStroke s = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
-        latexMap.addActionForKeyStroke(s, new LaTeXAction(this, "save", 0))
+        latexMap.addActionForKeyStroke(s, new LaTeXAction(LaTeXArea.editor, "save", 0))
         KeyStroke t = KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK)
         latexMap.addActionForKeyStroke(t, new LaTeXAction("\\text{}", 1))
         KeyStroke p = KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
@@ -112,6 +112,7 @@ class LaTeXArea extends RSyntaxTextArea {
         this.keymap = latexMap
     }
     
+    static Editor editor
     static DefaultCompletionProvider completionProvider
     static SpellingParser spellingParser
     
