@@ -24,7 +24,7 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
-    final VERSION = "1.0"
+    final VERSION = "1.1"
     
     SwingBuilder sb
     Question q
