@@ -24,7 +24,7 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
-    final VERSION = "1.1"
+    public static final String VERSION = "1.2"
     
     SwingBuilder sb
     Question q
@@ -124,8 +124,10 @@ class Editor {
         sb.vbox() {
             sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
             sb.panel() {
-                widget(new RTextScrollPane(taContext[idx], true), border: BorderFactory.createTitledBorder("Context"))
-                widget(new RTextScrollPane(taReason[idx], true))
+                widget(new RTextScrollPane(taContext[idx], true), 
+                    border: BorderFactory.createTitledBorder("Context"))
+                widget(new RTextScrollPane(taReason[idx], true), 
+                    border: BorderFactory.createTitledBorder("Reason"))
             }
             sb.panel() {
                 ["Correct", "Incorrect"].each { side ->
@@ -210,49 +212,36 @@ class Editor {
     }
     
     private def clearCurrent = {
-        clear(sb.tpTeX.selectedIndex)
-    }
-    
-    private def clear(int idx) {
+        int idx = sb.tpTeX.selectedIndex
         if (idx == 0) {
-            taQsnTeX.text = ""
-            taAnsTeX.each { LaTeXArea ta ->
-                ta.text = ""
-            }
+            clearQsnAns()
         } else {
-            taContext[idx].text = ""
-            taCorrect[idx].text = ""
-            taIncorrect[idx].text = ""
-            taReason[idx].text = ""
-            sb."lblCorrectFile${idx}".text = ""
-            sb."lblIncorrectFile${idx}".text = ""
+            clearStep(idx--)        
         }
     }
     
     private def duplicateStep = {
-        def idx = sb.tpTeX.selectedIndex
-        if (idx == 5 || idx == 0)
+        def idx = sb.tpTeX.selectedIndex-1
+        if (idx == 5)
             return
-        shiftCorrect(idx)
+        shiftRight(idx)
     }
     
     private def insertStep = {
-        def idx = sb.tpTeX.selectedIndex
-        if (idx == 5 || idx == 0)
+        def idx = sb.tpTeX.selectedIndex-1
+        if (idx == 5)
             return
-        shiftCorrect(idx)
-        clear(idx)
+        shiftRight(idx)
+        clearStep(idx)
     }
     
     private def deleteStep = {
-        def idx = sb.tpTeX.selectedIndex
-        if (idx == 0)
-            return
+        def idx = sb.tpTeX.selectedIndex-1
         shiftLeft(idx)
-        clear(5)
+        clearStep(5)
     }
 
-    private def updateModel = {
+    private def updateModel = {        
         Statement statement = new Statement()
         statement.tex = taQsnTeX.text.trim()
         statement.image = sb.lblFile.text
@@ -280,9 +269,25 @@ class Editor {
         } else {
             q.choices = null
         }        
+    }    
+    
+    private def clearQsnAns() {
+        taQsnTeX.text = ""
+        taAnsTeX.each { LaTeXArea ta ->
+            ta.text = ""
+        }
     }
     
-    private def boolean shiftCorrect(int idx) {
+    private def clearStep(int idx) {
+        taContext[idx].text = ""
+        taCorrect[idx].text = ""
+        taIncorrect[idx].text = ""
+        taReason[idx].text = ""
+        sb."lblCorrectFile${idx}".text = ""
+        sb."lblIncorrectFile${idx}".text = ""
+    }
+    
+    private def boolean shiftRight(int idx) {
         if (idx == 5)
             return false
         for (int i = 5; i > idx; i--) {

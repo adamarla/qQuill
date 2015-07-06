@@ -82,7 +82,8 @@ class Tagger {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
-            frame(title: path.getFileName(), size: [600, 600], show: true, locationRelativeTo: null,
+            frame(title: "Quill (${Editor.VERSION}) - Tagger - ${path.getFileName()}",
+                    size: [600, 600], show: true, locationRelativeTo: null,
                     defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 panel(border: BorderFactory.createEmptyBorder()) {
                     gridBagLayout()
@@ -122,6 +123,7 @@ class Tagger {
                             panel() {
                                 checkBox(id: 'chkBoxEditable', text: 'Editable', selected: false)
                                 button(text: 'Launch Editor', actionPerformed: launchEditor)    
+                                button(text: 'Launch Preview', actionPerformed: launchPreview)    
                             }
                             scrollPane() {
                                 table(id: 'tblSlots', mouseClicked: updateLabel) {
@@ -175,6 +177,13 @@ class Tagger {
         int row = sb.tblSlots.getSelectedRow()
         if (row >= 0) {
             (new Editor(qsns[row])).launch(false)            
+        }
+    }
+    
+    def launchPreview = {
+        int row = sb.tblSlots.getSelectedRow()
+        if (row >= 0) {
+            (new Renderer(qsns[row])).toSwing()
         }
     }
     
@@ -294,8 +303,9 @@ class Tagger {
                 row = [uid: q.uid, bundle: '', label: '']
             } else {
                 def tokens = q.bundle.split(BNDL_DELIM)
-                def hasXml = Files.exists(q.qpath.resolve(QSN_XML)) ? "(filled)" : ""
-                row = [uid: "${q.uid} ${hasXml}", bundle: tokens[0], label: tokens[1]]           
+                def hasXml = Files.exists(q.qpath.resolve(QSN_XML))
+                row = [uid: hasXml ? "<html><b>${q.uid}</b></html>" : "${q.uid}",
+                    bundle: tokens[0], label: tokens[1]]           
             }
             data << row
         }
