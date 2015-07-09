@@ -50,7 +50,7 @@ class Driver {
             } else {
                 Question q = new Question(path)
                 if (renderOnly) {
-                    (new Renderer(q, 12)).toSVG()
+                    (new Renderer(q)).toSVG()
                 } else if (bundleOnly) {
                     (new Bundler(q)).bundle()
                 } else if (previewOnly) {
