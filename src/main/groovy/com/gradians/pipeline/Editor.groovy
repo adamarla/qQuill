@@ -216,7 +216,7 @@ class Editor {
         if (idx == 0) {
             clearQsnAns()
         } else {
-            clearStep(idx--)        
+            clearStep(--idx)
         }
     }
     
