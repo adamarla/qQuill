@@ -49,7 +49,7 @@ class Bundler {
         else
             fs = FileSystems.newFileSystem(zip, null)
         
-        (new Renderer(q, 12)).toSVG()
+        (new Renderer(q)).toSVG()
         
         Path srcDir = vault.resolve(q.qpath)
         Path destDir = fs.getPath(fs.getPath("/").toString(), q.uid.replace('/', '-'))
