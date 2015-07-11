@@ -18,6 +18,7 @@ class Driver {
         def pwd = System.getProperty("user.dir")
         if (pwd.endsWith("Qquill")) {
             pwd = "/home/adamarla/work/gutenberg/vault/2/9ai/9bfrg"
+            args = ["-e"]
         } else if (!pwd.contains("vault")) {
             println "Run from within a Question folder in vault"
             return

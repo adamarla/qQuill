@@ -15,6 +15,7 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
 
 import static java.awt.BorderLayout.EAST
+import static java.awt.GridBagConstraints.NONE
 import static java.awt.GridBagConstraints.BOTH
 import static java.awt.GridBagConstraints.CENTER
 import static java.awt.GridBagConstraints.HORIZONTAL
@@ -24,7 +25,7 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
-    public static final String VERSION = "1.2"
+    public static final String VERSION = "1.3"
     
     SwingBuilder sb
     Question q
@@ -37,10 +38,11 @@ class Editor {
         this.q = q
         taAnsTeX = new LaTeXArea[4]
         taContext = new LaTeXArea[6] 
-        taReason = new LaTeXArea[6] 
-        taCorrect = new LaTeXArea[6] 
+        taReason = new LaTeXArea[6]
+        taCorrect = new LaTeXArea[6]
         taIncorrect = new LaTeXArea[6]
         
+        renderer = new Renderer(this.q)
         LaTeXArea.editor = this
     }
     
@@ -52,43 +54,53 @@ class Editor {
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {                
                 panel() {
                     gridBagLayout()
-                    
-                    panel(id: 'pnlControls', border: BorderFactory.createTitledBorder("Edit"),
-                        constraints: gbc(gridx: 0, gridy: 0, weightx: 1.0, fill: HORIZONTAL)) {
-                        checkBox(id: 'chkBxSpellCheck', text: 'Spell Check', selected: false, 
-                            actionPerformed: toggleSpellCheck)
-                        button(text: 'Clear', actionPerformed: clearCurrent)
-                        button(text: 'Duplicate', actionPerformed: duplicateStep)
-                        button(text: 'Insert', actionPerformed: insertStep)
-                        button(text: 'Delete', actionPerformed: deleteStep)    
-                    }    
-                    
-                    tabbedPane(id: 'tpTeX', border: BorderFactory.createTitledBorder("TeX"),
-                        constraints: gbc(gridx: 0, gridy: 1, weightx: 1.0, weighty: 1, fill: BOTH)) {      
-                        panel(id: 'pnlQsnAns', name: 'Q / A') { qsnAnsTeX() }
-                        [1, 2, 3, 4, 5, 6].each { idx ->
-                            panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(idx-1) }
+                                        
+                    // left panel
+                    vbox(border: BorderFactory.createTitledBorder("Edit"),
+                        constraints: gbc(gridx: 0, gridy: 0, gridwidth: 1)) {
+                        
+                        panel(id: 'pnlControls') {
+                            checkBox(id: 'chkBxSpellCheck', text: 'Spell Check', selected: false, 
+                                actionPerformed: toggleSpellCheck)
+                            button(text: 'Clear', actionPerformed: clearCurrent)
+                            button(text: 'Duplicate', actionPerformed: duplicateStep)
+                            button(text: 'Insert', actionPerformed: insertStep)
+                            button(text: 'Delete', actionPerformed: deleteStep)
                         }
+                        
+                        tabbedPane(id: 'tpTeX', changeListener: tabClicked) {      
+                            panel(id: 'pnlQsnAns', name: 'Q/A') { qsnAnsTeX() }
+                            [1, 2, 3, 4, 5, 6].each { idx ->
+                                panel(id: "pnlStep${idx}", name: "# ${idx}") { stepTeX(idx-1) }
+                            }
+                        }                    
+                    }
+                    
+                    // right panel
+                    vbox(constraints: gbc(gridx: 1, gridy: 0, gridwidth: 1, weightx: 1.0, weighty: 1.0, fill: BOTH)) {
+                        panel(id: 'pnlDisplay', border: BorderFactory.createTitledBorder("SVG"))
                     }
                         
-                    panel(id: 'pnlButtons', border: BorderFactory.createTitledBorder("Actions"),
-                        constraints: gbc(gridx: 0, gridy: 2, weightx: 1.0, fill: HORIZONTAL)) {
+                    // bottom panel
+                    panel(border: BorderFactory.createTitledBorder("Actions"),
+                        constraints: gbc(gridx: 0, gridy: 2, gridwidth: 2, weightx: 1.0, fill: HORIZONTAL)) {
                         button(text: 'Preview', actionPerformed: previewAll)
                         button(id: 'btnSave', text: 'Save', actionPerformed: save)
-                        button(text: 'Render', actionPerformed: render)
+                        button(id: 'btnRender', text: 'Render', actionPerformed: render)
                         button(text: 'Tag', actionPerformed: tag)
+                        button(text: 'Refresh', actionPerformed: previewStep)
                     }
                 }
             }
-        }        
+        }
         sb.cbAns.selectedIndex = q.choices == null ? 0 : q.choices.correct
     }
     
     private def qsnAnsTeX = {
         taQsnTeX = LaTeXArea.getInstance(q.statement.tex, 18, 36)
-        sb.panel() {
-            sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Problem Statement")) {
-                widget(new RTextScrollPane(taQsnTeX, true))
+        sb.tabbedPane(id: 'tpQsnAns') {
+            sb.vbox(constraints: BL.EAST, name: "Problem Statement") {
+                widget(new RTextScrollPane(taQsnTeX, true), name: "Problem")
                 sb.panel() {
                     sb.button(id: 'btnFile', text: 'Image (optional):',
                         actionPerformed: { setImage('lblFile', q.qpath) }
@@ -96,7 +108,7 @@ class Editor {
                     sb.label(id: 'lblFile', text: q.statement.image)
                 }
             }
-            sb.vbox(constraints: BL.EAST, border: BorderFactory.createTitledBorder("Answer Choices")) {
+            sb.vbox(constraints: BL.EAST, name: "Answer Choices") {
                 ['A', 'B', 'C', 'D'].each { option ->
                     def idx = (int)((char)option) - (int)'A'
                     taAnsTeX[idx] = LaTeXArea.getInstance(q.choices != null ? q.choices.texs[idx] : "", 4, 36)
@@ -113,26 +125,21 @@ class Editor {
     
     private def stepTeX = { int idx ->
         def step = q.steps[idx]
-        if (step == null) {
+        if (step == null)
             step = new Step()
-        }
-        taContext[idx] = LaTeXArea.getInstance(step.context, 8, 36)
-        taReason[idx] = LaTeXArea.getInstance(step.reason, 8, 36)
-        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 10, 36)
-        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 10, 36)
+        
+        taContext[idx] = LaTeXArea.getInstance(step.context, 18, 36)
+        taReason[idx] = LaTeXArea.getInstance(step.reason, 18, 36)
+        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 18, 36)
+        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 18, 36)
 
-        sb.vbox() {
+        sb.vbox(constraints: BL.EAST) {
             sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
-            sb.panel() {
-                widget(new RTextScrollPane(taContext[idx], true), 
-                    border: BorderFactory.createTitledBorder("Context"))
-                widget(new RTextScrollPane(taReason[idx], true), 
-                    border: BorderFactory.createTitledBorder("Reason"))
-            }
-            sb.panel() {
+            sb.tabbedPane(id: "tpStep${idx}") {
+                sb.widget(new RTextScrollPane(taContext[idx], true), name: "Context")
                 ["Correct", "Incorrect"].each { side ->
-                    sb.vbox(border: BorderFactory.createTitledBorder("${side} Option")) {
-                        widget(side.equals("Correct") ? 
+                    sb.vbox(name: "${side}") {
+                        sb.widget(side.equals("Correct") ? 
                             new RTextScrollPane(taCorrect[idx], true) : 
                             new RTextScrollPane(taIncorrect[idx], true))
                         sb.panel() {
@@ -140,39 +147,37 @@ class Editor {
                                 actionPerformed: { setImage("lbl${side}File${idx}", q.qpath) })
                             sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
                         }
-                    }
+                    }    
                 }
+                sb.widget(new RTextScrollPane(taReason[idx], true), name: "Reason / Takeaway")
             }
-        }
-    }
-    
-    public void done(String doneWhat) {
-        if (doneWhat.equals("saving")) {
-            sb.btnSave.enabled = true
         }
     }
     
     private def previewAll = {
         updateModel()
-        (new Renderer(q)).toSwing()
+        renderer.toSwing()
     }
     
     private def save = {
         sb.btnSave.enabled = false
         updateModel()
-        sb.doLater{(new Renderer(this, q)).toXMLString()}
+        renderer.toXMLString()
+        sb.btnSave.enabled = true
     }
     
     private def render = {
-        if (preview == null)
-            preview = new Renderer(q, 12)
+        sb.btnRender.enabled = false
         try {
-            preview.toSVG()
+            renderer.toSVG()
         } catch (Exception e) {
             println e
         }
-        sb.optionPane().showMessageDialog(null, "Rendered!", "Result", 
-            JOptionPane.INFORMATION_MESSAGE)
+        sb.btnRender.enabled = true
+    }
+    
+    private def tabClicked = {
+        print "clicked"
     }
     
     private def setImage = { String it, Path qpath ->
@@ -208,11 +213,25 @@ class Editor {
                 else
                     element.addParser(LaTeXArea.spellingParser)
             }
-        }        
+        }
+    }
+    
+    private def previewStep = {
+        sb.pnlDisplay.removeAll()
+        updateModel()
+        def stepIdx = sb.tpTeX.selectedIndex
+        if (stepIdx == 0) {
+            sb.pnlDisplay.add renderer.toPreview(sb, q.statement, q.choices)
+        } else {
+            stepIdx--
+            sb.pnlDisplay.add renderer.toPreview(sb, q.steps[stepIdx], stepIdx)
+        }
+        sb.pnlDisplay.revalidate()
+        sb.pnlDisplay.repaint()
     }
     
     private def clearCurrent = {
-        int idx = sb.tpTeX.selectedIndex
+        def idx = sb.tpTeX.selectedIndex
         if (idx == 0) {
             clearQsnAns()
         } else {
@@ -321,6 +340,6 @@ class Editor {
         }
     }
     
-    private Renderer preview
+    private Renderer renderer
     
 }
