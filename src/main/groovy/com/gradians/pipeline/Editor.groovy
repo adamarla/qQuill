@@ -8,6 +8,9 @@ import java.nio.file.Path
 import javax.swing.BorderFactory
 import javax.swing.JFileChooser
 import javax.swing.JOptionPane
+import javax.swing.JTabbedPane
+import javax.swing.event.ChangeEvent
+import javax.swing.event.ChangeListener
 import javax.swing.filechooser.FileFilter
 import javax.swing.filechooser.FileView
 
@@ -50,14 +53,14 @@ class Editor {
         sb = new SwingBuilder()
         sb.edt {
             frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", 
-                size: [960, 600], show: true, locationRelativeTo: null, resizable: false, 
+                size: [900, 600], show: true, locationRelativeTo: null, resizable: false, 
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {                
                 panel() {
                     gridBagLayout()
                                         
                     // left panel
                     vbox(border: BorderFactory.createTitledBorder("Edit"),
-                        constraints: gbc(gridx: 0, gridy: 0, gridwidth: 1)) {
+                        constraints: gbc(gridx: 0, gridy: 0, gridwidth: 1, weighty: 1.0, fill: VERTICAL)) {
                         
                         panel(id: 'pnlControls') {
                             checkBox(id: 'chkBxSpellCheck', text: 'Spell Check', selected: false, 
@@ -68,7 +71,7 @@ class Editor {
                             button(text: 'Delete', actionPerformed: deleteStep)
                         }
                         
-                        tabbedPane(id: 'tpTeX', changeListener: tabClicked) {      
+                        tabbedPane(id: 'tpTeX') {      
                             panel(id: 'pnlQsnAns', name: 'Q&A') { qsnAnsTeX() }
                             [1, 2, 3, 4, 5, 6].each { idx ->
                                 panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(idx-1) }
@@ -77,9 +80,9 @@ class Editor {
                     }
                     
                     // right panel
-                    vbox(constraints: gbc(gridx: 1, gridy: 0, gridwidth: 1, 
-                        weightx: 1.0, weighty: 1.0, fill: BOTH)) {
-                        panel(id: 'pnlDisplay', border: BorderFactory.createTitledBorder("Preview"))
+                    scrollPane(border: BorderFactory.createTitledBorder("Preview"),
+                        constraints: gbc(gridx: 1, gridy: 0, gridwidth: 1, weightx: 1, weighty: 1, fill: BOTH)) {
+                        panel(id: 'pnlDisplay', )
                     }
                         
                     // bottom panel
@@ -94,7 +97,14 @@ class Editor {
                 }
             }
         }
+        sb.tpTeX.addChangeListener new ChangeListener() {            
+            @Override
+            void stateChanged(ChangeEvent changeEvent) {
+                previewStep()
+            }
+        }
         sb.cbAns.selectedIndex = q.choices == null ? 0 : q.choices.correct
+        previewStep()
     }
     
     private def qsnAnsTeX = {
@@ -177,10 +187,6 @@ class Editor {
         sb.btnRender.enabled = true
     }
     
-    private def tabClicked = {
-        print "clicked"
-    }
-    
     private def setImage = { String it, Path qpath ->
         def openSVGDialog = new JFileChooser(
             dialogTitle: "SVG Only", fileSelectionMode : JFileChooser.FILES_ONLY,
@@ -222,10 +228,12 @@ class Editor {
         updateModel()
         def stepIdx = sb.tpTeX.selectedIndex
         if (stepIdx == 0) {
-            sb.pnlDisplay.add renderer.toPreview(sb, q.statement, q.choices)
+            if (q.statement.tex.length() > 0)
+                sb.pnlDisplay.add renderer.toPreview(sb, q.statement, q.choices)
         } else {
             stepIdx--
-            sb.pnlDisplay.add renderer.toPreview(sb, q.steps[stepIdx], stepIdx)
+            if (q.steps[stepIdx].context.length() > 0)
+                sb.pnlDisplay.add renderer.toPreview(sb, q.steps[stepIdx], stepIdx)
         }
         sb.pnlDisplay.revalidate()
         sb.pnlDisplay.repaint()

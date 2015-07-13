@@ -319,9 +319,8 @@ class Tagger {
             if (Files.isDirectory(path, NOFOLLOW_LINKS)) {
                 list.add(new Question(path))
             }
-        }        
-        this.qsns = list.toArray(new Question[list.size()])
-        for (Question q : qsns) {
+        }
+        for (Question q : list) {
             try {
                 String bundleId = network.getBundleInfo(q)
                 q.bundle = bundleId.length() > 1 ? bundleId : NO_BUNDLE_ASSIGNED
@@ -334,6 +333,13 @@ class Tagger {
                 q.bundle = NO_BUNDLE_INFO
             }
         }
+        Collections.sort(list, new Comparator() {            
+            @Override
+            public int compare(Object obj1, Object obj2) {
+                return ((Question)obj1).bundle.compareTo(((Question)obj2).bundle)
+            }
+        })
+        qsns = list.toArray(new Question[list.size()])
     }
 
     final String QSN_XML = "question.xml"    

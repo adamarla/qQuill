@@ -58,8 +58,7 @@ class LaTeXArea extends RSyntaxTextArea {
         }
         
         if (quillMap == null) {
-            def defaultKeymap = JTextComponent.getKeymap(JTextComponent.DEFAULT_KEYMAP) 
-            println "def map = ${defaultKeymap.getBoundActions().length}"            
+            def defaultKeymap = JTextComponent.getKeymap(JTextComponent.DEFAULT_KEYMAP)
             quillMap = JTextComponent.addKeymap("quillMap", defaultKeymap)
              
             Path home = (new File(System.getProperty("user.home"))).toPath()
@@ -99,8 +98,6 @@ class LaTeXArea extends RSyntaxTextArea {
                     LaTeXArea.editor.save()
                 }
             })
-            
-            println "quill map = ${quillMap.getBoundActions().length}"
         }
         return new LaTeXArea(tex, row, col)
     } 
