@@ -48,8 +48,6 @@ import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 class Renderer {
     
-    Editor e
-    
     Question q
     def fontSize
     
@@ -249,7 +247,6 @@ class Renderer {
             }
         }
         q.qpath.resolve("question.xml").toFile().write(sw.toString())
-        e.done("saving")
     }
     
     def toSVG() {

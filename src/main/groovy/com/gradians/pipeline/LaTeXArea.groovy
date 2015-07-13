@@ -29,8 +29,9 @@ class LaTeXArea extends RSyntaxTextArea {
         if (completionProvider == null) {
             completionProvider = new DefaultCompletionProvider()
             
-            Path path = new File(System.getProperty("user.home")).toPath().resolve(".quill").resolve("shortcuts")
-            def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("shortcuts")
+            Path home = (new File(System.getProperty("user.home"))).toPath()
+            Path path = home.resolve(".quill").resolve("autocomplete")
+            def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("autocomplete")
             if (Files.notExists(path)) {
                 Files.copy(ostream, path)
             }
@@ -54,7 +55,53 @@ class LaTeXArea extends RSyntaxTextArea {
                 dict.addDictionary(new BufferedReader(new InputStreamReader(rstream)))
             }
             spellingParser = new SpellingParser(dict)    
-        }        
+        }
+        
+        if (quillMap == null) {
+            def defaultKeymap = JTextComponent.getKeymap(JTextComponent.DEFAULT_KEYMAP) 
+            println "def map = ${defaultKeymap.getBoundActions().length}"            
+            quillMap = JTextComponent.addKeymap("quillMap", defaultKeymap)
+             
+            Path home = (new File(System.getProperty("user.home"))).toPath()
+            Path path = home.resolve(".quill").resolve("shortcuts")
+            def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("shortcuts")
+            if (Files.notExists(path)) {
+                Files.copy(ostream, path)
+            }
+            assert Files.exists(path)
+            
+            Properties p = new Properties()
+            p.load(Files.newInputStream(path))
+            Enumeration e = p.propertyNames()
+
+            while (e.hasMoreElements()) {                
+                def key = e.nextElement().toString()
+                def value = p.getProperty(key, null)
+                if (value == null || value.length() == 0)
+                    continue
+                    
+                int keycode = KeyEvent.getExtendedKeyCodeForChar((int)key.charAt(0))
+                KeyStroke ks = KeyStroke.getKeyStroke(keycode, InputEvent.CTRL_DOWN_MASK)
+                quillMap.addActionForKeyStroke(ks, new TextAction("LaTeX-action") {                        
+                    @Override
+                    void actionPerformed(ActionEvent ae) {
+                        JTextArea source = (JTextArea)ae.getSource()
+                        source.insert(value, source.getCaretPosition())
+                    }
+                })
+            }
+            
+            KeyStroke s = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
+            quillMap.addActionForKeyStroke(s, new TextAction("LaTeX-action") {
+                
+                @Override
+                void actionPerformed(ActionEvent ae) {
+                    LaTeXArea.editor.save()
+                }
+            })
+            
+            println "quill map = ${quillMap.getBoundActions().length}"
+        }
         return new LaTeXArea(tex, row, col)
     } 
     
@@ -62,8 +109,8 @@ class LaTeXArea extends RSyntaxTextArea {
         super(tex, row, col)
         setCodeFoldingEnabled(true)
         setPreferredFont()
-        addCtrlKeys()
         addAutoComplete()
+        addShortCuts()
         setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_LATEX)
         discardAllEdits()
     }
@@ -87,68 +134,55 @@ class LaTeXArea extends RSyntaxTextArea {
         ac.install(this)
     }
     
-    private def addCtrlKeys() {
-        Keymap latexMap = JTextComponent.addKeymap("LaTeXMap", this.keymap)
-        KeyStroke s = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
-        latexMap.addActionForKeyStroke(s, new LaTeXAction(LaTeXArea.editor, "save", 0))
-        KeyStroke t = KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK)
-        latexMap.addActionForKeyStroke(t, new LaTeXAction("\\text{}", 1))
-        KeyStroke p = KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
-        latexMap.addActionForKeyStroke(p, new LaTeXAction("\\left(\\right)", 7))
-        KeyStroke b = KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, InputEvent.CTRL_DOWN_MASK)
-        latexMap.addActionForKeyStroke(b, new LaTeXAction("\\left[\\right]", 7))
-        KeyStroke d = KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK)
-        latexMap.addActionForKeyStroke(d, new LaTeXAction("\\dfrac{}{}", 3))
-        KeyStroke A = KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
-        latexMap.addActionForKeyStroke(A, new LaTeXAction("\n\\begin{align}\n\\end{align}", 11))
-        KeyStroke la = KeyStroke.getKeyStroke(KeyEvent.VK_COMMA, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
-        latexMap.addActionForKeyStroke(la, new LaTeXAction("\\leftarrow", 0))
-        KeyStroke ra = KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
-        latexMap.addActionForKeyStroke(ra, new LaTeXAction("\\rightarrow", 0))
-        KeyStroke i = KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK)
-        latexMap.addActionForKeyStroke(i, new LaTeXAction("\\implies", 0))
-        KeyStroke M = KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK|InputEvent.SHIFT_DOWN_MASK)
-        latexMap.addActionForKeyStroke(M, new LaTeXAction(MATRIX_TEX, 0))
-        this.keymap = latexMap
+    private def addShortCuts() {
+        this.setKeymap(quillMap)
+//        
+//        Path home = (new File(System.getProperty("user.home"))).toPath()
+//        Path path = home.resolve(".quill").resolve("shortcuts")
+//        def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("shortcuts")
+//        if (Files.notExists(path)) {
+//            Files.copy(ostream, path)
+//        }
+//        assert Files.exists(path)
+//        
+//        Properties p = new Properties()
+//        p.load(Files.newInputStream(path))
+//        Enumeration e = p.propertyNames()
+//        
+//        final JTextArea comp = this
+//        while (e.hasMoreElements()) {
+//            
+//            def key = e.nextElement().toString()
+//            def value = p.getProperty(key, null)
+//            println "${key} ${value}"
+//            if (value == null || value.length() == 0)
+//                continue
+//            
+//            KeyStroke ks = KeyStroke.getKeyStroke(KeyEvent.getExtendedKeyCodeForChar(key.charAt(0)), InputEvent.CTRL_DOWN_MASK)
+//            latexMap.addActionForKeyStroke(ks, new TextAction("LaTeX-action") {
+//                
+//                @Override
+//                void actionPerformed(ActionEvent ae) {
+//                    comp.insert(value, comp.getCaretPosition())
+//                }
+//            })
+//        }
+//        
+//        KeyStroke s = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
+//        latexMap.addActionForKeyStroke(s, new TextAction("LaTeX-action") {
+//            
+//            @Override
+//            void actionPerformed(ActionEvent ae) {
+//                LaTeXArea.editor.save()
+//            }
+//        })
+//        this.keymap = latexMap
     }
     
     static Editor editor
-    static DefaultCompletionProvider completionProvider
-    static SpellingParser spellingParser
+    private static DefaultCompletionProvider completionProvider
+    private static SpellingParser spellingParser
+    private static Keymap quillMap
+    private static Hashtable<KeyStroke, TextAction> keymapActions
     
-    final String MATRIX_TEX = 
-        "\\left[\\begin{array}{ccc}\n a & b & c \\\\ \n" +
-        " d & e & f \\\\\n g & h & i \\end{array} \\right]"    
-}
-
-class LaTeXAction extends TextAction {
-    
-    Editor editor
-    String latex
-    int offset
-    
-    public LaTeXAction(String latex, int offset) {
-        super("laTeX-action")
-        this.latex = latex
-        this.offset = offset        
-    }
-    
-    public LaTeXAction(Editor editor, String latex, int offset) {
-        this(latex, offset)
-        this.editor = editor
-    }
-    
-    @Override
-    void actionPerformed(ActionEvent ae) {
-        JTextArea comp = (JTextArea)getTextComponent(ae)
-        if (comp == null)
-          return
-        if (latex.equals("save") && editor != null) {
-            editor.save()
-        } else {
-            comp.insert(latex, comp.getCaretPosition())
-            comp.setCaretPosition(comp.getCaretPosition() - offset)
-        }
-    }
-
 }

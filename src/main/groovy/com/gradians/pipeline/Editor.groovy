@@ -25,7 +25,7 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
-    public static final String VERSION = "1.3"
+    public static final String VERSION = "1.4"
     
     SwingBuilder sb
     Question q
@@ -69,16 +69,17 @@ class Editor {
                         }
                         
                         tabbedPane(id: 'tpTeX', changeListener: tabClicked) {      
-                            panel(id: 'pnlQsnAns', name: 'Q/A') { qsnAnsTeX() }
+                            panel(id: 'pnlQsnAns', name: 'Q&A') { qsnAnsTeX() }
                             [1, 2, 3, 4, 5, 6].each { idx ->
-                                panel(id: "pnlStep${idx}", name: "# ${idx}") { stepTeX(idx-1) }
+                                panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(idx-1) }
                             }
                         }                    
                     }
                     
                     // right panel
-                    vbox(constraints: gbc(gridx: 1, gridy: 0, gridwidth: 1, weightx: 1.0, weighty: 1.0, fill: BOTH)) {
-                        panel(id: 'pnlDisplay', border: BorderFactory.createTitledBorder("SVG"))
+                    vbox(constraints: gbc(gridx: 1, gridy: 0, gridwidth: 1, 
+                        weightx: 1.0, weighty: 1.0, fill: BOTH)) {
+                        panel(id: 'pnlDisplay', border: BorderFactory.createTitledBorder("Preview"))
                     }
                         
                     // bottom panel
