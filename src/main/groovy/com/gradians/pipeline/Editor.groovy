@@ -28,7 +28,7 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
-    public static final String VERSION = "1.5"
+    public static final String VERSION = "1.6"
     
     SwingBuilder sb
     Question q
@@ -91,7 +91,6 @@ class Editor {
                         button(text: 'Preview', actionPerformed: previewAll)
                         button(id: 'btnSave', text: 'Save', actionPerformed: save)
                         button(id: 'btnRender', text: 'Render', actionPerformed: render)
-                        button(text: 'Tag', actionPerformed: tag)
                         button(text: 'Refresh', actionPerformed: previewStep)
                     }
                 }
@@ -139,26 +138,30 @@ class Editor {
         if (step == null)
             step = new Step()
         
-        taContext[idx] = LaTeXArea.getInstance(step.context, 18, 36)
+        taContext[idx] = LaTeXArea.getInstance(step.context, 6, 36)
         taReason[idx] = LaTeXArea.getInstance(step.reason, 18, 36)
-        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 18, 36)
-        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 18, 36)
+        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 14, 36)
+        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 14, 36)
 
         sb.vbox(constraints: BL.EAST) {
-            sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
+            //sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
             sb.tabbedPane(id: "tpStep${idx}") {
-                sb.widget(new RTextScrollPane(taContext[idx], true), name: "Context")
-                ["Correct", "Incorrect"].each { side ->
-                    sb.vbox(name: "${side}") {
-                        sb.widget(side.equals("Correct") ? 
-                            new RTextScrollPane(taCorrect[idx], true) : 
-                            new RTextScrollPane(taIncorrect[idx], true))
-                        sb.panel() {
-                            sb.button(text: 'Image (optional):',
-                                actionPerformed: { setImage("lbl${side}File${idx}", q.qpath) })
-                            sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
-                        }
-                    }    
+                sb.vbox(name: 'Context / Options') {
+                    sb.widget(new RTextScrollPane(taContext[idx], true))
+                    sb.tabbedPane() {
+                        ["Correct", "Incorrect"].each { side ->
+                            sb.vbox(name: "${side}") {
+                                sb.widget(side.equals("Correct") ?
+                                    new RTextScrollPane(taCorrect[idx], true) :
+                                    new RTextScrollPane(taIncorrect[idx], true))
+                                sb.panel() {
+                                    sb.button(text: 'Image (optional):',
+                                        actionPerformed: { setImage("lbl${side}File${idx}", q.qpath) })
+                                    sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
+                                }
+                            }
+                        }    
+                    }
                 }
                 sb.widget(new RTextScrollPane(taReason[idx], true), name: "Reason / Takeaway")
             }
@@ -283,7 +286,7 @@ class Editor {
             step.texIncorrect = taIncorrect[idx].text
             step.imageIncorrect = sb."lblIncorrectFile${idx}".text
             step.reason = taReason[idx].text
-            step.noswipe = sb."chkBxSwipe${idx}".selected
+            // step.noswipe = sb."chkBxSwipe${idx}".selected
             q.steps[idx] = step
         }
         
@@ -325,7 +328,7 @@ class Editor {
             taReason[i].text = taReason[i-1].text
             sb."lblCorrectFile${i}".text = sb."lblCorrectFile${(i-1)}".text
             sb."lblIncorrectFile${i}".text = sb."lblIncorrectFile${(i-1)}".text
-            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i-1)}".selected
+            // sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i-1)}".selected
         }
     }
     
@@ -337,15 +340,7 @@ class Editor {
             taReason[i].text = taReason[i+1].text
             sb."lblCorrectFile${i}".text = sb."lblCorrectFile${(i+1)}".text
             sb."lblIncorrectFile${i}".text = sb."lblIncorrectFile${(i+1)}".text
-            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i+1)}".selected
-        }
-    }
-    
-    private def tag = {
-        try {
-            (new Tagger(q.qpath.getParent())).go()
-        } catch (Exception e) {
-            println e
+            // sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i+1)}".selected
         }
     }
     

@@ -29,7 +29,7 @@ class Question {
     String bundle
     String[] concepts
     
-    final String SEP = "/", XML_FILE = "question.xml"
+    static final String SEP = "/", XML_FILE = "question.xml"
     
     def Question(Path qpath) {
         this.qpath = qpath

@@ -133,53 +133,11 @@ class LaTeXArea extends RSyntaxTextArea {
     
     private def addShortCuts() {
         this.setKeymap(quillMap)
-//        
-//        Path home = (new File(System.getProperty("user.home"))).toPath()
-//        Path path = home.resolve(".quill").resolve("shortcuts")
-//        def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("shortcuts")
-//        if (Files.notExists(path)) {
-//            Files.copy(ostream, path)
-//        }
-//        assert Files.exists(path)
-//        
-//        Properties p = new Properties()
-//        p.load(Files.newInputStream(path))
-//        Enumeration e = p.propertyNames()
-//        
-//        final JTextArea comp = this
-//        while (e.hasMoreElements()) {
-//            
-//            def key = e.nextElement().toString()
-//            def value = p.getProperty(key, null)
-//            println "${key} ${value}"
-//            if (value == null || value.length() == 0)
-//                continue
-//            
-//            KeyStroke ks = KeyStroke.getKeyStroke(KeyEvent.getExtendedKeyCodeForChar(key.charAt(0)), InputEvent.CTRL_DOWN_MASK)
-//            latexMap.addActionForKeyStroke(ks, new TextAction("LaTeX-action") {
-//                
-//                @Override
-//                void actionPerformed(ActionEvent ae) {
-//                    comp.insert(value, comp.getCaretPosition())
-//                }
-//            })
-//        }
-//        
-//        KeyStroke s = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
-//        latexMap.addActionForKeyStroke(s, new TextAction("LaTeX-action") {
-//            
-//            @Override
-//            void actionPerformed(ActionEvent ae) {
-//                LaTeXArea.editor.save()
-//            }
-//        })
-//        this.keymap = latexMap
     }
     
     static Editor editor
     private static DefaultCompletionProvider completionProvider
     private static SpellingParser spellingParser
     private static Keymap quillMap
-    private static Hashtable<KeyStroke, TextAction> keymapActions
     
 }

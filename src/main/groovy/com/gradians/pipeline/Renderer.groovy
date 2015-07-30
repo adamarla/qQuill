@@ -92,14 +92,8 @@ class Renderer {
     }
     
     def toPreview(SwingBuilder sb, Step step, int i) {
-        sb.panel(name: "Step ${i+1}") {
-            gridBagLayout()
-            
-            ["Context", "Reason"].eachWithIndex { part, idx ->
-                widget(new TeXLabel(step."${part.toLowerCase()}", part),
-                    constraints: gbc(gridx: 0, gridy: idx, fill: HORIZONTAL))
-            }
-            
+        sb.vbox(name: "Step ${i+1}") {            
+            sb.widget(new TeXLabel(step.context, "Context"))            
             ["Correct", "Incorrect"].eachWithIndex { side, idx ->
                 def drawable
                 if (step."image${side}".length() > 0) {
@@ -107,12 +101,10 @@ class Renderer {
                     drawable.setBorder(BorderFactory.createTitledBorder("${side}"))
                 } else {
                     drawable = new TeXLabel(step."tex${side}", "${side}")
-                }
-                
-                scrollPane(constraints: gbc(gridx: 0, gridy: idx+2, fill: HORIZONTAL)) {
-                    widget(drawable)
-                }
+                }                
+                sb.widget(drawable)
             }
+            sb.widget(new TeXLabel(step.reason, "Reason"))
         }
     }
     
@@ -145,18 +137,18 @@ class Renderer {
     def toPreview(SwingBuilder sb, Statement statement, Choices choices) {
         sb.vbox() {
             if (statement.image.length() > 0)
-                widget(fileToIcon(statement.image))
+                sb.widget(fileToIcon(statement.image))
             else {
-                widget(new TeXLabel(statement.tex, "Problem"))
+                sb.widget(new TeXLabel(statement.tex, "Problem"))
             }
             
             if (choices != null) {
                 choices.texs.eachWithIndex { tex, i ->
                     char c = (char)(((int)'A') + i)
-                    widget(new TeXLabel(tex, "${c}"))
+                    sb.widget(new TeXLabel(tex, "${c}"))
                 }
                 char correct = (char)(((int)'A') + choices.correct)
-                label(text: "Correct Ans ${correct}")
+                sb.label(text: "Correct Ans ${correct}")
             }
         }
     }    
