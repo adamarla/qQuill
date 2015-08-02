@@ -125,13 +125,11 @@ class Tagger {
                                     actionPerformed: refresh)
                                 radioButton(id: 'rbDir',text: 'Directory', buttonGroup: group, selected: true,
                                     actionPerformed: refresh)
-                            }
-                            
-                            panel(border: BorderFactory.createTitledBorder("")) {
                                 button(text: 'Refresh', actionPerformed: refresh)
-                                button(text: 'Edit', actionPerformed: launchEditor)
-                                button(text: 'Preview', actionPerformed: launchPreview)
                             }
+                            label(text: 'Open for ')
+                            button(text: 'Edit', actionPerformed: launchEditor)
+                            button(text: 'Preview', actionPerformed: launchPreview)
                         }
                         
                         panel(name: 'Block Slots') {
@@ -347,14 +345,14 @@ class Tagger {
             if (bundleId.length() > 1 && !q.bundle.equals(bundleId)) {
                 diff = true
                 if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
-                    lblFile = q.qpath.resolve("${q.bundle.replace(BNDL_DELIM, '-')}.lbl")
+                    lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
                     Files.deleteIfExists(lblFile)                    
                 }
                 q.bundle = bundleId
                 q.concepts = sb.taTopiks.getText().split(delim)
                 try {
                     network.addToBundle(q)
-                    lblFile = q.qpath.resolve("${q.bundle.replace(BNDL_DELIM, '-')}.lbl")
+                    lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
                     Files.createFile(q.qpath.resolve(lblFile))
                 } catch (Exception e) {
                     error = true 
@@ -376,7 +374,7 @@ class Tagger {
             if (q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
                 row = [uid: q.uid, bundle: '', label: '']
             } else {
-                def tokens = q.bundle.split(BNDL_DELIM)
+                def tokens = q.bundle.split("\\|")
                 def hasXml = Files.exists(q.qpath.resolve(Question.XML_FILE))
                 row = [uid: hasXml ? "<html><b>${q.uid}</b></html>" : "${q.uid}",
                     bundle: tokens[0], label: tokens[1]]           
@@ -399,7 +397,7 @@ class Tagger {
                 String bundleId = network.getBundleInfo(q)
                 q.bundle = bundleId.length() > 1 ? bundleId : NO_BUNDLE_ASSIGNED
                 if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
-                    def lblFilePath = q.qpath.resolve("${q.bundle.replace(BNDL_DELIM, '-')}.lbl")
+                    def lblFilePath = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
                     if (!Files.exists(lblFilePath))
                         Files.createFile(lblFilePath)
                 }                
@@ -435,7 +433,6 @@ class Tagger {
     }
     
 
-    final String BNDL_DELIM = "\\|"
     final String NO_BUNDLE_INFO = "No Bundle Info"
     final String NO_BUNDLE_ASSIGNED = "No Label"
 
