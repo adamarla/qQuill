@@ -51,6 +51,8 @@ class Renderer {
     Question q
     def fontSize
     
+    SwingBuilder sb
+    
     static {
         Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
         map.keySet().each {
@@ -74,21 +76,45 @@ class Renderer {
     }
     
     def toSwing(boolean topLevel = false) {
-        SwingBuilder sb = new SwingBuilder()
+        sb = new SwingBuilder()
         sb.edt {
             lookAndFeel: 'MetalLookAndFeel'
             frame(title: q.uid, size: [720, 480], show: true, locationRelativeTo: null,
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
-                tabbedPane() {
-                    toSwing(sb, q.statement, q.choices)
-                    q.steps.eachWithIndex { step, i ->
-                        if (step != null && step.context.length() != 0) {
-                            toSwing(sb, step, i)
+                vbox() {
+                    tabbedPane(id: 'tpSteps') {
+                        toSwing(sb, q.statement, q.choices)
+                        q.steps.eachWithIndex { step, i ->
+                            if (step != null && step.context.length() != 0) {
+                                toSwing(sb, step, i)
+                            }
                         }
                     }
+                    button(text: 'Reload', actionPerformed: reload)
                 }
             }
         }
+    }
+    
+    def reload = {
+        def selectedIndex = sb.tpSteps.selectedIndex 
+        sb.tpSteps.removeAll()
+        q.reload()
+        
+        sb.tpSteps.add(toSwing(sb, q.statement, q.choices))
+        q.steps.eachWithIndex { step, i ->
+            if (step != null && step.context.length() != 0) {
+                sb.tpSteps.add(toSwing(sb, step, i))
+            }
+        }
+
+        if (sb.tpSteps.getTabCount() > selectedIndex) {
+            sb.tpSteps.selectedIndex = selectedIndex
+        }
+        
+        sb.tpSteps.revalidate()
+        sb.tpSteps.repaint()
+        
     }
     
     def toPreview(SwingBuilder sb, Step step, int i) {

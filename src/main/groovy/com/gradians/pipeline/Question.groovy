@@ -41,15 +41,19 @@ class Question {
         
         def xmlPath = qpath.resolve(XML_FILE)
         if (Files.notExists(xmlPath)) {
-            parse(catalog.resolve(XML_FILE))
+            xmlPath = catalog.resolve(XML_FILE)
         } else {
             assert isValidXML(xmlPath, catalog)
-            parse(xmlPath)
         }
+        parse(xmlPath)
         getLabel()
         
         def tokens = qpath.toString().split(SEP)
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"        
+    }
+    
+    def reload() {
+        parse(qpath.resolve(XML_FILE))
     }
     
     private def parse(Path xmlPath) {

@@ -28,7 +28,7 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
-    public static final String VERSION = "1.6"
+    public static final String VERSION = "1.7"
     
     SwingBuilder sb
     Question q
@@ -60,7 +60,7 @@ class Editor {
                                         
                     // left panel
                     vbox(border: BorderFactory.createTitledBorder("Edit"),
-                        constraints: gbc(gridx: 0, gridy: 0, gridwidth: 1, weighty: 1.0, fill: VERTICAL)) {
+                        constraints: gbc(gridx: 0, gridy: 0, gridwidth: 1, weighty: 1, fill: VERTICAL)) {
                         
                         panel(id: 'pnlControls') {
                             checkBox(id: 'chkBxSpellCheck', text: 'Spell Check', selected: false, 
@@ -138,10 +138,10 @@ class Editor {
         if (step == null)
             step = new Step()
         
-        taContext[idx] = LaTeXArea.getInstance(step.context, 6, 36)
-        taReason[idx] = LaTeXArea.getInstance(step.reason, 18, 36)
-        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 14, 36)
-        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 14, 36)
+        taContext[idx] = LaTeXArea.getInstance(step.context, 6, 40)
+        taReason[idx] = LaTeXArea.getInstance(step.reason, 18, 40)
+        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 14, 40)
+        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 14, 40)
 
         sb.vbox(constraints: BL.EAST) {
             //sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
