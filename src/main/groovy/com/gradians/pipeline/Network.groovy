@@ -51,7 +51,8 @@ class Network {
         bundleId
     }
     
-    def addToBundle(Question q) {        
+    def addToBundle(Question q) {
+        def uid        
         def bodyMap = (new Renderer(q)).toJSONString()
         
         def httpClient = new HTTPBuilder("http://www.gradians.com/tag/question")
@@ -61,12 +62,13 @@ class Network {
             requestContentType = JSON
             body = bodyMap
             
-            response.success = { resp ->
-                println "SUCCESS! ${resp.statusLine}"
+            response.success = { resp, json ->
                 assert resp.statusLine.statusCode == 200
+                uid = json.uid
+                println "SUCCESS! ${json.uid}"
             }
-        
         }        
+        uid
     }
     
 }

@@ -28,7 +28,7 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class Editor {
     
-    public static final String VERSION = "1.7"
+    public static final String VERSION = "1.8"
     
     SwingBuilder sb
     Question q
@@ -107,7 +107,7 @@ class Editor {
     }
     
     private def qsnAnsTeX = {
-        taQsnTeX = LaTeXArea.getInstance(q.statement.tex, 18, 36)
+        taQsnTeX = LaTeXArea.getInstance(q.statement.tex, 18, TA_WIDTH)
         sb.tabbedPane(id: 'tpQsnAns') {
             sb.vbox(constraints: BL.EAST, name: "Problem Statement") {
                 widget(new RTextScrollPane(taQsnTeX, true), name: "Problem")
@@ -138,10 +138,10 @@ class Editor {
         if (step == null)
             step = new Step()
         
-        taContext[idx] = LaTeXArea.getInstance(step.context, 6, 40)
-        taReason[idx] = LaTeXArea.getInstance(step.reason, 18, 40)
-        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 14, 40)
-        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 14, 40)
+        taContext[idx] = LaTeXArea.getInstance(step.context, 6, TA_WIDTH)
+        taReason[idx] = LaTeXArea.getInstance(step.reason, 18, TA_WIDTH)
+        taCorrect[idx] = LaTeXArea.getInstance(step.texCorrect, 14, TA_WIDTH)
+        taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 14, TA_WIDTH)
 
         sb.vbox(constraints: BL.EAST) {
             //sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
@@ -345,5 +345,7 @@ class Editor {
     }
     
     private Renderer renderer
+    
+    private final int TA_WIDTH = 40
     
 }

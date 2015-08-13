@@ -19,9 +19,6 @@ class Driver {
         if (pwd.endsWith("Qquill")) {
             pwd = "/home/adamarla/work/gutenberg/vault/2/9ai/9bfrg"
             args = ["-e"]
-        } else if (!pwd.contains("vault")) {
-            println "Run from within a Question folder in vault"
-            return
         }
         
         Options options = new Options()
@@ -43,7 +40,11 @@ class Driver {
             Path path = (new File(pwd)).toPath().resolve()
             if (!cl.argList.empty)
                 path = path.resolve(cl.argList.get(0))
-                
+
+            if (!path.toString().contains("vault")) {
+                println "Run from within vault or locate path to vault"
+                return
+            }
             assert Files.isDirectory(path)
                 
             if (tagOnly) {

@@ -58,6 +58,8 @@ class Renderer {
         map.keySet().each {
             TeXFormula.get(it)
         }
+        def ostream = Renderer.class.getClassLoader().getResourceAsStream("TeXMacros.xml")
+        TeXFormula.addPredefinedCommands(ostream)
     }
     
     def Renderer(int fontSize = 15) {

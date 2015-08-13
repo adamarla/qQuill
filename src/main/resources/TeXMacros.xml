@@ -4,8 +4,18 @@
         <CreateCommand name="f">
             <Argument type="String" value="com.gradians.pipeline.TeXMacros" />
             <Argument type="String" value="dd" />
-            <!-- the command dydx has 1 arguments -->
+            <!-- the command dd has 2 arguments -->
             <Argument type="float" value="2" />
+        </CreateCommand>
+        <Return name="f" />
+    </Command>
+    
+    <Command name="vector" enabled="true">
+        <CreateCommand name="f">
+            <Argument type="String" value="com.gradians.pipeline.TeXMacros" />
+            <Argument type="String" value="vector" />
+            <!-- the command dd has 2 arguments -->
+            <Argument type="float" value="3" />
         </CreateCommand>
         <Return name="f" />
     </Command>

@@ -58,7 +58,7 @@ class Tagger {
     
     public Tagger(Path p) {
         int level
-        Path tmp = p.getParent()
+        Path tmp = p
         while (!tmp.getFileName().toString().equals("vault") &&            
             !tmp.equals(p.getRoot())) {
             tmp = tmp.getParent()
@@ -121,13 +121,11 @@ class Tagger {
                         
                         panel(name: 'List By') {
                             buttonGroup(id: 'bgListMode').with { group ->
-                                radioButton(id: 'rbEx', text: 'Exercise', buttonGroup: group,
-                                    actionPerformed: refresh)
-                                radioButton(id: 'rbDir',text: 'Directory', buttonGroup: group, selected: true,
-                                    actionPerformed: refresh)
+                                radioButton(id: 'rbEx', text: 'Exercise', buttonGroup: group)
+                                radioButton(id: 'rbDir',text: 'Directory', buttonGroup: group, selected: true)
                                 button(text: 'Refresh', actionPerformed: refresh)
                             }
-                            label(text: 'Open for ')
+                            label(text: 'open for ')
                             button(text: 'Edit', actionPerformed: launchEditor)
                             button(text: 'Preview', actionPerformed: launchPreview)
                         }
@@ -140,7 +138,7 @@ class Tagger {
                             label(text: 'these many')
                             comboBox(id: 'cbLabelRange', items: lib.getQsn(), selectedIndex: 1)
                             label(text: '(default = 1)')
-                        }                        
+                        }
                     }
                         
                     tabbedPane(constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 1, fill: BOTH)) {                        
@@ -191,8 +189,7 @@ class Tagger {
                 install(sb.cbTopik, GlazedLists.eventListOf(lib.getConcepts()))
             acs1.setFilterMode(TextMatcherEditor.CONTAINS)
             acs1.setSelectsTextOnFocusGain(true)
-            acs1.setHidesPopupOnFocusLost(true)
-            
+            acs1.setHidesPopupOnFocusLost(true)            
         }
     }
     
@@ -210,7 +207,7 @@ class Tagger {
         }
     }
     
-    def refresh = {
+    def refresh = { ActionEvent ae ->
         if (sb.tpFunction.selectedIndex != 0)
             return
         
@@ -287,6 +284,30 @@ class Tagger {
             sb.cbBook.selectedIndex = 0        
     }
     
+    def listDirectory = { ActionEvent ae ->
+        DirectoryStream<Path> stream = Files.newDirectoryStream(path)
+        ArrayList<Question> list = new ArrayList<Question>()
+        for (Path p : stream) {
+            if (Files.isDirectory(p, NOFOLLOW_LINKS)) {
+                list.add(new Question(p))
+            }
+        }
+        for (Question q : list) {
+            try {
+                String bundleId = network.getBundleInfo(q)
+                q.bundle = bundleId.length() > 1 ? bundleId : NO_BUNDLE_ASSIGNED
+                if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
+                    def lblFilePath = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
+                    if (!Files.exists(lblFilePath))
+                        Files.createFile(lblFilePath)
+                }                
+            } catch (Exception e) {
+                q.bundle = NO_BUNDLE_INFO
+            }
+        }
+        qsns = list.toArray(new Question[list.size()])
+    }
+    
     def listExercise = { ActionEvent ae ->
         def bqs = []
         def bundleId = getBundleId()
@@ -339,6 +360,8 @@ class Tagger {
         boolean diff = false
         boolean error = false
         def model = sb.tblSlots.dataModel
+        
+        List<Question> alreadyTagged = new ArrayList<Question>()
         qsns.eachWithIndex { Question q, int i ->
             String bundleId = "${model.getValueAt(i, 1)}|${model.getValueAt(i, 2)}"
             def lblFile
@@ -351,20 +374,35 @@ class Tagger {
                 q.bundle = bundleId
                 q.concepts = sb.taTopiks.getText().split(delim)
                 try {
-                    network.addToBundle(q)
-                    lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
-                    Files.createFile(q.qpath.resolve(lblFile))
+                    def uid = network.addToBundle(q)
+                    if (model.getValueAt(i, 0).equals(uid)) {
+                        lblFile = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
+                        Files.createFile(q.qpath.resolve(lblFile))
+                    } else {
+                        q.bundle = NO_BUNDLE_ASSIGNED
+                        def qExisting = new Question(vault.resolve(uid))
+                        qExisting.bundle = bundleId
+                        alreadyTagged.add(qExisting)
+                    }
                 } catch (Exception e) {
+                    println e
                     error = true 
                 }
             }
         }
-        if (error)
+        if (error) {
             sb.optionPane().showMessageDialog(null,
                 "Network Error", "Result", JOptionPane.ERROR_MESSAGE)
-        else if (diff)
+        } else if (diff) {
+            if (alreadyTagged.size() > 0) {
+                model.getRows().clear()
+                qsns = qsns + alreadyTagged.toArray(new Question[alreadyTagged.size()])
+                model.getRows().addAll getTableData()
+                model.fireTableDataChanged()        
+            }
             sb.optionPane().showMessageDialog(null,
-                "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)
+                "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)            
+        }
     }
     
     def getTableData = {
@@ -382,30 +420,6 @@ class Tagger {
             data << row
         }
         data
-    }
-    
-    def listDirectory = {
-        DirectoryStream<Path> stream = Files.newDirectoryStream(path)
-        ArrayList<Question> list = new ArrayList<Question>()
-        for (Path p : stream) {
-            if (Files.isDirectory(p, NOFOLLOW_LINKS)) {
-                list.add(new Question(p))
-            }
-        }
-        for (Question q : list) {
-            try {
-                String bundleId = network.getBundleInfo(q)
-                q.bundle = bundleId.length() > 1 ? bundleId : NO_BUNDLE_ASSIGNED
-                if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
-                    def lblFilePath = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
-                    if (!Files.exists(lblFilePath))
-                        Files.createFile(lblFilePath)
-                }                
-            } catch (Exception e) {
-                q.bundle = NO_BUNDLE_INFO
-            }
-        }
-        qsns = list.toArray(new Question[list.size()])
     }
     
     private def String getBundleId() {
@@ -428,7 +442,8 @@ class Tagger {
         })
         if (openFileDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             path = openFileDialog.getSelectedFile().toPath()
-            refresh()
+            sb.lblDirPath.text = path.toString() 
+            listDirectory()
         }
     }
     
