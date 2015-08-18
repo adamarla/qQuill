@@ -218,9 +218,8 @@ class Tagger {
         sb.tblSlots.dataModel.getRows().clear()
         if (sb.rbDir.selected) {
             if (path == null) {
-                chooseDir()                
-            } else if (!sb.lblDirPath.text.equals(path.toString())) {
-                sb.lblDirPath.text = path.toString() 
+                chooseDir()
+            } else {
                 listDirectory()
             }
         } else {
@@ -298,7 +297,6 @@ class Tagger {
         }        
         for (Question q : list) {
             try {
-//                String bundleId = network.getBundleInfo(q)
                 String bundleId = bundleIdByQsn.get(q.uid)
                 q.bundle = bundleId != null ? bundleId : NO_BUNDLE_ASSIGNED
                 if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
@@ -316,9 +314,6 @@ class Tagger {
     def listExercise = { ActionEvent ae ->
         def bundleId = getBundleId()
         def bqs = bundleByEx.get(bundleId)
-//        try {
-//            bqs = network.getBundleQuestions(bundleId)
-//        } catch (Exception e) { }
         ArrayList<Question> list = new ArrayList<Question>()
         for (def bq : bqs) {
             Question q = new Question(vault.resolve(bq.uid))
@@ -405,6 +400,7 @@ class Tagger {
                 model.getRows().addAll getTableData()
                 model.fireTableDataChanged()        
             }
+            syncWithServer()
             sb.optionPane().showMessageDialog(null,
                 "Tagged!", "Result", JOptionPane.INFORMATION_MESSAGE)            
         }
