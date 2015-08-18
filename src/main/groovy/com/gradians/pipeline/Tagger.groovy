@@ -5,6 +5,7 @@ import ca.odell.glazedlists.matchers.TextMatcherEditor
 import ca.odell.glazedlists.swing.AutoCompleteSupport
 
 import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
 import groovy.swing.SwingBuilder
 import groovy.model.DefaultTableModel
 
@@ -47,6 +48,7 @@ class Tagger {
     
     Question[] qsns
     Path path, vault
+    def bundleByEx, bundleIdByQsn
     
     // Workers
     TagLib lib
@@ -78,6 +80,7 @@ class Tagger {
         lib = new TagLib(catalogPath)
         network = new Network()
         
+        syncWithServer()
     }
 
     def go(boolean topLevel = false) {
@@ -168,8 +171,9 @@ class Tagger {
                     }
                     
                     panel(border: BorderFactory.createTitledBorder("Actions"),
-                        constraints: gbc(gridx: 0, gridy: 5, weightx: 1, fill: HORIZONTAL)) {    
+                        constraints: gbc(gridx: 0, gridy: 5, weightx: 1, fill: HORIZONTAL)) {
                         button(id: 'btnTag', text: 'Commit', enabled: false, actionPerformed: tag)
+                        button(id: 'btnSync', text: 'Sync', actionPerformed: syncWithServer)
                     }
                 }
             }
@@ -189,7 +193,7 @@ class Tagger {
                 install(sb.cbTopik, GlazedLists.eventListOf(lib.getConcepts()))
             acs1.setFilterMode(TextMatcherEditor.CONTAINS)
             acs1.setSelectsTextOnFocusGain(true)
-            acs1.setHidesPopupOnFocusLost(true)            
+            acs1.setHidesPopupOnFocusLost(true)
         }
     }
     
@@ -285,17 +289,18 @@ class Tagger {
     }
     
     def listDirectory = { ActionEvent ae ->
-        DirectoryStream<Path> stream = Files.newDirectoryStream(path)
         ArrayList<Question> list = new ArrayList<Question>()
+        DirectoryStream<Path> stream = Files.newDirectoryStream(path)
         for (Path p : stream) {
             if (Files.isDirectory(p, NOFOLLOW_LINKS)) {
                 list.add(new Question(p))
             }
-        }
+        }        
         for (Question q : list) {
             try {
-                String bundleId = network.getBundleInfo(q)
-                q.bundle = bundleId.length() > 1 ? bundleId : NO_BUNDLE_ASSIGNED
+//                String bundleId = network.getBundleInfo(q)
+                String bundleId = bundleIdByQsn.get(q.uid)
+                q.bundle = bundleId != null ? bundleId : NO_BUNDLE_ASSIGNED
                 if (!q.bundle.equals(NO_BUNDLE_ASSIGNED)) {
                     def lblFilePath = q.qpath.resolve("${q.bundle.replace('|', '-')}.lbl")
                     if (!Files.exists(lblFilePath))
@@ -309,11 +314,11 @@ class Tagger {
     }
     
     def listExercise = { ActionEvent ae ->
-        def bqs = []
         def bundleId = getBundleId()
-        try {
-            bqs = network.getBundleQuestions(bundleId)
-        } catch (Exception e) { }
+        def bqs = bundleByEx.get(bundleId)
+//        try {
+//            bqs = network.getBundleQuestions(bundleId)
+//        } catch (Exception e) { }
         ArrayList<Question> list = new ArrayList<Question>()
         for (def bq : bqs) {
             Question q = new Question(vault.resolve(bq.uid))
@@ -405,6 +410,16 @@ class Tagger {
         }
     }
     
+    def syncWithServer = {        
+        Path home = (new File(System.getProperty("user.home"))).toPath()
+        Path json = home.resolve(".quill").resolve("bundles.json")
+        if (Files.notExists(json)) {
+            Files.createFile(json)
+        }
+        json.write(network.fetchAllBundles().toString())
+        loadBundles(json)
+    }
+    
     def getTableData = {
         def data = []
         qsns.each { Question q ->
@@ -428,6 +443,18 @@ class Tagger {
         }.join("-")
     }
     
+    private def void loadBundles(json) {
+        bundleByEx = new Hashtable()
+        bundleIdByQsn = new Hashtable()
+        def bundles = (new JsonSlurper()).parse(Files.newInputStream(json))
+        for (def bundle : bundles) {
+            bundleByEx.put(bundle.uid, bundle.questions)
+            for (def question : bundle.questions) {
+                bundleIdByQsn.put(question.uid, "${bundle.uid}|${question.label}")
+            }
+        }
+    }
+    
     private def chooseDir = {
         def openFileDialog = new JFileChooser(
             dialogTitle: "Choose dir", fileSelectionMode : JFileChooser.FILES_AND_DIRECTORIES,
@@ -445,8 +472,7 @@ class Tagger {
             sb.lblDirPath.text = path.toString() 
             listDirectory()
         }
-    }
-    
+    }    
 
     final String NO_BUNDLE_INFO = "No Bundle Info"
     final String NO_BUNDLE_ASSIGNED = "No Label"

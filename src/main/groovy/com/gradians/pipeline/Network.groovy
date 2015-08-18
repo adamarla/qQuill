@@ -21,6 +21,21 @@ class Network {
         }
     }
     
+    def fetchAllBundles() {
+        def bundles = []
+        def httpClient = new HTTPBuilder("http://www.gradians.com/bundle/fetch_all")
+        httpClient.setHeaders(Accept: 'application/json')
+                
+        def results = httpClient.request(GET, JSON) {
+                         
+            response.success = { resp, json ->
+                assert resp.statusLine.statusCode == 200
+                bundles = json.bundles
+            }
+        }
+        bundles
+    }
+    
     def getBundleQuestions(String bundleId) {
         def questions = []
         def httpClient = new HTTPBuilder("http://www.gradians.com/bundle/questions?bundle_id=${bundleId}")
