@@ -39,5 +39,11 @@ class TeXMacros {
         }
         return new TeXFormula(format).root;
     }
+    
+    public Atom ora(TeXParser tp, String[] args) throws ParseException {
+        return new TeXFormula(String.format("\\overrightarrow{%s}", args[1])).root;
+    }
+    
+
 
 }

@@ -65,13 +65,18 @@ class Question {
             
         steps = new Step[6]
         xml.step.eachWithIndex { it, i ->
-            def step = new Step()
+            Step step = new Step()
             if (it.@swipe.isEmpty()) {
                 step.noswipe = false
             } else if (it.@swipe.equals("false")) {
                 step.noswipe = true
-            }            
-            step.context = it.context.toString()
+            }
+            
+            if (it.context.@image.equals("true"))
+                step.imageContext = it.context.toString()
+            else
+                step.context = it.context.toString()            
+            
             ["tex", "image"].each { content ->
                 it."${content}".each { option ->
                     if (option.@correct.equals("true")) {
@@ -81,7 +86,12 @@ class Question {
                     }
                 }
             }
-            step.reason = it.reason.toString()
+            
+            if (it.reason.@image.equals("true"))
+                step.imageReason = it.reason.toString()
+            else
+                step.reason = it.reason.toString()
+                        
             steps[i] = step
         }
         
@@ -95,7 +105,7 @@ class Question {
                     choices.correct = i
                 }
             }    
-        }        
+        }
     }
 
     private def isValidXML(Path xmlPath, Path catalog) {
@@ -122,8 +132,8 @@ class Statement {
 
 class Step {
     boolean noswipe
-    String context = "", reason = ""
-    String texCorrect = "", texIncorrect = "", imageCorrect = "", imageIncorrect = ""
+    String imageCorrect = "", imageIncorrect = "", imageContext = "", imageReason = ""
+    String texCorrect = "", texIncorrect = "", context = "", reason = ""
 }
 
 class Choices {

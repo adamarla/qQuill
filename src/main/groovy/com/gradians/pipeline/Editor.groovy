@@ -40,7 +40,7 @@ class Editor {
     def Editor(Question q) {
         this.q = q
         taAnsTeX = new LaTeXArea[4]
-        taContext = new LaTeXArea[6] 
+        taContext = new LaTeXArea[6]
         taReason = new LaTeXArea[6]
         taCorrect = new LaTeXArea[6]
         taIncorrect = new LaTeXArea[6]
@@ -50,17 +50,18 @@ class Editor {
     }
     
     def launch(boolean topLevel = true) {
+        
         sb = new SwingBuilder()
         sb.edt {
             frame(title: "Quill (${VERSION}) - ${q.uid} (${q.bundle})", 
-                size: [900, 600], show: true, locationRelativeTo: null, resizable: false, 
-                defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {                
+                size: [900, 600], show: true, locationRelativeTo: null, resizable: true, 
+                defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 panel() {
                     gridBagLayout()
                                         
                     // left panel
                     vbox(border: BorderFactory.createTitledBorder("Edit"),
-                        constraints: gbc(gridx: 0, gridy: 0, gridwidth: 1, weighty: 1, fill: VERTICAL)) {
+                        constraints: gbc(gridx: 0, gridy: 0, weightx: 1, weighty: 1, fill: BOTH)) {
                         
                         panel(id: 'pnlControls') {
                             checkBox(id: 'chkBxSpellCheck', text: 'Spell Check', selected: false, 
@@ -81,13 +82,14 @@ class Editor {
                     
                     // right panel
                     scrollPane(border: BorderFactory.createTitledBorder("Preview"),
-                        constraints: gbc(gridx: 1, gridy: 0, gridwidth: 1, weightx: 1, weighty: 1, fill: BOTH)) {
-                        panel(id: 'pnlDisplay', )
+                        constraints: gbc(gridx: 1, gridy: 0, gridheight: 2, weightx: 5, 
+                            weighty: 1, fill: BOTH)) {
+                        panel(id: 'pnlDisplay')
                     }
                         
                     // bottom panel
                     panel(border: BorderFactory.createTitledBorder("Actions"),
-                        constraints: gbc(gridx: 0, gridy: 2, gridwidth: 2, weightx: 1.0, fill: HORIZONTAL)) {
+                        constraints: gbc(gridx: 0, gridy: 1, weightx: 1, fill: HORIZONTAL)) {
                         button(text: 'Preview', actionPerformed: previewAll)
                         button(id: 'btnSave', text: 'Save', actionPerformed: save)
                         button(id: 'btnRender', text: 'Render', actionPerformed: render)
@@ -112,16 +114,17 @@ class Editor {
             sb.vbox(constraints: BL.EAST, name: "Problem Statement") {
                 widget(new RTextScrollPane(taQsnTeX, true), name: "Problem")
                 sb.panel() {
-                    sb.button(id: 'btnFile', text: 'Image (optional):',
-                        actionPerformed: { setImage('lblFile', q.qpath) }
-                    )
+                    sb.button(text: 'Image (optional):', 
+                        actionPerformed: { setImage('lblFile', q.qpath) })
                     sb.label(id: 'lblFile', text: q.statement.image)
+                    sb.button(text: 'X', actionPerformed: { sb.lblFile.text = ""})
                 }
             }
             sb.vbox(constraints: BL.EAST, name: "Answer Choices") {
                 ['A', 'B', 'C', 'D'].each { option ->
                     def idx = (int)((char)option) - (int)'A'
-                    taAnsTeX[idx] = LaTeXArea.getInstance(q.choices != null ? q.choices.texs[idx] : "", 4, 36)
+                    taAnsTeX[idx] = LaTeXArea.getInstance(
+                        (q.choices != null ? q.choices.texs[idx] : ""), 4, 36)
                     taAnsTeX[idx].setBorder(BorderFactory.createTitledBorder("${option}"))
                     widget(new RTextScrollPane(taAnsTeX[idx], true))
                 }
@@ -148,6 +151,13 @@ class Editor {
             sb.tabbedPane(id: "tpStep${idx}") {
                 sb.vbox(name: 'Context / Options') {
                     sb.widget(new RTextScrollPane(taContext[idx], true))
+                    sb.panel() {
+                        sb.button(text: 'Image (optional):',
+                            actionPerformed: { setImage("lblContextFile${idx}", q.qpath) })
+                        sb.label(id: "lblContextFile${idx}", text: step.imageContext)
+                        sb.button(text: 'X', 
+                            actionPerformed: { sb."lblContextFile${idx}".text = "" })
+                    }
                     sb.tabbedPane() {
                         ["Correct", "Incorrect"].each { side ->
                             sb.vbox(name: "${side}") {
@@ -158,12 +168,23 @@ class Editor {
                                     sb.button(text: 'Image (optional):',
                                         actionPerformed: { setImage("lbl${side}File${idx}", q.qpath) })
                                     sb.label(id: "lbl${side}File${idx}", text: step."image${side}")
+                                    sb.button(text: 'X', 
+                                        actionPerformed: { sb."lbl${side}File${idx}".text = "" })
                                 }
                             }
                         }    
                     }
                 }
-                sb.widget(new RTextScrollPane(taReason[idx], true), name: "Reason / Takeaway")
+                sb.vbox(name: "Reason / Takeaway") {
+                    sb.widget(new RTextScrollPane(taReason[idx], true))
+                    sb.panel() {
+                        sb.button(text: 'Image (optional):',
+                            actionPerformed: { setImage("lblReasonFile${idx}", q.qpath) })
+                        sb.label(id: "lblReasonFile${idx}", text: step.imageReason)
+                        sb.button(text: 'X', 
+                            actionPerformed: { sb."lblReasonFile${idx}".text = "" })
+                    }    
+                }
             }
         }
     }
@@ -281,11 +302,13 @@ class Editor {
         [0, 1, 2, 3, 4, 5].each { idx ->
             def step = new Step()
             step.context = taContext[idx].text
+            step.imageContext = sb."lblContextFile${idx}".text
             step.texCorrect = taCorrect[idx].text
             step.imageCorrect = sb."lblCorrectFile${idx}".text
             step.texIncorrect = taIncorrect[idx].text
             step.imageIncorrect = sb."lblIncorrectFile${idx}".text
             step.reason = taReason[idx].text
+            step.imageReason = sb."lblReasonFile${idx}".text
             // step.noswipe = sb."chkBxSwipe${idx}".selected
             q.steps[idx] = step
         }
@@ -346,6 +369,6 @@ class Editor {
     
     private Renderer renderer
     
-    private final int TA_WIDTH = 40
+    private final int TA_WIDTH = 42
     
 }

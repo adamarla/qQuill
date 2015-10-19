@@ -87,8 +87,9 @@ class Renderer {
                     tabbedPane(id: 'tpSteps') {
                         toSwing(sb, q.statement, q.choices)
                         q.steps.eachWithIndex { step, i ->
-                            if (step != null && step.context.length() != 0) {
-                                toSwing(sb, step, i)
+                            if (step != null) {
+                                if (!(step.context.length() == 0 && step.imageContext.length() == 0))
+                                    toSwing(sb, step, i)
                             }
                         }
                     }
@@ -121,9 +122,16 @@ class Renderer {
     
     def toPreview(SwingBuilder sb, Step step, int i) {
         sb.vbox(name: "Step ${i+1}") {            
-            sb.widget(new TeXLabel(step.context, "Context"))            
+            def drawable
+            if (step.imageContext.length() > 0) {
+                drawable = fileToIcon(step.imageContext)
+                drawable.setBorder(BorderFactory.createTitledBorder("Context"))                                       
+            } else {
+                drawable = new TeXLabel(step.context, "Context") 
+            }
+            sb.widget(drawable)
+            
             ["Correct", "Incorrect"].eachWithIndex { side, idx ->
-                def drawable
                 if (step."image${side}".length() > 0) {
                     drawable = fileToIcon(step."image${side}")
                     drawable.setBorder(BorderFactory.createTitledBorder("${side}"))
@@ -131,8 +139,15 @@ class Renderer {
                     drawable = new TeXLabel(step."tex${side}", "${side}")
                 }                
                 sb.widget(drawable)
+            }            
+            
+            if (step.imageReason.length() > 0) {
+                drawable = fileToIcon(step.imageReason)
+                drawable.setBorder(BorderFactory.createTitledBorder("Reason"))
+            } else {
+                drawable = new TeXLabel(step.reason, "Reason")
             }
-            sb.widget(new TeXLabel(step.reason, "Reason"))
+            sb.widget(drawable)
         }
     }
     
@@ -141,8 +156,15 @@ class Renderer {
             gridBagLayout()
             
             ["Context", "Reason"].eachWithIndex { part, idx ->
-                widget(new TeXLabel(step."${part.toLowerCase()}", part), 
-                    constraints: gbc(gridx: idx, gridy: 0, weightx: 1, fill: HORIZONTAL))            
+                def drawable
+                if (step."image${part}".length() > 0) {
+                    drawable = fileToIcon(step."image${part}")
+                    drawable.setBorder(BorderFactory.createTitledBorder("${part}"))                                       
+                } else {
+                    drawable = new TeXLabel(step."${part.toLowerCase()}", part) 
+                }
+                
+                widget(drawable, constraints: gbc(gridx: idx, gridy: 0, weightx: 1, fill: HORIZONTAL))
             }
             
             ["Correct", "Incorrect"].each { side ->
@@ -164,11 +186,11 @@ class Renderer {
     
     def toPreview(SwingBuilder sb, Statement statement, Choices choices) {
         sb.vbox() {
-            if (statement.image.length() > 0)
-                sb.widget(fileToIcon(statement.image))
-            else {
+            if (statement.tex.length() > 0)
                 sb.widget(new TeXLabel(statement.tex, "Problem"))
-            }
+            
+            if (statement.image.length() > 0)
+                sb.widget(fileToIcon(statement.image))            
             
             if (choices != null) {
                 choices.texs.eachWithIndex { tex, i ->
@@ -187,11 +209,14 @@ class Renderer {
 
             sb.vbox(border: BorderFactory.createTitledBorder("Problem Statement"),
                 constraints: gbc(gridx: 0, gridy: 0, fill: BOTH)) {
-                if (statement.image.length() > 0)
-                    widget(fileToIcon(statement.image))
-                else {
+                
+                if (statement.tex.length() > 0) {
                     widget(new TeXLabel(statement.tex, ""))
                 }
+                
+                if (statement.image.length() > 0)
+                    widget(fileToIcon(statement.image))
+                    
             }
                 
             sb.vbox(border: BorderFactory.createTitledBorder("Answer Choices"),
@@ -228,12 +253,18 @@ class Renderer {
         xml.question(xmlns: "http://www.gradians.com") {
             statement() {
                 tex(q.statement.tex)
+                if (q.statement.image.length() > 0)
+                    image(q.statement.image)
             }
             
             q.steps.each { stp ->
                 if (stp != null && stp.context.length() != 0) {
                     def contents = {
-                        context(stp.context)
+                        if (stp.imageContext.length() > 0) 
+                            context(image: "true", stp.imageContext)
+                        else
+                            context(stp.context)                        
+                        
                         if (stp.imageCorrect.length() > 0)
                             image(correct: "true", stp.imageCorrect)
                         else if (stp.texCorrect.length() > 0)
@@ -243,7 +274,11 @@ class Renderer {
                             image(stp.imageIncorrect)
                         else if (stp.texIncorrect.length() > 0)
                             tex(stp.texIncorrect)
-                        reason(stp.reason)
+                            
+                        if (stp.imageReason.length() > 0)
+                            reason(image: "true", stp.imageReason)
+                        else
+                            reason(stp.reason)
                     }
                     
                     if (stp.noswipe) {
@@ -346,15 +381,6 @@ class Renderer {
 
 class TeXLabel extends JLabel {
     
-    public TeXLabel(TeXIcon icon) {
-        this.icon = icon
-    }
-    
-    public TeXLabel(TeXIcon icon, String title) {
-        this.icon = icon
-        setBorder(title)
-    }
-    
     public TeXLabel(String tex, String title) {        
         teXToIcon(tex)
         setBorder(title)
@@ -377,19 +403,36 @@ class TeXLabel extends JLabel {
     }
     
     @Override
-    public void paintComponent(Graphics g){
+    public void paintComponent(Graphics g) {
         super.paintComponent(g)
         if (icon != null) {
             if (icon.iconWidth > ERROR_WIDTH) {
                 g.setColor(Color.BLUE)
                 g.drawLine(ERROR_WIDTH, 0, ERROR_WIDTH, icon.iconHeight)
-            }    
-        }        
-    }    
+            }
+        }
+    }
     
     private def teXToIcon(String tex) {
+        String[] lines = tex.split("\n")
+        
+        boolean textMode = false
+        for (int i = 0; i < lines.length; i++) {
+            def line = lines[i]        
+            if (line.startsWith("%text")) {
+                textMode = true
+                continue
+            } else if (line.startsWith("%")) {
+                textMode = false
+                continue
+            }
+            
+            if (textMode)
+                lines[i] = "\\text{${line}} \\\\"            
+        }
+        
         try {
-            TeXFormula formula = new TeXFormula(tex)
+            TeXFormula formula = new TeXFormula(lines.join('\n'))
             this.icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
                 TeXFormula.SANSSERIF | TeXFormula.ROMAN)
         } catch (Exception e) {
