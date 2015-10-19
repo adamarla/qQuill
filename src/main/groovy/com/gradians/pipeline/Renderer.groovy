@@ -315,15 +315,19 @@ class Renderer {
             }
         }
         
-        renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
+        if (q.statement.tex.length() > 0)
+            renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
+            
         for (int idx = 0; idx < q.steps.length; idx++) {
             def step = q.steps[idx]
-            if (step != null && step.context.length() != 0) {
-                def content = [step.context, step.texCorrect, step.texIncorrect, step.reason] 
-                ["CTX_${idx}.svg", "CRT_${idx}.svg", 
-                    "WRNG_${idx}.svg", "RSN_${idx}.svg"].eachWithIndex { part, posn ->
-                    if (content[posn].length() > 0)
-                        renderSVG(content[posn], path.resolve(part))
+            if (step != null) {
+                if (step.context.length() != 0 && step.imageContext.length() > 0) {
+                    def content = [step.context, step.texCorrect, step.texIncorrect, step.reason]
+                    ["CTX_${idx}.svg", "CRT_${idx}.svg",
+                        "WRNG_${idx}.svg", "RSN_${idx}.svg"].eachWithIndex { part, posn ->
+                        if (content[posn].length() > 0)
+                            renderSVG(content[posn], path.resolve(part))
+                    }    
                 }
             }
         }
