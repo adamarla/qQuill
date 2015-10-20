@@ -457,12 +457,12 @@ class TeXHelper {
         try {
             formula = new TeXFormula(lines.join('\n'))
             icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SERIF | TeXFormula.ROMAN)            
+                TeXFormula.SANSSERIF | TeXFormula.ROMAN)            
             icon.setForeground(negative ? Color.WHITE : Color.BLACK)
         } catch (Exception e) {
             formula = new TeXFormula("\\text{${e.getMessage()}}>")
             icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SERIF | TeXFormula.ROMAN)
+                TeXFormula.SANSSERIF | TeXFormula.ROMAN)
         }
         icon
     }
