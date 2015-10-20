@@ -107,8 +107,9 @@ class Renderer {
         
         sb.tpSteps.add(toSwing(sb, q.statement, q.choices))
         q.steps.eachWithIndex { step, i ->
-            if (step != null && step.context.length() != 0) {
-                sb.tpSteps.add(toSwing(sb, step, i))
+            if (step != null) {
+                if (!(step.context.length() == 0 && step.imageContext.length() == 0))
+                    sb.tpSteps.add(toSwing(sb, step, i))
             }
         }
 
@@ -324,13 +325,13 @@ class Renderer {
         for (int idx = 0; idx < q.steps.length; idx++) {
             def step = q.steps[idx]
             if (step != null) {
-                if (step.context.length() != 0 && step.imageContext.length() > 0) {
+                if (!(step.context.length() == 0 && step.imageContext.length() == 0)) {
                     def content = [step.context, step.texCorrect, step.texIncorrect, step.reason]
-                    ["CTX_${idx}.svg", "CRT_${idx}.svg",
-                        "WRNG_${idx}.svg", "RSN_${idx}.svg"].eachWithIndex { part, posn ->
+                    def images = ["CTX_${idx}.svg", "CRT_${idx}.svg", "WRNG_${idx}.svg", "RSN_${idx}.svg"]
+                    images.eachWithIndex { part, posn ->
                         if (content[posn].length() > 0)
                             renderSVG(content[posn], path.resolve(part))
-                    }    
+                    }
                 }
             }
         }
@@ -452,13 +453,16 @@ class TeXHelper {
                 lines[i] = "\\text{${line}} \\\\"
         }
         
+        TeXFormula formula
         try {
-            TeXFormula formula = new TeXFormula(lines.join('\n'))
+            formula = new TeXFormula(lines.join('\n'))
             icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SANSSERIF | TeXFormula.ROMAN)            
+                TeXFormula.SERIF | TeXFormula.ROMAN)            
             icon.setForeground(negative ? Color.WHITE : Color.BLACK)
         } catch (Exception e) {
-            this.text = "<html>${e.getMessage()}</html>"
+            formula = new TeXFormula("\\text{${e.getMessage()}}>")
+            icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
+                TeXFormula.SERIF | TeXFormula.ROMAN)
         }
         icon
     }
