@@ -38,6 +38,7 @@ import org.w3c.dom.DOMImplementation
 
 import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
+
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
 import static java.awt.GridBagConstraints.HORIZONTAL
@@ -315,8 +316,10 @@ class Renderer {
             }
         }
         
-        if (q.statement.tex.length() > 0)
+        if (q.statement.tex.length() > 0) {
             renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
+            renderSVG(q.statement.tex, path.resolve("PREVIEW.svg"), true)
+        }
             
         for (int idx = 0; idx < q.steps.length; idx++) {
             def step = q.steps[idx]
@@ -339,20 +342,19 @@ class Renderer {
         }
     }
 
-    private def renderSVG(String tex, Path path) {
+    private def renderSVG(String tex, Path path, boolean negative = false) {
         Files.deleteIfExists(path)
         if (tex.length() == 0)
             return
             
-        TeXFormula formula = new TeXFormula(tex)
-        Icon icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, fontSize, 
-            TeXFormula.SANSSERIF | TeXFormula.ROMAN)
+        Icon icon = TeXHelper.createIcon(tex, fontSize, negative)
             
         // Get a DOMImplementation.
         DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation()
         // Create an instance of org.w3c.dom.Document.
         String svgNS = "http://www.w3.org/2000/svg"
         org.w3c.dom.Document document = domImpl.createDocument(svgNS, "svg", null)
+        
         
         // Create an instance of the SVG Generator.
         boolean glyphAsShape = true
@@ -363,7 +365,6 @@ class Renderer {
         // Ask the test to render into the SVG Graphics2D implementation.
         svgGenerator.setSVGCanvasSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()))
         icon.paintIcon(null, svgGenerator, 0, 0)
-        svgGenerator.setBackground(Color.WHITE)
     
         // Finally, stream out SVG to the standard output using UTF-8 encoding.
         boolean useCSS = true // we want to use CSS style attributes
@@ -385,7 +386,7 @@ class Renderer {
 
 class TeXLabel extends JLabel {
     
-    public TeXLabel(String tex, String title) {        
+    public TeXLabel(String tex, String title) {
         teXToIcon(tex)
         setBorder(title)
     }
@@ -418,11 +419,27 @@ class TeXLabel extends JLabel {
     }
     
     private def teXToIcon(String tex) {
+        try {
+            this.icon = TeXHelper.createIcon(tex, 15)
+        } catch (Exception e) {
+            this.text = "<html>${e.getMessage()}</html>"
+        }
+    }    
+
+    private final int CHAR_WIDTH = 45    
+    private final int ERROR_WIDTH = 300, WARNING_WIDTH = 280
+    
+}
+
+class TeXHelper {
+    
+    public static def Icon createIcon(String tex, int fontSize, boolean negative = false) {
+        Icon icon       
         String[] lines = tex.split("\n")
         
         boolean textMode = false
         for (int i = 0; i < lines.length; i++) {
-            def line = lines[i]        
+            def line = lines[i]
             if (line.startsWith("%text")) {
                 textMode = true
                 continue
@@ -432,19 +449,18 @@ class TeXLabel extends JLabel {
             }
             
             if (textMode)
-                lines[i] = "\\text{${line}} \\\\"            
+                lines[i] = "\\text{${line}} \\\\"
         }
         
         try {
             TeXFormula formula = new TeXFormula(lines.join('\n'))
-            this.icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SANSSERIF | TeXFormula.ROMAN)
+            icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
+                TeXFormula.SANSSERIF | TeXFormula.ROMAN)            
+            icon.setForeground(negative ? Color.WHITE : Color.BLACK)
         } catch (Exception e) {
             this.text = "<html>${e.getMessage()}</html>"
         }
-    }    
-
-    private final int CHAR_WIDTH = 45    
-    private final int ERROR_WIDTH = 300, WARNING_WIDTH = 280
+        icon
+    }
     
 }

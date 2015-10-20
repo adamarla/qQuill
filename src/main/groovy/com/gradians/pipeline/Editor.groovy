@@ -92,7 +92,7 @@ class Editor {
                         constraints: gbc(gridx: 0, gridy: 1, weightx: 1, fill: HORIZONTAL)) {
                         button(text: 'Preview', actionPerformed: previewAll)
                         button(id: 'btnSave', text: 'Save', actionPerformed: save)
-                        button(id: 'btnRender', text: 'Render', actionPerformed: render)
+                        button(id: 'btnRender', text: 'SVG', actionPerformed: render)
                         button(text: 'Refresh', actionPerformed: previewStep)
                     }
                 }
