@@ -412,7 +412,11 @@ class Tagger {
         if (Files.notExists(json)) {
             Files.createFile(json)
         }
-        json.write(network.fetchAllBundles().toString())
+        try {
+          json.write(network.fetchAllBundles().toString())
+        } catch (Exception e) { 
+            println "Continuing in offline mode"
+        }
         loadBundles(json)
     }
     
