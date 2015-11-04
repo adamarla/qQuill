@@ -26,14 +26,38 @@ class Bundler {
     Question q
     Path bank, vault, bundles
     
-    def Bundler(Question q) {
-        this.q = q
-    }
-    
-    def bundle() {
+    def Bundler(Question q) {        
         bank = q.qpath.getParent().getParent().getParent().getParent()
         vault = bank.resolve("vault") 
         bundles = bank.resolve("bundles")
+        
+        this.q = q        
+    }
+    
+    def miniBundle() {
+        Path zip = q.qpath.resolve("question.zip")
+        Files.deleteIfExists(zip)
+        
+        FileSystem fs
+        if (Files.notExists(zip))
+            fs = create(zip)
+        else
+            fs = FileSystems.newFileSystem(zip, null)
+        
+        Path srcDir = q.qpath
+        Path destDir = fs.getPath(fs.getPath("/").toString(), q.uid.replace('/', '-'))
+        addQuestion(q.qpath, destDir)
+        
+        def bundleXmlPath = q.qpath.resolve("bundle.xml")
+        assert Files.exists(bundleXmlPath)
+        def bundleXml = new XmlSlurper().parse(bundleXmlPath.toFile())
+        addToOrUpdateManifest(fs, bundleXml)
+    }
+    
+    def bundle() {
+        (new Renderer(q)).toSVG()
+        
+        miniBundle()
         
         def xmlPath = q.qpath.resolve("bundle.xml")
         assert Files.exists(xmlPath)
@@ -49,12 +73,10 @@ class Bundler {
         else
             fs = FileSystems.newFileSystem(zip, null)
         
-        (new Renderer(q)).toSVG()
-        
         Path srcDir = vault.resolve(q.qpath)
         Path destDir = fs.getPath(fs.getPath("/").toString(), q.uid.replace('/', '-'))
-        addQuestion(q.qpath, destDir)        
-        addToOrUpdateManifest(fs, bundleId, bundleXml)
+        addQuestion(q.qpath, destDir)
+        addToOrUpdateManifest(fs, bundleXml)
         (new Network()).updateBundleSignature(bundleId, getSHA1Sum(zip))
         
         Path oldBundleXml = q.qpath.resolve("old_bundle.xml")
@@ -81,7 +103,8 @@ class Bundler {
         (new Network()).updateBundleSignature(bundleId, getSHA1Sum(zip))        
     }
     
-    private def addToOrUpdateManifest(FileSystem fs, String bundleId, GPathResult bundleXml) {
+    private def addToOrUpdateManifest(FileSystem fs, GPathResult bundleXml) {
+        def bundleId = bundleXml.bundleId.toString()
         String manifestName = String.format("%s.xml", bundleId)
         Path tmpManifest = bundles.resolve(manifestName)
         final Path root = fs.getPath("/")
