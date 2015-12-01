@@ -34,30 +34,8 @@ class Bundler {
         this.q = q        
     }
     
-    def miniBundle() {
-        Path zip = q.qpath.resolve("question.zip")
-        Files.deleteIfExists(zip)
-        
-        FileSystem fs
-        if (Files.notExists(zip))
-            fs = create(zip)
-        else
-            fs = FileSystems.newFileSystem(zip, null)
-        
-        Path srcDir = q.qpath
-        Path destDir = fs.getPath(fs.getPath("/").toString(), q.uid.replace('/', '-'))
-        addQuestion(q.qpath, destDir)
-        
-        def bundleXmlPath = q.qpath.resolve("bundle.xml")
-        assert Files.exists(bundleXmlPath)
-        def bundleXml = new XmlSlurper().parse(bundleXmlPath.toFile())
-        addToOrUpdateManifest(fs, bundleXml)
-    }
-    
     def bundle() {
         (new Renderer(q)).toSVG()
-        
-        miniBundle()
         
         def xmlPath = q.qpath.resolve("bundle.xml")
         assert Files.exists(xmlPath)
