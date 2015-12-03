@@ -147,7 +147,7 @@ class Editor {
         taIncorrect[idx] = LaTeXArea.getInstance(step.texIncorrect, 14, TA_WIDTH)
 
         sb.vbox(constraints: BL.EAST) {
-            //sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
+            sb.checkBox(id: "chkBxSwipe${idx}", text: 'No Swipe', selected: step.noswipe)
             sb.tabbedPane(id: "tpStep${idx}") {
                 sb.vbox(name: 'Context / Options') {
                     sb.widget(new RTextScrollPane(taContext[idx], true))
@@ -309,7 +309,7 @@ class Editor {
             step.imageIncorrect = sb."lblIncorrectFile${idx}".text
             step.reason = taReason[idx].text
             step.imageReason = sb."lblReasonFile${idx}".text
-            // step.noswipe = sb."chkBxSwipe${idx}".selected
+            step.noswipe = sb."chkBxSwipe${idx}".selected
             q.steps[idx] = step
         }
         
@@ -351,7 +351,7 @@ class Editor {
             taReason[i].text = taReason[i-1].text
             sb."lblCorrectFile${i}".text = sb."lblCorrectFile${(i-1)}".text
             sb."lblIncorrectFile${i}".text = sb."lblIncorrectFile${(i-1)}".text
-            // sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i-1)}".selected
+            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i-1)}".selected
         }
     }
     
@@ -363,7 +363,7 @@ class Editor {
             taReason[i].text = taReason[i+1].text
             sb."lblCorrectFile${i}".text = sb."lblCorrectFile${(i+1)}".text
             sb."lblIncorrectFile${i}".text = sb."lblIncorrectFile${(i+1)}".text
-            // sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i+1)}".selected
+            sb."chkBxSwipe${i}".selected = sb."chkBxSwipe${(i+1)}".selected
         }
     }
     
