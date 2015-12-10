@@ -19,8 +19,7 @@ dependencies {
     compile localGroovy()
     compile 'net.java.dev.glazedlists:glazedlists_java15:1.9.0'
     compile 'org.codehaus.groovy:http-builder:0.4.0'
-    compile 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
-    compile 'org.scilab.forge:jlatexmath:1.0.2'
+    compile 'com.github.jengelman.gradle.plugins:shadow:1.2.1'    
     compile 'com.googlecode.json-simple:json-simple:1.1'
     compile 'org.apache.xmlgraphics:batik-svggen:1.7'
     compile 'org.apache.xmlgraphics:batik-swing:1.7'
@@ -28,6 +27,7 @@ dependencies {
     compile 'com.fifesoft:autocomplete:2.5.7'
     compile 'com.fifesoft:spellchecker:2.5.7'
     compile 'com.fifesoft:rsyntaxtextarea:2.5.7'
+    compile files('./lib/jlatexmath-embedded-fop-1.0.3.jar')
 }
 
 buildscript {

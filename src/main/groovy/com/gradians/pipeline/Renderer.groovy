@@ -38,7 +38,6 @@ import org.w3c.dom.DOMImplementation
 
 import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
-
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
 import static java.awt.GridBagConstraints.HORIZONTAL
@@ -55,6 +54,7 @@ class Renderer {
     SwingBuilder sb
     
     static {
+        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu");
         Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
         map.keySet().each {
             TeXFormula.get(it)
@@ -175,7 +175,7 @@ class Renderer {
                     drawable = fileToIcon(step."image${side}")
                     drawable.setBorder(BorderFactory.createTitledBorder("${side}"))
                 } else {
-                    drawable = new TeXLabel(step."tex${side}", "${side}")
+                    drawable = new TeXLabel(step."tex${side}", "${side}", false)
                 }
                 
                 scrollPane(constraints: gbc(gridx: (side.equals("Correct") ? 0 : 1), 
@@ -421,21 +421,21 @@ class TeXLabel extends JLabel {
     
     private def teXToIcon(String tex) {
         try {
-            this.icon = TeXHelper.createIcon(tex, 15)
+            this.icon = TeXHelper.createIcon(tex, 15, false)
         } catch (Exception e) {
             this.text = "<html>${e.getMessage()}</html>"
         }
     }    
 
-    private final int CHAR_WIDTH = 45    
-    private final int ERROR_WIDTH = 300, WARNING_WIDTH = 280
+    private final int ERROR_WIDTH = 335, WARNING_WIDTH = 310
     
 }
 
 class TeXHelper {
     
     public static def Icon createIcon(String tex, int fontSize, boolean negative = false) {
-        Icon icon       
+        
+        Icon icon
         String[] lines = tex.split("\n")
         
         boolean textMode = false
@@ -457,14 +457,25 @@ class TeXHelper {
         try {
             formula = new TeXFormula(lines.join('\n'))
             icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SANSSERIF | TeXFormula.ROMAN)            
+                TeXFormula.SANSSERIF)
             icon.setForeground(negative ? Color.WHITE : Color.BLACK)
         } catch (Exception e) {
-            formula = new TeXFormula("\\text{${e.getMessage()}}>")
+            String exceptionText = TeXHelper.formatException(e)
+            formula = new TeXFormula(exceptionText)
             icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SANSSERIF | TeXFormula.ROMAN)
+                TeXFormula.SANSSERIF)
         }
         icon
+    }
+    
+    private static String formatException(Exception e) {
+        String message = e.getMessage()
+        List<String> messages = new ArrayList<String>()        
+        while (message.length() > 42) {
+            messages.add("\\text{${message.substring(0, 41)}}")
+            message = message.substring(42)
+        }
+        return messages.join('\\\\')
     }
     
 }
