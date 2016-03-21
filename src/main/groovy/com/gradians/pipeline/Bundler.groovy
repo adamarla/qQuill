@@ -122,7 +122,7 @@ class Bundler {
         Path tmpManifest = bundles.resolve(manifestName)
         final Path root = fs.getPath("/")
         if (Files.exists(root.resolve(manifestName))) {
-            tmpManifest = Files.copy(fs.getPath("/").resolve(manifestName),
+            Files.copy(fs.getPath("/").resolve(manifestName),
                 tmpManifest, REPLACE_EXISTING)
         } else {
             return

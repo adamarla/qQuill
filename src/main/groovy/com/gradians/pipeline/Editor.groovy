@@ -247,7 +247,7 @@ class Editor {
         }
     }
     
-    private def previewStep = {
+    public def previewStep = {
         sb.pnlDisplay.removeAll()
         updateModel()
         def stepIdx = sb.tpTeX.selectedIndex

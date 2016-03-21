@@ -7,6 +7,8 @@ import java.awt.event.KeyEvent
 import java.nio.file.Path
 import java.nio.file.Files
 
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener
 import javax.swing.text.JTextComponent
 import javax.swing.JTextArea
 import javax.swing.KeyStroke
@@ -110,6 +112,7 @@ class LaTeXArea extends RSyntaxTextArea {
         addShortCuts()
         setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_LATEX)
         discardAllEdits()
+        getDocument().addDocumentListener(new LaTeXListener())
     }
     
     private def setPreferredFont() {
@@ -135,9 +138,32 @@ class LaTeXArea extends RSyntaxTextArea {
         this.setKeymap(quillMap)
     }
     
-    static Editor editor
+    public static Editor editor
     private static DefaultCompletionProvider completionProvider
     private static SpellingParser spellingParser
     private static Keymap quillMap
     
 }
+
+class LaTeXListener implements DocumentListener {
+
+    @Override
+    public void insertUpdate(DocumentEvent e) {
+        // TODO Auto-generated method stub
+        LaTeXArea.editor.previewStep()
+    }
+
+    @Override
+    public void removeUpdate(DocumentEvent e) {
+        // TODO Auto-generated method stub
+        LaTeXArea.editor.previewStep()
+    }
+
+    @Override
+    public void changedUpdate(DocumentEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+}
+

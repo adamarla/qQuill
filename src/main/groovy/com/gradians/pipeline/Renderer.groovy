@@ -54,7 +54,7 @@ class Renderer {
     SwingBuilder sb
     
     static {
-        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu");
+        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu")
         Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
         map.keySet().each {
             TeXFormula.get(it)
@@ -64,7 +64,7 @@ class Renderer {
     }
     
     def Renderer(int fontSize = 15) {
-        this.fontSize = fontSize        
+        this.fontSize = fontSize
     }
     
     def Renderer(Question q, int fontSize = 15) {
