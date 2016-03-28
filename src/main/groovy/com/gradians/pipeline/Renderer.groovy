@@ -54,7 +54,7 @@ class Renderer {
     SwingBuilder sb
     
     static {
-        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu")
+//        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu")
         Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
         map.keySet().each {
             TeXFormula.get(it)
@@ -303,11 +303,72 @@ class Renderer {
                 }    
             }
         }
-        q.qpath.resolve("question.xml").toFile().write(sw.toString())
+        sw.toString()
     }
     
-    def toSVG() {
-        Path path = q.qpath
+    def toTeX() {
+        def sw = new StringWriter()
+        
+        sw.append("\\documentclass[12pt]{article}\n\\RequirePackage{prepwell}\n")
+        sw.append("\\begin{document}\n\t\\begin{question}\n")
+        
+        sw.append("\t\t\\begin{statement}\n")
+        sw.append("\t\t\t\\tex{${TeXHelper.toPureTeX(q.statement.tex)}}\n")
+        if (q.statement.image.length() > 0)
+            sw.append("\t\t\t\\img{${q.statement.image}}\n")
+        sw.append("\t\t\\end{statement}\n")
+
+        q.steps.each { stp ->
+            if (stp != null && stp.context.length() != 0) {                
+                sw.append("%STEP\n")
+                sw.append("\t\t\\begin{step}\n")
+                
+                sw.append("\t\t\\begin{context}\n")
+                sw.append("\t\t\t\\tex{${TeXHelper.toPureTeX(stp.context.trim())}}\n")
+                sw.append("\t\t\\end{context}\n")
+                
+                sw.append("\t\t\\begin{options}\n")
+                                                    
+                if (stp.imageCorrect.length() > 0)
+                    sw.append("\t\t\t\\image{${stp.imageCorrect}}\n")
+                else if (stp.texCorrect.length() > 0)
+                    sw.append("\t\t\t\\tex{${TeXHelper.toPureTeX(stp.texCorrect.trim())}}\n")
+ 
+                if (stp.imageIncorrect.length() > 0)
+                    sw.append("\t\t\t\\img[false]{${stp.imageIncorrect}}\n")
+                else if (stp.texIncorrect.length() > 0)
+                    sw.append("\t\t\t\\tex[false]{${TeXHelper.toPureTeX(stp.texIncorrect.trim())}}\n")
+
+                sw.append("\t\t\\end{options}\n")
+                
+                sw.append("\t\t\\begin{reason}\n")
+                if (stp.imageReason.length() > 0)
+                    sw.append("\\img{${stp.imageReason.trim()}}\n")
+                else
+                    sw.append("\\tex{${TeXHelper.toPureTeX(stp.reason.trim())}}\n")
+                sw.append("\t\t\\end{reason}\n")
+
+                sw.append("\t\t\\end{step}\n")
+            }
+        }
+
+        if (q.choices != null) {            
+            sw.append("\t\t\\begin{choices}\n")
+            q.choices.texs.eachWithIndex { tx, i ->
+                if (q.choices.correct == i) {
+                    sw.append("\t\t\t\\tex[true]{${tx}}\n")
+                } else {
+                    sw.append("\t\t\t\\tex[false]{${tx}}\n")
+                }
+            }
+            sw.append("\t\t\\end{choices}\n")            
+        }
+            
+        sw.append("\\end{document}\n\\end{question}")    
+        q.qpath.resolve("outline.tex").toFile().write(sw.toString())
+    }
+    
+    def toSVG(Path path) {
         DirectoryStream<Path> svgs = Files.newDirectoryStream(path, "*.svg")
         for (Path p : svgs) {
             def s = p.getFileName().toString()
@@ -435,8 +496,9 @@ class TeXHelper {
     
     public static def Icon createIcon(String tex, int fontSize, boolean negative = false) {
         
-        Icon icon
+        Icon icon        
         String[] lines = tex.split("\n")
+        def sw = new StringWriter()
         
         boolean textMode = false
         for (int i = 0; i < lines.length; i++) {
@@ -450,14 +512,15 @@ class TeXHelper {
             }
             
             if (textMode)
-                lines[i] = "\\text{${line}} \\\\"
+                sw.append("\\text{${line}} \\\\\n")
+            else
+                sw.append("${line}\n")
         }
-        
+                
         TeXFormula formula
         try {
-            formula = new TeXFormula(lines.join('\n'))
-            icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SANSSERIF)
+            formula = new TeXFormula(sw.toString())
+            icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15)
             icon.setForeground(negative ? Color.WHITE : Color.BLACK)
         } catch (Exception e) {
             String exceptionText = TeXHelper.formatException(e)
@@ -466,6 +529,21 @@ class TeXHelper {
                 TeXFormula.SANSSERIF)
         }
         icon
+    }
+    
+    public static String toPureTeX(String tex) {
+        String[] lines = tex.split("\n")
+        def sw = new StringWriter()
+        
+        for (int i = 0; i < lines.length; i++) {
+            def line = lines[i]
+            if (line.startsWith("%text") || line.startsWith("%")) {
+                continue
+            }
+            
+            sw.append("${line}\n")
+        }
+        sw.toString()
     }
     
     private static String formatException(Exception e) {

@@ -197,14 +197,14 @@ class Editor {
     private def save = {
         sb.btnSave.enabled = false
         updateModel()
-        renderer.toXMLString()
+        q.getFile().write(renderer.toXMLString())
         sb.btnSave.enabled = true
     }
     
     private def render = {
         sb.btnRender.enabled = false
         try {
-            renderer.toSVG()
+            renderer.toSVG(q.qpath)
         } catch (Exception e) {
             println e
         }

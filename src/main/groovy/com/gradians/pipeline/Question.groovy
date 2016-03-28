@@ -52,6 +52,10 @@ class Question {
         uid = "${tokens[tokens.length-3]}${SEP}${tokens[tokens.length-2]}${SEP}${tokens[tokens.length-1]}"        
     }
     
+    def File getFile() {
+        return qpath.resolve(XML_FILE)
+    }
+    
     def reload() {
         parse(qpath.resolve(XML_FILE))
     }
