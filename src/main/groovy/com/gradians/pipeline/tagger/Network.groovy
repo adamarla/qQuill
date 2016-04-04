@@ -1,7 +1,9 @@
-package com.gradians.pipeline
+package com.gradians.pipeline.tagger
+
+import com.gradians.pipeline.data.Question;
+import com.gradians.pipeline.editor.Renderer;
 
 import groovyx.net.http.HTTPBuilder
-
 import static groovyx.net.http.Method.POST
 import static groovyx.net.http.Method.GET
 import static groovyx.net.http.ContentType.JSON

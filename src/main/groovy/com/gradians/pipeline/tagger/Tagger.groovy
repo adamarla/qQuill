@@ -1,9 +1,8 @@
-package com.gradians.pipeline
+package com.gradians.pipeline.tagger
 
 import ca.odell.glazedlists.GlazedLists
 import ca.odell.glazedlists.matchers.TextMatcherEditor
 import ca.odell.glazedlists.swing.AutoCompleteSupport
-
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.swing.SwingBuilder
@@ -19,6 +18,7 @@ import java.io.File;
 import java.nio.file.DirectoryStream
 import java.nio.file.Path
 import java.nio.file.Files
+import java.util.Comparator;
 
 import javax.swing.BorderFactory
 import javax.swing.Box
@@ -35,6 +35,10 @@ import javax.swing.JScrollPane
 import javax.swing.border.TitledBorder
 import javax.swing.filechooser.FileView;
 import javax.swing.filechooser.FileFilter
+
+import com.gradians.pipeline.data.Question;
+import com.gradians.pipeline.editor.Editor;
+import com.gradians.pipeline.editor.Renderer;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS
 import static java.awt.GridBagConstraints.HORIZONTAL
@@ -323,7 +327,6 @@ class Tagger {
                 Files.createFile(lblFilePath)
             list.add(q)
         }
-        Collections.sort(list, new QuestionSorter())
         qsns = list.toArray(new Question[list.size()])
     }
     
@@ -477,12 +480,4 @@ class Tagger {
     final String NO_BUNDLE_INFO = "No Bundle Info"
     final String NO_BUNDLE_ASSIGNED = "No Label"
 
-}
-
-class QuestionSorter implements Comparator {
-    
-    @Override
-    public int compare(Object obj1, Object obj2) {
-        return ((Question)obj1).bundle.compareTo(((Question)obj2).bundle)
-    }
 }

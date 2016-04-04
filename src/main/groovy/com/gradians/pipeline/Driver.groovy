@@ -1,6 +1,7 @@
 package com.gradians.pipeline
 
 import groovy.swing.SwingBuilder
+
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -9,6 +10,11 @@ import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.Option.Builder
+
+import com.gradians.pipeline.data.Question;
+import com.gradians.pipeline.editor.Editor;
+import com.gradians.pipeline.editor.Renderer;
+import com.gradians.pipeline.tagger.Tagger;
 
 
 class Driver {
@@ -37,7 +43,7 @@ class Driver {
             boolean bundleOnly = cl.hasOption('b')
             boolean previewOnly = cl.hasOption('p')
             
-            Path path = (new File(pwd)).toPath().resolve()
+            Path path = (new File(pwd)).toPath()
             if (!cl.argList.empty)
                 path = path.resolve(cl.argList.get(0))
 
@@ -58,7 +64,7 @@ class Driver {
                 } else if (previewOnly) {
                     (new Renderer(q)).toSwing(true)
                 } else if (editOnly) {
-                    (new Editor(q)).launch()
+                    (new Editor(q)).launchGeneric()
                 }
             }
             

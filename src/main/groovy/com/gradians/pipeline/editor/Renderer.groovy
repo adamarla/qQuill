@@ -1,4 +1,4 @@
-package com.gradians.pipeline
+package com.gradians.pipeline.editor
 
 import java.awt.Color
 import java.awt.Component;
@@ -35,6 +35,11 @@ import org.scilab.forge.jlatexmath.TeXIcon
 import org.scilab.forge.jlatexmath.cyrillic.CyrillicRegistration
 import org.scilab.forge.jlatexmath.greek.GreekRegistration
 import org.w3c.dom.DOMImplementation
+
+import com.gradians.pipeline.data.Choices;
+import com.gradians.pipeline.data.Question;
+import com.gradians.pipeline.data.Statement;
+import com.gradians.pipeline.data.Step;
 
 import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
@@ -248,64 +253,6 @@ class Renderer {
             builder.toPrettyString()
     }
 
-    def toXMLString() {
-        def sw = new StringWriter()
-        def xml = new groovy.xml.MarkupBuilder(sw)
-        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.question(xmlns: "http://www.gradians.com") {
-            statement() {
-                tex(q.statement.tex)
-                if (q.statement.image.length() > 0)
-                    image(q.statement.image)
-            }
-            
-            q.steps.each { stp ->
-                if (stp != null && stp.context.length() != 0) {
-                    def contents = {
-                        if (stp.imageContext.length() > 0) 
-                            context(image: "true", stp.imageContext)
-                        else
-                            context(stp.context)                        
-                        
-                        if (stp.imageCorrect.length() > 0)
-                            image(correct: "true", stp.imageCorrect)
-                        else if (stp.texCorrect.length() > 0)
-                            tex(correct: "true", stp.texCorrect)
-                            
-                        if (stp.imageIncorrect.length() > 0)
-                            image(stp.imageIncorrect)
-                        else if (stp.texIncorrect.length() > 0)
-                            tex(stp.texIncorrect)
-                            
-                        if (stp.imageReason.length() > 0)
-                            reason(image: "true", stp.imageReason)
-                        else
-                            reason(stp.reason)
-                    }
-                    
-                    if (stp.noswipe) {
-                        step(swipe: "false", contents)
-                    } else {
-                        step(contents)
-                    }    
-                }
-            }
-            
-            if (q.choices != null) {
-                choices() {
-                    q.choices.texs.eachWithIndex { tx, i ->
-                        if (q.choices.correct == i) {
-                            tex(correct: "true", tx)
-                        } else {
-                            tex(tx)
-                        }
-                    }
-                }    
-            }
-        }
-        sw.toString()
-    }
-    
     def toTeX() {
         def sw = new StringWriter()
         
@@ -433,7 +380,7 @@ class Renderer {
         Writer out = new OutputStreamWriter(new FileOutputStream(path.toFile()), "UTF-8")
         svgGenerator.stream(out, useCSS)
         out.close()
-    }    
+    }
     
     private def JSVGCanvas fileToIcon(String name) {
         JSVGCanvas svgCanvas = new JSVGCanvas()
@@ -443,52 +390,6 @@ class Renderer {
         }
         svgCanvas
     }
-    
-}
-
-class TeXLabel extends JLabel {
-    
-    public TeXLabel(String tex, String title) {
-        teXToIcon(tex)
-        setBorder(title)
-    }
-    
-    public void setBorder(String title) {
-        TitledBorder b = BorderFactory.createTitledBorder(title)
-        if (icon != null) {
-            if (icon.iconWidth > ERROR_WIDTH) {
-                int overflowPcnt = (icon.iconWidth - ERROR_WIDTH)*100/ERROR_WIDTH
-                b.title += "(${overflowPcnt}%)"
-                b.setBorder(new LineBorder(RED, (int)overflowPcnt/10+1))
-            } else if (icon.iconWidth > WARNING_WIDTH) {
-                b.setBorder(new LineBorder(ORANGE))
-            }    
-        } else {
-            b.setBorder(new LineBorder(RED))
-        }
-        super.setBorder(b)
-    }
-    
-    @Override
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g)
-        if (icon != null) {
-            if (icon.iconWidth > ERROR_WIDTH) {
-                g.setColor(Color.BLUE)
-                g.drawLine(ERROR_WIDTH, 0, ERROR_WIDTH, icon.iconHeight)
-            }
-        }
-    }
-    
-    private def teXToIcon(String tex) {
-        try {
-            this.icon = TeXHelper.createIcon(tex, 15, false)
-        } catch (Exception e) {
-            this.text = "<html>${e.getMessage()}</html>"
-        }
-    }    
-
-    private final int ERROR_WIDTH = 335, WARNING_WIDTH = 310
     
 }
 

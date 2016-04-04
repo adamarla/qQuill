@@ -1,4 +1,4 @@
-package com.gradians.pipeline
+package com.gradians.pipeline.editor
 
 import org.json.simple.parser.ParseException
 import org.scilab.forge.jlatexmath.Atom

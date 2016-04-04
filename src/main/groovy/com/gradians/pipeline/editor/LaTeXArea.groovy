@@ -1,4 +1,4 @@
-package com.gradians.pipeline
+package com.gradians.pipeline.editor
 
 import java.awt.Font
 import java.awt.event.ActionEvent;
@@ -27,7 +27,7 @@ import org.fife.com.swabunga.spell.engine.SpellDictionaryHashMap
 
 class LaTeXArea extends RSyntaxTextArea {
 
-    public static LaTeXArea getInstance(String tex, int row, int col) {
+    public static LaTeXArea getInstance(Editor editor, String tex, int row, int col) {
         if (completionProvider == null) {
             completionProvider = new DefaultCompletionProvider()
             
@@ -97,22 +97,33 @@ class LaTeXArea extends RSyntaxTextArea {
                 
                 @Override
                 void actionPerformed(ActionEvent ae) {
-                    LaTeXArea.editor.save()
+                    editor.save()
                 }
             })
         }
-        return new LaTeXArea(tex, row, col)
-    } 
+        
+        def area = new LaTeXArea(editor, tex, row, col)
+        area.getDocument().addDocumentListener(new DocumentListener() {
+            void insertUpdate(DocumentEvent e) {
+                editor.updatePreview(area)
+            }
+            void removeUpdate(DocumentEvent e) {
+                editor.updatePreview(area)
+            }
+            void changedUpdate(DocumentEvent e) { }
+        })
+        area
+    }
     
-    public LaTeXArea(String tex, int row, int col) {
+    public LaTeXArea(Editor editor, String tex, int row, int col) {
         super(tex, row, col)
+        this.editor = editor
         setCodeFoldingEnabled(true)
         setPreferredFont()
         addAutoComplete()
         addShortCuts()
         setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_LATEX)
         discardAllEdits()
-        getDocument().addDocumentListener(new LaTeXListener())
     }
     
     private def setPreferredFont() {
@@ -138,32 +149,10 @@ class LaTeXArea extends RSyntaxTextArea {
         this.setKeymap(quillMap)
     }
     
-    public static Editor editor
+    protected Editor editor
     private static DefaultCompletionProvider completionProvider
     private static SpellingParser spellingParser
     private static Keymap quillMap
-    
-}
-
-class LaTeXListener implements DocumentListener {
-
-    @Override
-    public void insertUpdate(DocumentEvent e) {
-        // TODO Auto-generated method stub
-        LaTeXArea.editor.previewStep()
-    }
-
-    @Override
-    public void removeUpdate(DocumentEvent e) {
-        // TODO Auto-generated method stub
-        LaTeXArea.editor.previewStep()
-    }
-
-    @Override
-    public void changedUpdate(DocumentEvent e) {
-        // TODO Auto-generated method stub
         
-    }
-    
 }
 

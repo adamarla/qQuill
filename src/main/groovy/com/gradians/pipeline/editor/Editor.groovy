@@ -1,4 +1,4 @@
-package com.gradians.pipeline
+package com.gradians.pipeline.editor
 
 import groovy.swing.SwingBuilder
 
@@ -17,6 +17,11 @@ import javax.swing.filechooser.FileView
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
 
+import com.gradians.pipeline.data.Choices
+import com.gradians.pipeline.data.Question
+import com.gradians.pipeline.data.Statement
+import com.gradians.pipeline.data.Step
+
 import static java.awt.BorderLayout.EAST
 import static java.awt.GridBagConstraints.NONE
 import static java.awt.GridBagConstraints.BOTH
@@ -30,7 +35,10 @@ class Editor {
     
     public static final String VERSION = "1.12"
     
-    SwingBuilder sb
+    SwingBuilder sb, sbuilder
+    IEditable e
+    Map areaToCompKey, compKeyToLabel
+    
     Question q
     
     // Standalone widget handles
@@ -39,6 +47,11 @@ class Editor {
     
     def Editor(Question q) {
         this.q = q
+        e = (IEditable)q
+
+        areaToCompKey = new HashMap()
+        compKeyToLabel = new HashMap()
+        
         taAnsTeX = new LaTeXArea[4]
         taContext = new LaTeXArea[6]
         taReason = new LaTeXArea[6]
@@ -46,7 +59,44 @@ class Editor {
         taIncorrect = new LaTeXArea[6]
         
         renderer = new Renderer(this.q)
-        LaTeXArea.editor = this
+    }
+    
+    def launchGeneric() {
+        
+        Panel[] panels = e.getPanels()
+        
+        sbuilder = new SwingBuilder()
+        sbuilder.edt {
+            lookAndFeel 'nimbus'
+            frame(title: "Quill (${VERSION}) - ${q.uid}", size: [960, 600], 
+                show: true, locationRelativeTo: null, resizable: true, 
+                defaultCloseOperation: EXIT_ON_CLOSE) {
+                menu(text: 'File') {
+                    menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
+                }                
+                panel() {
+                    gridBagLayout()                    
+                    // left panel
+                    tabbedPane(id: 'tpTeX', tabPlacement: JTabbedPane.LEFT,
+                        constraints: gbc(gridx: 0, gridy: 0, weightx: 0, weighty: 1, fill: VERTICAL)) {
+                        e.getPanels().eachWithIndex { pnl, idx -> layoutPanel(pnl) }
+                    }                        
+                    // right panel
+                    scrollPane(id: 'spDisplay', 
+                        constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 1, fill: BOTH)) {
+                        vbox(id: 'vbDisplay')
+                    }
+                }
+            }
+        }
+        sbuilder.tpTeX.addChangeListener new ChangeListener() {            
+            @Override
+            void stateChanged(ChangeEvent changeEvent) {
+                int idx = sbuilder.tpTeX.selectedIndex
+                previewPanel(panels[idx])
+            }            
+        }        
+        previewPanel(panels[0])
     }
     
     def launch(boolean topLevel = true) {
@@ -77,7 +127,7 @@ class Editor {
                             [1, 2, 3, 4, 5, 6].each { idx ->
                                 panel(id: "pnlStep${idx}", name: "Step ${idx}") { stepTeX(idx-1) }
                             }
-                        }                    
+                        }
                     }
                     
                     // right panel
@@ -107,6 +157,42 @@ class Editor {
         sb.cbAns.selectedIndex = q.choices == null ? 0 : q.choices.correct
         previewStep()
     }
+            
+    public def updatePreview(LaTeXArea area) {
+        def compKey = areaToCompKey.get(area)
+        def lbl = compKeyToLabel.get(compKey)
+        lbl.setText(area.getText())
+        lbl.revalidate()
+        lbl.repaint()
+//        int idx = sbuilder.tpTeX.selectedIndex        
+//        e.updateModel(latexAreas[idx], idx)
+//        previewPanel(e.getPanels()[idx])
+    }
+    
+    private def layoutPanel = { Panel pnl ->
+        sbuilder.scrollPane(name: pnl.title) {
+            sbuilder.vbox() {
+                pnl.getComponents().eachWithIndex { comp, i ->
+                    def taComp = LaTeXArea.getInstance(this, comp.tex, 6, TA_WIDTH)
+                    def spComp = new RTextScrollPane(taComp, true)
+                    spComp.setBorder(BorderFactory.createTitledBorder(comp.title))
+                    areaToCompKey.put(taComp, "${pnl.title}${i}")
+                    sbuilder.widget(spComp)
+                }
+            }
+        }
+    }
+    
+    private def previewPanel = { Panel pnl ->
+        sbuilder.vbDisplay.removeAll()
+        pnl.getComponents().eachWithIndex { comp, i ->
+            def lbl = new TeXLabel(comp.tex, comp.title)
+            compKeyToLabel.put("${pnl.title}${i}", lbl)
+            sbuilder.vbDisplay.add lbl
+        }
+        sbuilder.vbDisplay.revalidate()
+        sbuilder.vbDisplay.repaint()
+    }
     
     private def qsnAnsTeX = {
         taQsnTeX = LaTeXArea.getInstance(q.statement.tex, 18, TA_WIDTH)
@@ -135,6 +221,7 @@ class Editor {
             }
         }
     }
+    
     
     private def stepTeX = { int idx ->
         def step = q.steps[idx]
@@ -189,17 +276,20 @@ class Editor {
         }
     }
     
+    
     private def previewAll = {
         updateModel()
         renderer.toSwing()
     }
     
+    
     private def save = {
         sb.btnSave.enabled = false
         updateModel()
-        q.getFile().write(renderer.toXMLString())
+        q.getFile().write(q.toXMLString())
         sb.btnSave.enabled = true
     }
+    
     
     private def render = {
         sb.btnRender.enabled = false
@@ -210,6 +300,7 @@ class Editor {
         }
         sb.btnRender.enabled = true
     }
+    
     
     private def setImage = { String it, Path qpath ->
         def openSVGDialog = new JFileChooser(
@@ -226,6 +317,7 @@ class Editor {
             sb."${it}".text = openSVGDialog.getSelectedFile().getName()
         }
     }
+    
     
     private def toggleSpellCheck = {
         boolean spellCheckOn = taQsnTeX.getSyntaxEditingStyle() == SyntaxConstants.SYNTAX_STYLE_NONE
@@ -247,6 +339,7 @@ class Editor {
         }
     }
     
+    
     public def previewStep = {
         sb.pnlDisplay.removeAll()
         updateModel()
@@ -263,6 +356,7 @@ class Editor {
         sb.pnlDisplay.repaint()
     }
     
+    
     private def clearCurrent = {
         def idx = sb.tpTeX.selectedIndex
         if (idx == 0) {
@@ -272,12 +366,14 @@ class Editor {
         }
     }
     
+    
     private def duplicateStep = {
         def idx = sb.tpTeX.selectedIndex-1
         if (idx == 5)
             return
         shiftRight(idx)
     }
+    
     
     private def insertStep = {
         def idx = sb.tpTeX.selectedIndex-1
@@ -287,13 +383,15 @@ class Editor {
         clearStep(idx)
     }
     
+    
     private def deleteStep = {
         def idx = sb.tpTeX.selectedIndex-1
         shiftLeft(idx)
         clearStep(5)
     }
+    
 
-    private def updateModel = {        
+    private def updateModel = {
         Statement statement = new Statement()
         statement.tex = taQsnTeX.text.trim()
         statement.image = sb.lblFile.text
@@ -323,7 +421,8 @@ class Editor {
         } else {
             q.choices = null
         }        
-    }    
+    }
+        
     
     private def clearQsnAns() {
         taQsnTeX.text = ""
@@ -331,6 +430,7 @@ class Editor {
             ta.text = ""
         }
     }
+    
     
     private def clearStep(int idx) {
         taContext[idx].text = ""
@@ -340,6 +440,7 @@ class Editor {
         sb."lblCorrectFile${idx}".text = ""
         sb."lblIncorrectFile${idx}".text = ""
     }
+    
     
     private def boolean shiftRight(int idx) {
         if (idx == 5)
@@ -355,6 +456,7 @@ class Editor {
         }
     }
     
+    
     private def boolean shiftLeft(int idx) {
         for (int i = idx; i < 5; i++) {
             taContext[i].text = taContext[i+1].text 
@@ -369,6 +471,6 @@ class Editor {
     
     private Renderer renderer
     
-    private final int TA_WIDTH = 42
+    private final int TA_WIDTH = 36
     
 }
