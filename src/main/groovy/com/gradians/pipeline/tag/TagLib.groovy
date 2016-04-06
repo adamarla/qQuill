@@ -1,4 +1,4 @@
-package com.gradians.pipeline.tagger
+package com.gradians.pipeline.tag
 
 import java.nio.file.Path
 

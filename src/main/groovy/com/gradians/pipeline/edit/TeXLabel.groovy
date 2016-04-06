@@ -1,4 +1,4 @@
-package com.gradians.pipeline.editor
+package com.gradians.pipeline.edit
 
 import java.awt.Color
 import java.awt.Graphics

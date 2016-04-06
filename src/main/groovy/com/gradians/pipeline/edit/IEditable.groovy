@@ -1,15 +1,16 @@
-package com.gradians.pipeline.editor
+package com.gradians.pipeline.edit
 
 interface IEditable {
 
     Panel[] getPanels()
     
-    void updateModel(Panel panel, int index)
+    void updateModel(Panel[] panel)
     
 }
 
 class Panel {
-    
+
+    boolean isChoice    
     String title
     
     List<Component> components
@@ -20,19 +21,21 @@ class Panel {
     }
     
     def addComponent(Component c) {
+        c.parent = this
         components.add(c)
     }
 }
 
 class Component {
     
-    boolean isTex    
-    String title, tex, image
+    Panel parent
+    boolean isTex
+    String title = "", tex = "", image = ""
     int rows
     
-    def Component(String title, String s, int rows, boolean isTex = false) {
+    def Component(String title, String s, int rows, boolean isTex = true) {
         this.title = title
-        this.image = isTex
+        this.isTex = isTex
         if (isTex)
             tex = s
         else

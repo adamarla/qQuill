@@ -6,10 +6,11 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.PathMatcher
+import java.util.Map;
 
-import com.gradians.pipeline.editor.Component
-import com.gradians.pipeline.editor.IEditable
-import com.gradians.pipeline.editor.Panel;
+import com.gradians.pipeline.edit.Component;
+import com.gradians.pipeline.edit.IEditable;
+import com.gradians.pipeline.edit.Panel;
 
 import groovy.util.slurpersupport.GPathResult
 
@@ -80,13 +81,14 @@ class Question extends Artifact implements IEditable {
         }
     }
     
-    def toXMLString() {
+    @Override
+    public String toXMLString() {
         def sw = new StringWriter()
         def xml = new groovy.xml.MarkupBuilder(sw)
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
         xml.question(xmlns: "http://www.gradians.com") {
             statement() {
-                statement.toXMLString()
+                tex(statement.tex) 
             }
             
             steps.each { stp ->
@@ -137,66 +139,105 @@ class Question extends Artifact implements IEditable {
     }
     
     @Override
-    public Panel[] getPanels() {             
-        Panel[] pnls = new Panel[8]        
-        pnls[0] = new Panel("Problem")
-        pnls[0].addComponent(new Component("Statement", statement.tex, 12, true))
+    public Panel[] getPanels() {
+        Panel[] panels = new Panel[8]
+        panels[0] = new Panel("Problem")
+        panels[0].addComponent(new Component("Statement", statement.tex, 12))
         
         steps.eachWithIndex { step, idx ->
             if (step == null)
                 step = new Step()
-                        
-            pnls[idx+1] = new Panel("Step ${idx+1}")
-            pnls[idx+1].addComponent(new Component("Context", step.context, 4, true))
-            pnls[idx+1].addComponent(new Component("Correct", step.texCorrect, 8, true))
-            pnls[idx+1].addComponent(new Component("Incorrect", step.texIncorrect, 8, true))
-            pnls[idx+1].addComponent(new Component("Reason", step.reason, 12, true))                
+            panels[idx+1] = new Panel("Step ${idx+1}")
+            panels[idx+1].addComponent(new Component("Context", step.context, 4))
+            
+            def text, isTex
+            ["Correct", "Incorrect"].each { it ->
+                if (step."tex${it}".length() > 0) {
+                    isTex = true
+                    text = step."tex${it}"
+                } else if (step."image${it}".length() > 0) {
+                    isTex = false
+                    text = step."image${it}"
+                } else {
+                    isTex = true
+                    text = ""
+                }
+                panels[idx+1].addComponent(new Component(it, text, 8, isTex))    
+            }
+            panels[idx+1].addComponent(new Component("Reason", step.reason, 12))                
         }
         
-        pnls[7] = new Panel("Choices")
+        panels[7] = new Panel("Choices")
         if (choices != null) {
             choices.texs.eachWithIndex { tex, idx ->
-                pnls[7].addComponent(new Component("Choice ${idx+1}", tex, 4, true))
+                panels[7].addComponent(new Component("Choice ${idx+1}", tex, 4))
             }
-        }        
-        pnls
-    }    
-    
-    public void updateModel(Panel[] panels) {        
+        }
+        panels
+    }
+
+    @Override
+    public void updateModel(Panel[] panels) {
         panels.eachWithIndex { Panel panel, int idx ->
             if (idx == 0) {
-                statement.tex = panels[0].components[0].tex
+                statement.tex = panel.components[0].tex
             } else if (idx > 0 && idx < 7) {
-                steps[idx].context = panels[idx].components[0].tex
-                steps[idx].texCorrect = panels[idx].components[1].tex
-                steps[idx].texIncorrect = panels[idx].components[2].tex
-                steps[idx].reason = panels[idx].components[3].tex
+                if (panel.components[0].tex.length() > 0) {
+                    steps[idx-1].context = panels[idx].components[0].tex
+                    if (panel.components[1].isTex)
+                        steps[idx-1].texCorrect = panel.components[1].tex
+                    else
+                        steps[idx-1].texCorrect = panel.components[1].image
+                    if (panel.components[2].isTex)
+                        steps[idx-1].texIncorrect = panels[idx].components[2].tex
+                    else
+                        steps[idx-1].texCorrect = panel.components[2].image
+                    if (panel.components[3])
+                        steps[idx-1].reason = panels[idx].components[3].tex
+                    else    
+                        steps[idx-1].reason = panels[idx].components[3].image
+                }
             } else {
                 choices = new Choices()
-                panels[7].components.eachWithIndex { tex, i ->
-                    choices.texs[i] = tex
+                if (panels[7].components[0].tex.length() > 0) {
+                    panels[7].components.eachWithIndex { comp, i ->
+                        choices.texs[i] = comp.tex
+                    }    
                 }
             }    
         }        
     }
 
     @Override
-    public void updateModel(Panel panel, int idx) {        
-        if (idx == 0) {
-            statement.tex = panels[0].components[0].tex
-        } else if (idx > 0 && idx < 7) {
-            steps[idx].context = panels[idx].components[0].tex
-            steps[idx].texCorrect = panels[idx].components[1].tex
-            steps[idx].texIncorrect = panels[idx].components[2].tex
-            steps[idx].reason = panels[idx].components[3].tex
-        } else {
-            choices = new Choices()
-            panels[7].components.eachWithIndex { tex, i ->
-                choices.texs[i] = tex
+    public Map<String, String> toRender() {
+        HashMap<String, String> svgs = new HashMap<String, String>()
+         
+        if (statement.tex.length() > 0) {
+            svgs.put("STMT_0.svg", statement.tex)
+            svgs.put("PREVIEW.svg", statement.tex)
+        }
+            
+        for (int idx = 0; idx < steps.length; idx++) {
+            def step = steps[idx]
+            if (step != null) {
+                if (!(step.context.length() == 0 && step.imageContext.length() == 0)) {
+                    def content = [step.context, step.texCorrect, step.texIncorrect, step.reason]
+                    def images = ["CTX_${idx}.svg", "CRT_${idx}.svg", "WRNG_${idx}.svg", "RSN_${idx}.svg"]
+                    images.eachWithIndex { part, posn ->
+                        if (content[posn].length() > 0)
+                            svgs.put(part, content[posn])
+                    }
+                }
             }
         }
+        
+        if (choices != null) {
+            choices.texs.eachWithIndex { tex, idx ->
+                svgs.put("CH_${idx}.svg", tex)
+            }
+        }
+        svgs
     }
-
 
 }
 
@@ -210,7 +251,7 @@ class Step {
     String texCorrect = "", texIncorrect = "", context = "", reason = ""
 }
 
-class Choices {
+class Choices {        
     String[] texs = new String[4]
-    int correct
+    int correct    
 }

@@ -1,5 +1,8 @@
 package com.gradians.pipeline.data
 
+import com.gradians.pipeline.edit.IEditable;
+import com.gradians.pipeline.edit.Panel;
+
 import java.io.File;
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
@@ -54,8 +57,7 @@ abstract class Artifact {
             .validate(xmlStream)
         true
     }
-    
-    
+        
     protected getLabel() {
         DirectoryStream<Path> stream = Files.newDirectoryStream(qpath, "*.lbl")
         for (Path path : stream) {
@@ -71,6 +73,11 @@ abstract class Artifact {
         parse(qpath.resolve(XML_FILE))
     }
     
-    abstract parse(Path xmlPath) 
+    abstract parse(Path xmlPath)
+    
+    abstract String toXMLString()
+    
+    abstract Map<String, String> toRender()
+    
 
 }

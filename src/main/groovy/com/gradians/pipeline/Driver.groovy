@@ -12,9 +12,9 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.Option.Builder
 
 import com.gradians.pipeline.data.Question;
-import com.gradians.pipeline.editor.Editor;
-import com.gradians.pipeline.editor.Renderer;
-import com.gradians.pipeline.tagger.Tagger;
+import com.gradians.pipeline.edit.Editor;
+import com.gradians.pipeline.edit.Renderer;
+import com.gradians.pipeline.tag.Tagger;
 
 
 class Driver {
@@ -41,7 +41,6 @@ class Driver {
             boolean renderOnly = cl.hasOption('r')
             boolean tagOnly = cl.hasOption('t')
             boolean bundleOnly = cl.hasOption('b')
-            boolean previewOnly = cl.hasOption('p')
             
             Path path = (new File(pwd)).toPath()
             if (!cl.argList.empty)
@@ -61,8 +60,6 @@ class Driver {
                     (new Renderer(q)).toSVG()
                 } else if (bundleOnly) {
                     (new Bundler(q)).bundle()
-                } else if (previewOnly) {
-                    (new Renderer(q)).toSwing(true)
                 } else if (editOnly) {
                     (new Editor(q)).launchGeneric()
                 }

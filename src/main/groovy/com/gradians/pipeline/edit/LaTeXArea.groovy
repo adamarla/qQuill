@@ -1,4 +1,4 @@
-package com.gradians.pipeline.editor
+package com.gradians.pipeline.edit
 
 import java.awt.Font
 import java.awt.event.ActionEvent;
@@ -92,14 +92,6 @@ class LaTeXArea extends RSyntaxTextArea {
                 })
             }
             
-            KeyStroke s = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
-            quillMap.addActionForKeyStroke(s, new TextAction("LaTeX-action") {
-                
-                @Override
-                void actionPerformed(ActionEvent ae) {
-                    editor.save()
-                }
-            })
         }
         
         def area = new LaTeXArea(editor, tex, row, col)

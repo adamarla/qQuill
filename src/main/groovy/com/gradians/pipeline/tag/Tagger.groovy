@@ -1,4 +1,4 @@
-package com.gradians.pipeline.tagger
+package com.gradians.pipeline.tag
 
 import ca.odell.glazedlists.GlazedLists
 import ca.odell.glazedlists.matchers.TextMatcherEditor
@@ -37,8 +37,8 @@ import javax.swing.filechooser.FileView;
 import javax.swing.filechooser.FileFilter
 
 import com.gradians.pipeline.data.Question;
-import com.gradians.pipeline.editor.Editor;
-import com.gradians.pipeline.editor.Renderer;
+import com.gradians.pipeline.edit.Editor;
+import com.gradians.pipeline.edit.Renderer;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS
 import static java.awt.GridBagConstraints.HORIZONTAL

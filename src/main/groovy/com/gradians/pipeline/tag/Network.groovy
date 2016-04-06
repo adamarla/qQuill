@@ -1,7 +1,7 @@
-package com.gradians.pipeline.tagger
+package com.gradians.pipeline.tag
 
 import com.gradians.pipeline.data.Question;
-import com.gradians.pipeline.editor.Renderer;
+import com.gradians.pipeline.edit.Renderer;
 
 import groovyx.net.http.HTTPBuilder
 import static groovyx.net.http.Method.POST

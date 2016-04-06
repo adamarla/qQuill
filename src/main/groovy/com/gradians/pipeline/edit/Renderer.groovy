@@ -1,4 +1,4 @@
-package com.gradians.pipeline.editor
+package com.gradians.pipeline.edit
 
 import java.awt.Color
 import java.awt.Component;
@@ -36,6 +36,7 @@ import org.scilab.forge.jlatexmath.cyrillic.CyrillicRegistration
 import org.scilab.forge.jlatexmath.greek.GreekRegistration
 import org.w3c.dom.DOMImplementation
 
+import com.gradians.pipeline.data.Artifact
 import com.gradians.pipeline.data.Choices;
 import com.gradians.pipeline.data.Question;
 import com.gradians.pipeline.data.Statement;
@@ -83,176 +84,6 @@ class Renderer {
         this.e = e    
     }
     
-    def toSwing(boolean topLevel = false) {
-        sb = new SwingBuilder()
-        sb.edt {
-            lookAndFeel: 'MetalLookAndFeel'
-            frame(title: q.uid, size: [720, 480], show: true, locationRelativeTo: null,
-                defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
-                vbox() {
-                    tabbedPane(id: 'tpSteps') {
-                        toSwing(sb, q.statement, q.choices)
-                        q.steps.eachWithIndex { step, i ->
-                            if (step != null) {
-                                if (!(step.context.length() == 0 && step.imageContext.length() == 0))
-                                    toSwing(sb, step, i)
-                            }
-                        }
-                    }
-                    button(text: 'Reload', actionPerformed: reload)
-                }
-            }
-        }
-    }
-    
-    def reload = {
-        def selectedIndex = sb.tpSteps.selectedIndex 
-        sb.tpSteps.removeAll()
-        q.reload()
-        
-        sb.tpSteps.add(toSwing(sb, q.statement, q.choices))
-        q.steps.eachWithIndex { step, i ->
-            if (step != null) {
-                if (!(step.context.length() == 0 && step.imageContext.length() == 0))
-                    sb.tpSteps.add(toSwing(sb, step, i))
-            }
-        }
-
-        if (sb.tpSteps.getTabCount() > selectedIndex) {
-            sb.tpSteps.selectedIndex = selectedIndex
-        }
-        
-        sb.tpSteps.revalidate()
-        sb.tpSteps.repaint()
-        
-    }
-    
-    def toPreview(SwingBuilder sb, Step step, int i) {
-        sb.vbox(name: "Step ${i+1}") {            
-            def drawable
-            if (step.imageContext.length() > 0) {
-                drawable = fileToIcon(step.imageContext)
-                drawable.setBorder(BorderFactory.createTitledBorder("Context"))                                       
-            } else {
-                drawable = new TeXLabel(step.context, "Context") 
-            }
-            sb.widget(drawable)
-            
-            ["Correct", "Incorrect"].eachWithIndex { side, idx ->
-                if (step."image${side}".length() > 0) {
-                    drawable = fileToIcon(step."image${side}")
-                    drawable.setBorder(BorderFactory.createTitledBorder("${side}"))
-                } else {
-                    drawable = new TeXLabel(step."tex${side}", "${side}")
-                }                
-                sb.widget(drawable)
-            }            
-            
-            if (step.imageReason.length() > 0) {
-                drawable = fileToIcon(step.imageReason)
-                drawable.setBorder(BorderFactory.createTitledBorder("Reason"))
-            } else {
-                drawable = new TeXLabel(step.reason, "Reason")
-            }
-            sb.widget(drawable)
-        }
-    }
-    
-    def toSwing(SwingBuilder sb, Step step, int i) {
-        sb.panel(name: "Step ${i+1}") {
-            gridBagLayout()
-            
-            ["Context", "Reason"].eachWithIndex { part, idx ->
-                def drawable
-                if (step."image${part}".length() > 0) {
-                    drawable = fileToIcon(step."image${part}")
-                    drawable.setBorder(BorderFactory.createTitledBorder("${part}"))                                       
-                } else {
-                    drawable = new TeXLabel(step."${part.toLowerCase()}", part) 
-                }
-                
-                widget(drawable, constraints: gbc(gridx: idx, gridy: 0, weightx: 1, fill: HORIZONTAL))
-            }
-            
-            ["Correct", "Incorrect"].each { side ->
-                def drawable
-                if (step."image${side}".length() > 0) {
-                    drawable = fileToIcon(step."image${side}")
-                    drawable.setBorder(BorderFactory.createTitledBorder("${side}"))
-                } else {
-                    drawable = new TeXLabel(step."tex${side}", "${side}", false)
-                }
-                
-                scrollPane(constraints: gbc(gridx: (side.equals("Correct") ? 0 : 1), 
-                        gridy: 1, weightx: 1, weighty: 1, fill: BOTH)) {
-                    widget(drawable)
-                }    
-            }
-        }
-    }
-    
-    def toPreview(SwingBuilder sb, Statement statement, Choices choices) {
-        sb.vbox() {
-            if (statement.tex.length() > 0)
-                sb.widget(new TeXLabel(statement.tex, "Problem"))
-            
-            if (statement.image.length() > 0)
-                sb.widget(fileToIcon(statement.image))            
-            
-            if (choices != null) {
-                choices.texs.eachWithIndex { tex, i ->
-                    char c = (char)(((int)'A') + i)
-                    sb.widget(new TeXLabel(tex, "${c}"))
-                }
-                char correct = (char)(((int)'A') + choices.correct)
-                sb.label(text: "Correct Ans ${correct}")
-            }
-        }
-    }    
-
-    def toSwing(SwingBuilder sb, Statement statement, Choices choices) {
-        sb.panel(name: "Q / A") {
-            gridBagLayout()
-
-            sb.vbox(border: BorderFactory.createTitledBorder("Problem Statement"),
-                constraints: gbc(gridx: 0, gridy: 0, fill: BOTH)) {
-                
-                if (statement.tex.length() > 0) {
-                    widget(new TeXLabel(statement.tex, ""))
-                }
-                
-                if (statement.image.length() > 0)
-                    widget(fileToIcon(statement.image))
-                    
-            }
-                
-            sb.vbox(border: BorderFactory.createTitledBorder("Answer Choices"),
-                constraints: gbc(gridx: 1, gridy: 0, fill: BOTH)) {
-                if (choices != null) {
-                    choices.texs.eachWithIndex { tex, i ->
-                        char c = (char)(((int)'A') + i)
-                        widget(new TeXLabel(tex, "${c}"))
-                    }
-                    char correct = (char)(((int)'A') + choices.correct)
-                    label(text: "Correct Ans ${correct}")
-                }
-            }    
-        }
-    }
-    
-    def toJSONString(boolean pretty = false) {
-        JsonBuilder builder = new JsonBuilder()
-        builder.question {
-            'uid' q.uid
-            'bundle' q.bundle
-            'concepts' q.concepts
-        }
-        if (pretty)
-            builder.toString()
-        else
-            builder.toPrettyString()
-    }
-
     def toTeX() {
         def sw = new StringWriter()
         
@@ -315,7 +146,11 @@ class Renderer {
         q.qpath.resolve("outline.tex").toFile().write(sw.toString())
     }
     
-    def toSVG(Path path) {
+    def toSVG(Artifact a) {
+        Path path = a.qpath
+        
+        Map<String, String> toRender = a.toRender()
+        // renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))        
         DirectoryStream<Path> svgs = Files.newDirectoryStream(path, "*.svg")
         for (Path p : svgs) {
             def s = p.getFileName().toString()
@@ -325,30 +160,9 @@ class Renderer {
             }
         }
         
-        if (q.statement.tex.length() > 0) {
-            renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))
-            renderSVG(q.statement.tex, path.resolve("PREVIEW.svg"), true)
-        }
-            
-        for (int idx = 0; idx < q.steps.length; idx++) {
-            def step = q.steps[idx]
-            if (step != null) {
-                if (!(step.context.length() == 0 && step.imageContext.length() == 0)) {
-                    def content = [step.context, step.texCorrect, step.texIncorrect, step.reason]
-                    def images = ["CTX_${idx}.svg", "CRT_${idx}.svg", "WRNG_${idx}.svg", "RSN_${idx}.svg"]
-                    images.eachWithIndex { part, posn ->
-                        if (content[posn].length() > 0)
-                            renderSVG(content[posn], path.resolve(part))
-                    }
-                }
-            }
-        }
-        
-        if (q.choices != null) {
-            q.choices.texs.eachWithIndex { tex, idx ->
-                renderSVG(tex, path.resolve("CH_${idx}.svg"))
-            }    
-        }
+        toRender.keySet().each { it ->
+            renderSVG(toRender.get(it), path.resolve(it))
+        }        
     }
 
     private def renderSVG(String tex, Path path, boolean negative = false) {
@@ -362,8 +176,7 @@ class Renderer {
         DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation()
         // Create an instance of org.w3c.dom.Document.
         String svgNS = "http://www.w3.org/2000/svg"
-        org.w3c.dom.Document document = domImpl.createDocument(svgNS, "svg", null)
-        
+        org.w3c.dom.Document document = domImpl.createDocument(svgNS, "svg", null)        
         
         // Create an instance of the SVG Generator.
         boolean glyphAsShape = true
@@ -394,7 +207,15 @@ class Renderer {
 }
 
 class TeXHelper {
-    
+        
+    static {
+        //        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu")
+        Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
+        map.keySet().each { TeXFormula.get(it) }
+        def ostream = Renderer.class.getClassLoader().getResourceAsStream("TeXMacros.xml")
+        TeXFormula.addPredefinedCommands(ostream)
+    }
+        
     public static def Icon createIcon(String tex, int fontSize, boolean negative = false) {
         
         Icon icon        
