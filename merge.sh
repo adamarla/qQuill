@@ -1,16 +1,6 @@
 #!/bin/bash
 
-function main() {
-    if [ "$1" == "-u" ]
-    then
-        merge()
-        echo "update"
-    else
-    fi
-}
-
 function merge() {
-    curl "http://109.74.201.62:8080/Qquill.jar" > Qquill.jar
 
     mkdir tmp
     cd tmp/
@@ -29,4 +19,4 @@ function merge() {
     rm -rf tmp/
 }
 
-main
+merge

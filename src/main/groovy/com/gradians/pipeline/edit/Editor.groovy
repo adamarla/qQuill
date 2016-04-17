@@ -26,7 +26,8 @@ import org.apache.batik.swing.JSVGCanvas;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
 
-import com.gradians.pipeline.data.Artifact
+import com.gradians.pipeline.Config
+import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.Choices
 import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Statement
@@ -41,11 +42,11 @@ import static java.awt.GridBagConstraints.VERTICAL
 import static javax.swing.JFrame.EXIT_ON_CLOSE
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
-/**
- * 
+
+/** 
  * There are three kinds of objects that are kept in sync using
- * hashmaps declared near the top of the class. 
- * These are :
+ * hash maps. These are :
+ * 
  * TextAreas (for displaying latex / svg file name)
  * Components (data structure for holding latex / svg file name)
  * Display (for displaying the rendered latex or prefab svg)
@@ -53,52 +54,32 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
  * @author adamarla
  *
  */
+
 class Editor {
     
     public static final String VERSION = "2.0"
     
-    SwingBuilder sb, sbuilder
-    IEditable e
-    Artifact a
+    SwingBuilder sb
+    Asset a
     Panel[] panels
     Map textToComponent, componentToDisplay, componentToText
-    Renderer r
         
-    def Editor(Question q) {
-        e = (IEditable)q
-        a = (Artifact)q
-
+    def Editor(Asset a) {
+        this.a = a
         textToComponent = new HashMap()
         componentToDisplay = new HashMap()
         componentToText = new HashMap()
-        
-        r = new Renderer()
+        sb = new SwingBuilder()
     }
     
     def launchGeneric() {
-        panels = e.getPanels()        
-        sbuilder = new SwingBuilder()
-        
-        sbuilder.edt {
+        panels = ((IEditable)a).getPanels()
+        sb.edt {
             lookAndFeel 'nimbus'
-            sbuilder.frame(id: 'frmEditor', title: "Quill (${VERSION}) - ${a.uid}", size: [960, 600],
+            frame(id: 'frmEditor', title: "Quill (${VERSION}) - Editor - ${a.path}", size: [960, 600],
                 show: true, locationRelativeTo: null, resizable: true, 
                 defaultCloseOperation: EXIT_ON_CLOSE) {
-                menuBar {
-                    menu(text: 'File', mnemonic: 'F') {
-                        menuItem(text: "Save", mnemonic: 'S', actionPerformed: { save() })
-                        menuItem(text: "Render", mnemonic: 'R', actionPerformed: { render() })
-                        menuItem(text: "Commit", mnemonic: 'C', actionPerformed: { commit() })
-                        menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
-                    }
-                    menu(text: 'Edit', mnemonic: 'E') {
-                        menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
-                    }
-                    menu(text: 'Help', mnemonic: 'H') {
-                        menuItem(text: "About Quill", mnemonic: 'A', actionPerformed: { about() })
-                        menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { prefs() })
-                    }
-                }
+                getMenuBar()
                 panel() {
                     gridBagLayout()                    
                     // left panel
@@ -115,10 +96,10 @@ class Editor {
             }            
         }
         
-        sbuilder.tpTeX.addChangeListener new ChangeListener() {            
+        sb.tpTeX.addChangeListener new ChangeListener() {            
             @Override
             void stateChanged(ChangeEvent changeEvent) {
-                int idx = sbuilder.tpTeX.selectedIndex
+                int idx = sb.tpTeX.selectedIndex
                 previewPanel(panels[idx])
             }            
         }
@@ -134,7 +115,7 @@ class Editor {
             display.repaint()
         } else {
             comp.isTex = true
-            Files.deleteIfExists(((Artifact)e).qpath.resolve(comp.image))
+            Files.deleteIfExists(((Asset)e).qpath.resolve(comp.image))
             componentToDisplay.remove(comp)
             previewPanel(comp.parent)
         }
@@ -142,8 +123,8 @@ class Editor {
     }
     
     private def layoutPanel = { Panel pnl ->
-        sbuilder.scrollPane(name: pnl.title) {
-            sbuilder.vbox() {
+        sb.scrollPane(name: pnl.title) {
+            sb.vbox() {
                 pnl.getComponents().eachWithIndex { comp, i ->
                     def ta = LaTeXArea.getInstance(this, 
                         comp.isTex ? comp.tex : "file: ${comp.image}", 6, TA_WIDTH)
@@ -159,7 +140,7 @@ class Editor {
                                     ta.text = "file: ${f.getName()}"
                                     comp.image = f.getName()
                                     comp.isTex = false
-                                    Path dest = ((Artifact)e).qpath.resolve(f.getName())
+                                    Path dest = ((Asset)e).qpath.resolve(f.getName())
                                     Files.deleteIfExists(dest)
                                     Files.copy(f.toPath(), dest)
                                     previewPanel(comp.getParent())
@@ -171,14 +152,14 @@ class Editor {
                     textToComponent.put(ta, comp)
                     componentToText.put(comp, ta)
                     wigit.setBorder(BorderFactory.createTitledBorder(comp.title))                    
-                    sbuilder.widget(wigit)
+                    sb.widget(wigit)
                 }
             }
         }
     }
     
     private def previewPanel = { Panel pnl ->        
-        sbuilder.vbDisplay.removeAll()
+        sb.vbDisplay.removeAll()
         pnl.getComponents().eachWithIndex { comp, i ->
             componentToDisplay.remove(comp)
             def drawable
@@ -188,14 +169,14 @@ class Editor {
                 drawable = fileToIcon(comp.image)
             }
             componentToDisplay.put(comp, drawable)
-            sbuilder.vbDisplay.add drawable
+            sb.vbDisplay.add drawable
         }
-        sbuilder.vbDisplay.revalidate()
-        sbuilder.vbDisplay.repaint()
+        sb.vbDisplay.revalidate()
+        sb.vbDisplay.repaint()
     }
     
     private def save = {
-        e.updateModel(panels)
+        ((IEditable)a).updateModel(panels)
         a.getFile().write(a.toXMLString())
     }
     
@@ -205,15 +186,15 @@ class Editor {
     }
     
     private def clear = {
-        int idx = sbuilder.tpTeX.selectedIndex
+        int idx = sb.tpTeX.selectedIndex
         panels[idx].components.each { comp ->
             componentToText.get(comp).text = ""
         }
     }
     
     private def render = {
-        e.updateModel(panels)
-        r.toSVG(a)
+        ((IEditable)a).updateModel(panels)
+        (new Renderer(a)).toSVG()
     }
     
     private def about = {
@@ -222,27 +203,43 @@ class Editor {
         if (imageURL != null) {
             icon = new ImageIcon(imageURL)
         }
-        def dialog = sbuilder.dialog(title: 'What about Quill?', preferredSize: [150, 50], 
-            locationRelativeTo: sbuilder.frmEditor) {
-            label(text: "The less said the better", icon: icon)            
+        def dialog = sb.dialog(title: 'About Quill', preferredSize: [150, 50], 
+            locationRelativeTo: sb.frmEditor) {
+            label(text: "Administer and Author academic assets", icon: icon)
         }
         dialog.pack()
         dialog.visible = true
     }
     
+    private def getMenuBar = {
+        sb.menuBar {
+            menu(text: 'File', mnemonic: 'F') {
+                menuItem(text: "Save", mnemonic: 'S', actionPerformed: { save() })
+                menuItem(text: "Render", mnemonic: 'R', actionPerformed: { render() })
+                menuItem(text: "Commit", mnemonic: 'C', actionPerformed: { commit() })
+                menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
+            }
+            menu(text: 'Edit', mnemonic: 'E') {
+                menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
+            }
+            menu(text: 'Help', mnemonic: 'H') {
+                menuItem(text: "About Quill", mnemonic: 'A', actionPerformed: { about() })
+                menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { prefs() })
+            }
+        }
+    }
+    
     private def prefs = {
-        def userHome = System.getProperty("user.home")
-        def xml = new XmlSlurper().parse(new File("${userHome}/.quill/user_prefs.xml"))
-        def dialog = sbuilder.dialog(title: 'Preferences', preferredSize: [300, 200], 
-            locationRelativeTo: sbuilder.frmEditor) {
-            
+        Config config = new Config()
+        def dialog = sb.dialog(title: 'Preferences', preferredSize: [300, 200], 
+            locationRelativeTo: sb.frmEditor) {            
             tableLayout {
                 tr {
                     td {
                         label(text: 'User Id')
                     }
                     td {
-                        label(text: xml.userId)
+                        label(text: config.get("prefs.user_id"))
                     }
                 }
                 tr {
@@ -250,7 +247,7 @@ class Editor {
                         label(text: 'Role')
                     }
                     td {
-                        label(text: xml.role)
+                        label(text: config.get("prefs.role"))
                     }
                 }
             }            
@@ -282,7 +279,7 @@ class Editor {
     private def JSVGCanvas fileToIcon(String name) {
         JSVGCanvas svgCanvas = new JSVGCanvas()
         try {
-            svgCanvas.setURI(((Artifact)e).qpath.resolve(name).toUri().toURL().toString())
+            svgCanvas.setURI(((Asset)e).qpath.resolve(name).toUri().toURL().toString())
         } catch (Exception e) { }
         svgCanvas
     }

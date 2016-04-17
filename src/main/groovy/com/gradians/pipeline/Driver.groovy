@@ -11,10 +11,11 @@ import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.Option.Builder
 
-import com.gradians.pipeline.data.Question;
-import com.gradians.pipeline.edit.Editor;
-import com.gradians.pipeline.edit.Renderer;
-import com.gradians.pipeline.tag.Tagger;
+import com.gradians.pipeline.data.Question
+import com.gradians.pipeline.edit.Editor
+import com.gradians.pipeline.edit.Renderer
+import com.gradians.pipeline.tag.Clerk
+import com.gradians.pipeline.tag.Tagger
 
 
 class Driver {
@@ -22,10 +23,6 @@ class Driver {
     def static void main(String[] args) {
         
         def pwd = System.getProperty("user.dir")
-        if (pwd.endsWith("Qquill")) {
-            pwd = "/home/adamarla/work/gutenberg/vault/2/9ai/9bfrg"
-            args = ["-e"]
-        }
         
         Options options = new Options()
         options.addOption(Option.builder("e").argName("edit").longOpt("edit").build())
@@ -42,20 +39,19 @@ class Driver {
             boolean tagOnly = cl.hasOption('t')
             boolean bundleOnly = cl.hasOption('b')
             
-            Path path = (new File(pwd)).toPath()
-            if (!cl.argList.empty)
-                path = path.resolve(cl.argList.get(0))
-
-            if (!path.toString().contains("vault")) {
-                println "Run from within vault or locate path to vault"
-                return
-            }
-            assert Files.isDirectory(path)
-                
             if (tagOnly) {
-                (new Tagger(path)).go(true)
+                (new Clerk()).go(true)
             } else {
-                Question q = new Question(path)
+                Path path = (new File(pwd)).toPath()
+                if (!cl.argList.empty)
+                    path = path.resolve(cl.argList.get(0))
+    
+                if (!path.toString().contains("vault")) {
+                    println "Locate path to a question folder"
+                    return
+                }
+                assert Files.isDirectory(path)                
+                Question q = new Question(path: path).load()
                 if (renderOnly) {
                     (new Renderer(q)).toSVG()
                 } else if (bundleOnly) {
@@ -64,11 +60,23 @@ class Driver {
                     (new Editor(q)).launchGeneric()
                 }
             }
-            
         } catch (Exception e) {
             println e
         }
-        
+    }        
+}
+
+class Config {
+    
+    def config
+    
+    public Config() {
+        def userHome = System.getProperty("user.home")
+        config = (new ConfigSlurper()).parse(new File("${userHome}/.quill/config.groovy").toURI().toURL())
     }
-        
+    
+    def get(String name) {
+        config."${name}"
+    }
+
 }

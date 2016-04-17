@@ -36,14 +36,13 @@ import org.scilab.forge.jlatexmath.cyrillic.CyrillicRegistration
 import org.scilab.forge.jlatexmath.greek.GreekRegistration
 import org.w3c.dom.DOMImplementation
 
-import com.gradians.pipeline.data.Artifact
+import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.Choices;
 import com.gradians.pipeline.data.Question;
 import com.gradians.pipeline.data.Statement;
 import com.gradians.pipeline.data.Step;
 
 import groovy.json.JsonBuilder
-import groovy.swing.SwingBuilder
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
 import static java.awt.GridBagConstraints.HORIZONTAL
@@ -54,39 +53,21 @@ import static javax.swing.JFrame.EXIT_ON_CLOSE
 
 class Renderer {
     
-    Question q
     def fontSize
-    
-    SwingBuilder sb
-    
-    static {
-//        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu")
-        Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
-        map.keySet().each {
-            TeXFormula.get(it)
-        }
-        def ostream = Renderer.class.getClassLoader().getResourceAsStream("TeXMacros.xml")
-        TeXFormula.addPredefinedCommands(ostream)
-    }
+    Asset a
     
     def Renderer(int fontSize = 15) {
         this.fontSize = fontSize
     }
     
-    def Renderer(Question q, int fontSize = 15) {
+    def Renderer(Question a, int fontSize = 15) {
         this(fontSize)
-        this.q = q
-    }
-    
-    def Renderer(Editor e, Question q, int fontSize = 15) {
-        this(fontSize)
-        this.q = q
-        this.e = e    
+        this.a = a
     }
     
     def toTeX() {
+        Question q = (Question)a        
         def sw = new StringWriter()
-        
         sw.append("\\documentclass[12pt]{article}\n\\RequirePackage{prepwell}\n")
         sw.append("\\begin{document}\n\t\\begin{question}\n")
         
@@ -146,7 +127,7 @@ class Renderer {
         q.qpath.resolve("outline.tex").toFile().write(sw.toString())
     }
     
-    def toSVG(Artifact a) {
+    def toSVG() {
         Path path = a.qpath
         
         Map<String, String> toRender = a.toRender()
@@ -154,18 +135,17 @@ class Renderer {
         DirectoryStream<Path> svgs = Files.newDirectoryStream(path, "*.svg")
         for (Path p : svgs) {
             def s = p.getFileName().toString()
-            if (s.startsWith("CTX") || s.startsWith("RSN") ||
-                s.startsWith("CRT") || s.startsWith("WRNG")) {
+            if (s =~ "tex.*svg") {
                 Files.deleteIfExists(p)
             }
         }
         
         toRender.keySet().each { it ->
-            renderSVG(toRender.get(it), path.resolve(it))
+            createSVG(toRender.get(it), path.resolve(it))
         }        
     }
 
-    private def renderSVG(String tex, Path path, boolean negative = false) {
+    private def createSVG(String tex, Path path, boolean negative = false) {
         Files.deleteIfExists(path)
         if (tex.length() == 0)
             return
@@ -202,80 +182,6 @@ class Renderer {
         } catch (Exception e) { 
         }
         svgCanvas
-    }
-    
-}
-
-class TeXHelper {
-        
-    static {
-        //        TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu")
-        Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
-        map.keySet().each { TeXFormula.get(it) }
-        def ostream = Renderer.class.getClassLoader().getResourceAsStream("TeXMacros.xml")
-        TeXFormula.addPredefinedCommands(ostream)
-    }
-        
-    public static def Icon createIcon(String tex, int fontSize, boolean negative = false) {
-        
-        Icon icon        
-        String[] lines = tex.split("\n")
-        def sw = new StringWriter()
-        
-        boolean textMode = false
-        for (int i = 0; i < lines.length; i++) {
-            def line = lines[i]
-            if (line.startsWith("%text")) {
-                textMode = true
-                continue
-            } else if (line.startsWith("%")) {
-                textMode = false
-                continue
-            }
-            
-            if (textMode)
-                sw.append("\\text{${line}} \\\\\n")
-            else
-                sw.append("${line}\n")
-        }
-                
-        TeXFormula formula
-        try {
-            formula = new TeXFormula(sw.toString())
-            icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15)
-            icon.setForeground(negative ? Color.WHITE : Color.BLACK)
-        } catch (Exception e) {
-            String exceptionText = TeXHelper.formatException(e)
-            formula = new TeXFormula(exceptionText)
-            icon = formula.createTeXIcon(TeXConstants.STYLE_DISPLAY, 15,
-                TeXFormula.SANSSERIF)
-        }
-        icon
-    }
-    
-    public static String toPureTeX(String tex) {
-        String[] lines = tex.split("\n")
-        def sw = new StringWriter()
-        
-        for (int i = 0; i < lines.length; i++) {
-            def line = lines[i]
-            if (line.startsWith("%text") || line.startsWith("%")) {
-                continue
-            }
-            
-            sw.append("${line}\n")
-        }
-        sw.toString()
-    }
-    
-    private static String formatException(Exception e) {
-        String message = e.getMessage()
-        List<String> messages = new ArrayList<String>()        
-        while (message.length() > 42) {
-            messages.add("\\text{${message.substring(0, 41)}}")
-            message = message.substring(42)
-        }
-        return messages.join('\\\\')
     }
     
 }

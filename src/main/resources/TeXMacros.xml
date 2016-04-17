@@ -2,7 +2,7 @@
     
     <Command name="dd" enabled="true">
         <CreateCommand name="f">
-            <Argument type="String" value="com.gradians.pipeline.editor.TeXMacros" />
+            <Argument type="String" value="com.gradians.pipeline.edit.TeXMacros" />
             <Argument type="String" value="dd" />
             <!-- the command dd has 2 arguments -->
             <Argument type="float" value="2" />
@@ -12,7 +12,7 @@
     
     <Command name="vector" enabled="true">
         <CreateCommand name="f">
-            <Argument type="String" value="com.gradians.pipeline.editor.TeXMacros" />
+            <Argument type="String" value="com.gradians.pipeline.edit.TeXMacros" />
             <Argument type="String" value="vector" />
             <!-- the command dd has 3 arguments -->
             <Argument type="float" value="3" />
@@ -22,7 +22,7 @@
     
     <Command name="ora" enabled="true">
         <CreateCommand name="f">
-            <Argument type="String" value="com.gradians.pipeline.editor.TeXMacros" />
+            <Argument type="String" value="com.gradians.pipeline.edit.TeXMacros" />
             <Argument type="String" value="ora" />
             <!-- the command dd has 1 arguments -->
             <Argument type="float" value="1" />

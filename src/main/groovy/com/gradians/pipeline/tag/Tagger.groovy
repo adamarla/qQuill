@@ -33,14 +33,15 @@ import javax.swing.JTextArea
 import javax.swing.JTextField
 import javax.swing.JScrollPane
 import javax.swing.border.TitledBorder
-import javax.swing.filechooser.FileView;
+import javax.swing.filechooser.FileView
 import javax.swing.filechooser.FileFilter
 
-import com.gradians.pipeline.data.Question;
-import com.gradians.pipeline.edit.Editor;
-import com.gradians.pipeline.edit.Renderer;
+import com.gradians.pipeline.data.Question
+import com.gradians.pipeline.edit.Editor
+import com.gradians.pipeline.edit.Renderer
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS
+import static java.awt.GridBagConstraints.VERTICAL
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.BOTH
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
@@ -84,9 +85,9 @@ class Tagger {
         lib = new TagLib(catalogPath)
         network = new Network()
         
-        syncWithServer()
+//        syncWithServer()
     }
-
+    
     def go(boolean topLevel = false) {
         sb = new SwingBuilder()
         sb.edt {
@@ -148,7 +149,7 @@ class Tagger {
                         }
                     }
                         
-                    tabbedPane(constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 1, fill: BOTH)) {                        
+                    tabbedPane(constraints: gbc(gridx: 0, gridy: 4, weightx: 1, weighty: 1, fill: BOTH)) {
                         vbox(name: "Bundles") {
                             scrollPane() {
                                 table(id: 'tblSlots', mouseClicked: updateLabel) {
