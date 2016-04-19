@@ -141,31 +141,31 @@ class Question extends Asset implements IEditable {
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
         xml.question(xmlns: "http://www.gradians.com") {
             statement() {
-                tex(src: "tex${counter}.svg")
-                svgs.put("tex${counter++}.svg", statement.tex)
+                tex(src: "${counter}.svg")
+                svgs.put("${counter++}.svg", statement.tex)
             }
             steps.each { step ->
                 if (step != null && step.context.length() > 0) {
                     delegate.step() {
                         context() {
-                            tex(src: "tex${counter}.svg")
-                            svgs.put("tex${counter++}.svg", step.context)                    
+                            tex(src: "${counter}.svg")
+                            svgs.put("${counter++}.svg", step.context)                    
                         }
                         options() {
                             ["Correct", "Incorrect"].each { option ->
                                 def correct = option.equals("Correct") ? 'true' : 'false'
                                 if (step."tex${option}".length() > 0) {
-                                    tex(src: "tex${counter}.svg", correct: correct)
-                                    svgs.put("tex${counter++}.svg", step."tex${option}")
+                                    tex(src: "${counter}.svg", correct: correct)
+                                    svgs.put("${counter++}.svg", step."tex${option}")
                                 } else if (step."image${option}".length() > 0) {
                                     image(src: "image${option}.svg", correct: correct)
                                 }
                             }
                         }
                         reason() {
-                            tex(src: "tex${counter}.svg")
+                            tex(src: "${counter}.svg")
                         }
-                        svgs.put("tex${counter++}.svg", step.reason)
+                        svgs.put("${counter++}.svg", step.reason)
                     }
                 }
             }
@@ -173,15 +173,15 @@ class Question extends Asset implements IEditable {
                 // http://mrhaki.blogspot.in/2012/01/groovy-goodness-solve-naming-conflicts.html
                 delegate.choices() {
                     choices.texs.eachWithIndex { tex, i ->
-                        def map = i == choices.correct ? [src: "tex${counter}.svg"] : 
-                            [src: "tex${counter}.svg", correct: 'false']
+                        def map = i == choices.correct ? [src: "${counter}.svg"] : 
+                            [src: "${counter}.svg", correct: 'false']
                         delegate.tex(map)
-                        svgs.put("tex${counter++}.svg", tex)
+                        svgs.put("${counter++}.svg", tex)
                     }
                 }
             }
         }
-        qpath.resolve(LAYOUT_FILE).toFile().write(sw.toString())        
+        qpath.resolve(LAYOUT_FILE).toFile().write(sw.toString())
         svgs
     }
     

@@ -4,10 +4,10 @@ import com.gradians.pipeline.Config
 import com.gradians.pipeline.edit.IEditable
 import com.gradians.pipeline.edit.Panel
 
-import java.io.File
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
@@ -24,7 +24,7 @@ abstract class Asset implements Comparable {
                 newAsset.SRC_FILE = "question.xml"
                 newAsset.SCHEMA_FILE = "question.xsd"
                 newAsset.REF_FILE = "question.xml"
-                newAsset.assetClass = AssetClass.Snippet
+                newAsset.assetClass = AssetClass.Question
                 break
             case AssetClass.Skill:
                 newAsset = new Skill(map)
@@ -38,12 +38,17 @@ abstract class Asset implements Comparable {
                 newAsset.REF_FILE = "snippet.xml"
                 newAsset.assetClass = AssetClass.Snippet
         }
+        def bankPathString = (new Config()).get("bank_path")
+        Path bank = Paths.get(bankPathString)
+        Path vault = bank.resolve("vault")
+        Path newDir = vault.resolve(newAsset.path)
+        Files.createDirectories(newDir)
         newAsset
     }
 
     Asset load() {
         def bankPathString = (new Config()).get("bank_path")
-        Path bank = new File(bankPathString).toPath()
+        Path bank = Paths.get(bankPathString)
         Path vault = bank.resolve("vault")
         assert vault.getFileName().toString().equals("vault")
         
@@ -105,11 +110,14 @@ abstract class Asset implements Comparable {
     
 }
 
-enum AssetClass {
-    
+enum AssetClass {    
     Skill,
     Snippet,
-    Question
-        
+    Question        
 }
 
+enum AssetState {
+    New,
+    Saved,
+    Ready
+}

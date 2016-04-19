@@ -14,6 +14,7 @@ import javax.swing.event.ListSelectionEvent
 import com.gradians.pipeline.Config
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
+import com.gradians.pipeline.data.AssetState
 import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.data.Snippet
@@ -77,45 +78,43 @@ class Clerk {
             }
             tableSorter = TableComparatorChooser.install(sb.tblAssets, sortedList,
                 TableComparatorChooser.MULTIPLE_COLUMN_MOUSE_WITH_UNDO)
+            sb.listChapters.setSelectedIndex 0
         }
-    }
-    
-    private def filter = {
-        List<Catalog> authorSelection = sb.listAuthors.getSelectedValuesList()
-        List<Catalog> chapterSelection = sb.listChapters.getSelectedValuesList()
-        AssetsMatcher matcher = new AssetsMatcher(chapterSelection, authorSelection, this)
-        filteredList.setMatcher(matcher)
     }
     
     private def loadAssets = {
         chapters = new ArrayList<Category>()
-        chapterById = new HashMap<Integer, Category>()        
+        chapterById = new HashMap<Integer, Category>()
         def items = Network.executeHTTPGet("chapter/list")
         items.eachWithIndex{ item, i ->
             Category c = new Category(item)
             chapters.add c
             chapterById.put c.id, c
         }
-
         authors = new ArrayList<Category>()
         authors.add new Category(id: 1, name: "Abhinav")
         authors.add new Category(id: 2, name: "Akshay")
-        authors.add new Category(id: 3, name: "Nimesh")
         authorById = new HashMap<Integer, Category>()
         authors.each { author -> authorById.put(author.id, author) }
         
         // Collections for display table
         artefactsEventList = new BasicEventList<Asset>()
         sortedList = new SortedList(artefactsEventList)
-        filteredList = new FilterList<Asset>(sortedList,
-            new AssetsMatcher(chapters, authors, this))
-
+        filteredList = new FilterList<Asset>(sortedList)
         artefactsEventList.clear()
         def assets = []
         chapters.each { chapter ->
-            items = Network.executeHTTPGet("question/list?c=${chapter.id}")
-            items.eachWithIndex{ item, i ->
-                assets << Asset.getInstance(item, AssetClass.Question)
+            classes.each { assetClass ->
+                def url = assetClass.toString().toLowerCase()
+                url = assetClass == AssetClass.Question ? url : "${url}s"
+                items = Network.executeHTTPGet("${url}/list?c=${chapter.id}")
+                if (assetClass == AssetClass.Skill)
+                    items = items.skills
+                else if (assetClass == AssetClass.Snippet)
+                    items = items.snippets
+                items.eachWithIndex{ item, i ->
+                    assets << Asset.getInstance(item, assetClass)
+                }    
             }
         }
         artefactsEventList.addAll assets
@@ -149,7 +148,7 @@ class Clerk {
     private def createNewAsset(AssetClass assetClass, Category chapter) {
         // call server
         def userId = config.get("user_id")
-        def params = Network.executeHTTPPost("question/add?e=${userId}&c=${chapter.id}")
+        def params = Network.executeHTTPPost("${assetClass.toString().toLowerCase()}/add?e=${userId}&c=${chapter.id}")
         params.authorId = userId
         params.chapterId = chapter.id
         Asset newAsset = Asset.getInstance(params, assetClass)
@@ -158,10 +157,14 @@ class Clerk {
         sb.listChapters.setSelectedValue(chapter, true)
     }
     
-    private def launchChangeAttributesDialog() {
-                
-    }
-    
+    private def filter = {
+        List<Catalog> authorSelection = sb.listAuthors.getSelectedValuesList()
+        List<Catalog> chapterSelection = sb.listChapters.getSelectedValuesList()
+        List<AssetClass> classSelection = sb.listClasses.getSelectedValuesList()
+        AssetsMatcher matcher = new AssetsMatcher(chapterSelection, authorSelection, classSelection, this)
+        filteredList.setMatcher(matcher)
+    }    
+
     private def createTableModel = {
         def columnNames = ['Id', 'Chapter', 'Author', 'Class']
         def variableNames = ['id', 'chapter', 'author', 'assetClass']
@@ -174,7 +177,7 @@ class Clerk {
                              object."${variableNames[index]}"
                              break
                          case [1, 2]:
-                             HashMap<Integer, Category> reference = this."${variableNames[index]}ById" 
+                             HashMap<Integer, Category> reference = this."${variableNames[index]}ById"
                              Category c = reference.get(object."${variableNames[index]}Id")
                              c.name
                              break
@@ -186,24 +189,21 @@ class Clerk {
     
     private def getSelectorLists = {
         sb.scrollPane(horizontalScrollBarPolicy: HORIZONTAL_SCROLLBAR_NEVER) {
-            list(id: 'listChapters', listData: chapters,
-                layoutOrientation: VERTICAL, visibleRowCount: 12,
-                valueChanged: { filter() })
+            list(id: 'listChapters', listData: chapters, valueChanged: { filter() },
+                layoutOrientation: VERTICAL, visibleRowCount: 12)
         }
         sb.scrollPane() {
-            list(id: 'listAuthors', listData: authors,
-                layoutOrientation: VERTICAL, visibleRowCount: 3, 
-                valueChanged: { filter() })
+            list(id: 'listAuthors', listData: authors, valueChanged: { filter() },
+                layoutOrientation: VERTICAL, visibleRowCount: 3)
         }
         sb.scrollPane() {
-            list(id: 'listTypes', listData: ["Question", "Skill", "Snippet"],
-                layoutOrientation: VERTICAL, visibleRowCount: 3, selectedIndex: 0)
+            list(id: 'listClasses', listData: classes, valueChanged: { filter() },
+                layoutOrientation: VERTICAL, visibleRowCount: 3)
         }
         sb.scrollPane() {
-            list(id: 'listStates', listData: ["New", "Saved", "Completed", "Bundled"],
-                layoutOrientation: VERTICAL, visibleRowCount: 4, selectedIndex: 0)
+            list(id: 'listStates', listData: states,
+                layoutOrientation: VERTICAL, visibleRowCount: 4)
         }
-        sb.listChapters.setSelectedValue(chapters[0], true)
     }
     
     private def getMenuBar = {
@@ -234,6 +234,8 @@ class Clerk {
     
     private List<Category> chapters
     private List<Category> authors
+    private EnumSet<AssetClass> classes = EnumSet.allOf(AssetClass.class)
+    private EnumSet<AssetState> states = EnumSet.allOf(AssetState.class)
     
     protected HashMap<Integer, Category> authorById
     protected HashMap<Integer, Category> chapterById
@@ -250,16 +252,18 @@ class AssetsMatcher implements Matcher {
     protected Clerk clerk
     private Set chapters = new HashSet<Category>()
     private Set authors = new HashSet<Category>()
-    private Set types = new HashSet<String>()
+    private Set classes = new HashSet<AssetClass>()
 
     /**
      * Create a new {@link AssetsByChapterMatcher} that matches only 
      * {@link Asset}s belonging to one or more chapters in the specified list.
      */
-    public AssetsMatcher(Collection<Category> chapters, Collection<Category> authors, Clerk clerk) {
+    public AssetsMatcher(Collection<Category> chapters, Collection<Category> authors, 
+        Collection<AssetClass> classes, Clerk clerk) {
         // make a defensive copy of the assets
         this.chapters.addAll(chapters)
         this.authors.addAll(authors)
+        this.classes.addAll(classes)
         this.clerk = clerk
     }
 
@@ -278,11 +282,14 @@ class AssetsMatcher implements Matcher {
         int chapterId = asset.getChapterId()
         int authorId = asset.getAuthorId()
         
-        if (this.authors.size() == 0)
-            return chapters.contains(clerk.chapterById.get(chapterId))
-        else
-            return chapters.contains(clerk.chapterById.get(chapterId)) &&
-                authors.contains(clerk.authorById.get(authorId))
+        def match = chapters.contains(clerk.chapterById.get(chapterId))
+        if (authors.size() > 0) {
+            match = match && authors.contains(clerk.authorById.get(authorId))
+        }
+        if (classes.size() > 0) {
+            match = match && classes.contains(asset.assetClass)
+        }
+        match
     }
 }
 

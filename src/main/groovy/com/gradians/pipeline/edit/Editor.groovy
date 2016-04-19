@@ -93,17 +93,16 @@ class Editor {
                         vbox(id: 'vbDisplay')
                     }
                 }
-            }            
+            }
+            sb.tpTeX.addChangeListener new ChangeListener() {
+                @Override
+                void stateChanged(ChangeEvent changeEvent) {
+                    int idx = sb.tpTeX.selectedIndex
+                    previewPanel(panels[idx])
+                }
+            }
+            previewPanel(panels[0])
         }
-        
-        sb.tpTeX.addChangeListener new ChangeListener() {            
-            @Override
-            void stateChanged(ChangeEvent changeEvent) {
-                int idx = sb.tpTeX.selectedIndex
-                previewPanel(panels[idx])
-            }            
-        }
-        previewPanel(panels[0])
     }
     
     public def updatePreview(LaTeXArea area) {
@@ -115,7 +114,7 @@ class Editor {
             display.repaint()
         } else {
             comp.isTex = true
-            Files.deleteIfExists(((Asset)e).qpath.resolve(comp.image))
+            Files.deleteIfExists(a.qpath.resolve(comp.image))
             componentToDisplay.remove(comp)
             previewPanel(comp.parent)
         }
@@ -137,10 +136,10 @@ class Editor {
                                 dtde.acceptDrop(DnDConstants.ACTION_REFERENCE)
                                 File f = (File)dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor)[0]
                                 if (f.getName().toLowerCase().endsWith("svg")) {
-                                    ta.text = "file: ${f.getName()}"
+                                    ta.text = "file: img_${f.getName()}"
                                     comp.image = f.getName()
                                     comp.isTex = false
-                                    Path dest = ((Asset)e).qpath.resolve(f.getName())
+                                    Path dest = a.qpath.resolve("img_${f.getName()}")
                                     Files.deleteIfExists(dest)
                                     Files.copy(f.toPath(), dest)
                                     previewPanel(comp.getParent())
@@ -148,7 +147,7 @@ class Editor {
                             }
                         }
                     ] as DropTarget
-
+                
                     textToComponent.put(ta, comp)
                     componentToText.put(comp, ta)
                     wigit.setBorder(BorderFactory.createTitledBorder(comp.title))                    
@@ -158,7 +157,7 @@ class Editor {
         }
     }
     
-    private def previewPanel = { Panel pnl ->        
+    private def previewPanel = { Panel pnl ->
         sb.vbDisplay.removeAll()
         pnl.getComponents().eachWithIndex { comp, i ->
             componentToDisplay.remove(comp)

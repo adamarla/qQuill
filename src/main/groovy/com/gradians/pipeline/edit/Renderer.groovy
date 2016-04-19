@@ -60,7 +60,7 @@ class Renderer {
         this.fontSize = fontSize
     }
     
-    def Renderer(Question a, int fontSize = 15) {
+    def Renderer(Asset a, int fontSize = 15) {
         this(fontSize)
         this.a = a
     }
@@ -121,8 +121,7 @@ class Renderer {
                 }
             }
             sw.append("\t\t\\end{choices}\n")            
-        }
-            
+        }            
         sw.append("\\end{document}\n\\end{question}")    
         q.qpath.resolve("outline.tex").toFile().write(sw.toString())
     }
@@ -131,21 +130,20 @@ class Renderer {
         Path path = a.qpath
         
         Map<String, String> toRender = a.toRender()
-        // renderSVG(q.statement.tex, path.resolve("STMT_0.svg"))        
         DirectoryStream<Path> svgs = Files.newDirectoryStream(path, "*.svg")
         for (Path p : svgs) {
             def s = p.getFileName().toString()
-            if (s =~ "tex.*svg") {
+            if (!(s =~ "img.*svg")) {
                 Files.deleteIfExists(p)
             }
         }
-        
+                
         toRender.keySet().each { it ->
             createSVG(toRender.get(it), path.resolve(it))
-        }        
+        }
     }
 
-    private def createSVG(String tex, Path path, boolean negative = false) {
+    private def createSVG(String tex, Path path, boolean negative = false) {        
         Files.deleteIfExists(path)
         if (tex.length() == 0)
             return
@@ -156,7 +154,7 @@ class Renderer {
         DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation()
         // Create an instance of org.w3c.dom.Document.
         String svgNS = "http://www.w3.org/2000/svg"
-        org.w3c.dom.Document document = domImpl.createDocument(svgNS, "svg", null)        
+        org.w3c.dom.Document document = domImpl.createDocument(svgNS, "svg", null)
         
         // Create an instance of the SVG Generator.
         boolean glyphAsShape = true
@@ -175,13 +173,5 @@ class Renderer {
         out.close()
     }
     
-    private def JSVGCanvas fileToIcon(String name) {
-        JSVGCanvas svgCanvas = new JSVGCanvas()
-        try {
-            svgCanvas.setURI(q.qpath.resolve(name).toUri().toURL().toString())            
-        } catch (Exception e) { 
-        }
-        svgCanvas
-    }
     
 }
