@@ -17,33 +17,39 @@ import javax.xml.XMLConstants
 abstract class Asset implements Comparable {
     
     static Asset getInstance(def map, AssetClass assetClass) {
-        Asset newAsset
+        Asset asset
         switch (assetClass) {
             case AssetClass.Question:
-                newAsset = new Question(map)
-                newAsset.SRC_FILE = "question.xml"
-                newAsset.SCHEMA_FILE = "question.xsd"
-                newAsset.REF_FILE = "question.xml"
-                newAsset.assetClass = AssetClass.Question
+                asset = new Question(map)
+                asset.SRC_FILE = "question.xml"
+                asset.SCHEMA_FILE = "question.xsd"
+                asset.REF_FILE = "question.xml"
                 break
             case AssetClass.Skill:
-                newAsset = new Skill(map)
-                newAsset.SCHEMA_FILE = "skill.xsd"
-                newAsset.REF_FILE = "skill.xml"
-                newAsset.assetClass = AssetClass.Skill
+                asset = new Skill(map)
+                asset.SCHEMA_FILE = "skill.xsd"
+                asset.REF_FILE = "skill.xml"
                 break
             default:
-                newAsset = new Snippet(map)            
-                newAsset.SCHEMA_FILE = "snippet.xsd"
-                newAsset.REF_FILE = "snippet.xml"
-                newAsset.assetClass = AssetClass.Snippet
+                asset = new Snippet(map)            
+                asset.SCHEMA_FILE = "snippet.xsd"
+                asset.REF_FILE = "snippet.xml"
         }
+        asset
+    }
+    
+    def create() {
         def bankPathString = (new Config()).get("bank_path")
         Path bank = Paths.get(bankPathString)
         Path vault = bank.resolve("vault")
-        Path newDir = vault.resolve(newAsset.path)
-        Files.createDirectories(newDir)
-        newAsset
+        Path assetDir = vault.resolve(path)
+        
+        if (Files.notExists(assetDir)) {
+            Files.createDirectories(assetDir)
+            Path makefile = assetDir.resolve("Makefile")
+            Path target = vault.resolve("bin").resolve("compile.mk")
+            Files.createSymbolicLink(makefile, assetDir.relativize(target))
+        }
     }
 
     Asset load() {

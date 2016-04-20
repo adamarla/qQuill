@@ -52,11 +52,11 @@ class Clerk {
         loadAssets()
     }
     
-    def go(boolean topLevel = false) {
+    def go(boolean topLevel = true) {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel 'nimbus'
-            frame(id: 'frmClerk', title: "Quill - Clerk",
+            frame(id: 'frmClerk', title: "Quill (${Editor.VERSION}) - Clerk",
                 size: [720, 600], show: true, locationRelativeTo: null,
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 getMenuBar()
@@ -91,11 +91,15 @@ class Clerk {
             chapters.add c
             chapterById.put c.id, c
         }
+        
         authors = new ArrayList<Category>()
-        authors.add new Category(id: 1, name: "Abhinav")
-        authors.add new Category(id: 2, name: "Akshay")
         authorById = new HashMap<Integer, Category>()
-        authors.each { author -> authorById.put(author.id, author) }
+        items = Network.executeHTTPGet("examiner/list")
+        items.eachWithIndex{ item, i ->
+            Category c = new Category(item)
+            authors.add c
+            authorById.put c.id, c
+        }
         
         // Collections for display table
         artefactsEventList = new BasicEventList<Asset>()
@@ -104,17 +108,9 @@ class Clerk {
         artefactsEventList.clear()
         def assets = []
         chapters.each { chapter ->
-            classes.each { assetClass ->
-                def url = assetClass.toString().toLowerCase()
-                url = assetClass == AssetClass.Question ? url : "${url}s"
-                items = Network.executeHTTPGet("${url}/list?c=${chapter.id}")
-                if (assetClass == AssetClass.Skill)
-                    items = items.skills
-                else if (assetClass == AssetClass.Snippet)
-                    items = items.snippets
-                items.eachWithIndex{ item, i ->
-                    assets << Asset.getInstance(item, assetClass)
-                }    
+            items = Network.executeHTTPGet("sku/list?c=${chapter.id}")
+            items.each{ item ->
+                assets << Asset.getInstance(item, AssetClass."${item.assetClass}")
             }
         }
         artefactsEventList.addAll assets
@@ -148,10 +144,13 @@ class Clerk {
     private def createNewAsset(AssetClass assetClass, Category chapter) {
         // call server
         def userId = config.get("user_id")
-        def params = Network.executeHTTPPost("${assetClass.toString().toLowerCase()}/add?e=${userId}&c=${chapter.id}")
+        def url = "${assetClass.toString().toLowerCase()}/add?e=${userId}&c=${chapter.id}"
+        def params = Network.executeHTTPPost(url)
         params.authorId = userId
         params.chapterId = chapter.id
+        params.assetClass = assetClass
         Asset newAsset = Asset.getInstance(params, assetClass)
+        newAsset.create()
         // refresh list
         artefactsEventList.add newAsset
         sb.listChapters.setSelectedValue(chapter, true)
@@ -221,7 +220,7 @@ class Clerk {
             }
             menu(text: 'Edit', mnemonic: 'E') {
                 menuItem(text: "Change Attributes", mnemonic: 'C', 
-                    actionPerformed: { launchChangeAttributesDialog() })
+                    actionPerformed: { })
             }
             menu(text: 'Help', mnemonic: 'H') {
                 menuItem(text: "About", mnemonic: 'A', actionPerformed: { })

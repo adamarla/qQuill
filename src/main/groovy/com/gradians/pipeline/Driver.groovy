@@ -13,6 +13,7 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.Option.Builder
 
 import com.gradians.pipeline.data.Asset
+import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.data.Snippet
@@ -56,13 +57,14 @@ class Driver {
                 }
                 assert Files.isDirectory(path)
                 Asset a
+                AssetClass assetClass
                 if (path.toString().contains("skill"))
-                    a = new Skill(path: path).load()
+                    assetClass = AssetClass.Skill
                 else if (path.toString().contains("snippet"))
-                    a = new Snippet(path: path).load()
+                    assetClass = AssetClass.Skill
                 else
-                    a = new Question(path: path).load()
-                    
+                    assetClass = AssetClass.Question
+                a = Asset.getInstance([path: path], assetClass).load()                                    
                 if (renderOnly) {
                     (new Renderer(a)).toSVG()
                 } else if (bundleOnly) {
