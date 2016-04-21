@@ -32,8 +32,6 @@ class Driver {
         Options options = new Options()
         options.addOption(Option.builder("e").argName("edit").longOpt("edit").build())
         options.addOption(Option.builder("r").argName("render").longOpt("render").build())
-        options.addOption(Option.builder("p").argName("preview").longOpt("preview").build())
-        options.addOption(Option.builder("t").argName("tag").longOpt("tag").build())
         options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())        
         
         try {
@@ -41,10 +39,9 @@ class Driver {
             CommandLine cl = (new DefaultParser()).parse(options, args)
             boolean editOnly = cl.hasOption('e')
             boolean renderOnly = cl.hasOption('r')
-            boolean tagOnly = cl.hasOption('t')
             boolean bundleOnly = cl.hasOption('b')
             
-            if (tagOnly) {
+            if (cl.argList.size() == 0) {
                 (new Clerk()).go(true)
             } else {
                 Path path = Paths.get(pwd)
@@ -55,16 +52,16 @@ class Driver {
                     println "Locate path to a question folder"
                     return
                 }
-                assert Files.isDirectory(path)
-                Asset a
+                
+                assert Files.isDirectory(path)                
                 AssetClass assetClass
                 if (path.toString().contains("skill"))
                     assetClass = AssetClass.Skill
                 else if (path.toString().contains("snippet"))
                     assetClass = AssetClass.Skill
                 else
-                    assetClass = AssetClass.Question
-                a = Asset.getInstance([path: path], assetClass).load()                                    
+                    assetClass = AssetClass.Question                    
+                Asset a = Asset.getInstance([path: path], assetClass).load()                                    
                 if (renderOnly) {
                     (new Renderer(a)).toSVG()
                 } else if (bundleOnly) {

@@ -5,11 +5,11 @@ import groovy.swing.SwingBuilder
 import java.awt.Color
 import java.awt.event.MouseEvent
 import java.awt.GridBagConstraints as GBC
-
 import java.nio.file.Path
 
 import javax.swing.BorderFactory
 import javax.swing.event.ListSelectionEvent
+import javax.swing.event.ListSelectionListener
 
 import com.gradians.pipeline.Config
 import com.gradians.pipeline.data.Asset
@@ -19,6 +19,9 @@ import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.data.Snippet
 import com.gradians.pipeline.edit.Editor
+import com.gradians.pipeline.edit.IEditable
+import com.gradians.pipeline.edit.TeXHelper;
+import com.gradians.pipeline.edit.TeXLabel
 
 import ca.odell.glazedlists.BasicEventList
 import ca.odell.glazedlists.EventList
@@ -29,7 +32,6 @@ import ca.odell.glazedlists.matchers.Matcher
 import ca.odell.glazedlists.swing.AdvancedTableModel
 import ca.odell.glazedlists.swing.GlazedListsSwing
 import ca.odell.glazedlists.swing.TableComparatorChooser
-
 import static java.awt.BorderLayout.PAGE_START
 import static java.awt.BorderLayout.PAGE_END
 import static java.awt.BorderLayout.CENTER
@@ -64,22 +66,35 @@ class Clerk {
                 panel() {
                     gridBagLayout()
                     
-                    vbox(constraints: gbc(gridx: 0, gridy: 0, weightx: 0.25, weighty: 1,
+                    vbox(constraints: gbc(gridx: 0, gridy: 0, gridheight: 2, weightx: 1, weighty: 1,
                             anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
                         getSelectorLists()
                     }
-                    
-                    scrollPane(constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 1,
-                                anchor: GBC.PAGE_END, fill: GBC.BOTH)) {
-                        table(id: 'tblAssets', mouseClicked: { MouseEvent me -> launchEditor(me) }, 
-                            selectionMode: SINGLE_SELECTION, model: createTableModel())
+                                                        
+                    scrollPane(constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 0.8,
+                            anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
+                        table(id: 'tblAssets', model: createTableModel(), 
+                            selectionMode: SINGLE_SELECTION,
+                            mouseClicked: { MouseEvent me -> onGridClick(me) })
                     }
+                            
+                    panel(border: BorderFactory.createCompoundBorder(
+                        BorderFactory.createEmptyBorder(2, 2, 2, 2),
+                        BorderFactory.createLineBorder(new Color(0x9297a1))),
+                        constraints: gbc(gridx: 1, gridy: 1, weightx: 1, weighty: 0.2,
+                            anchor: GBC.PAGE_END, fill: GBC.BOTH), id: 'pnlPreview')
                 }
             }
             tableSorter = TableComparatorChooser.install(sb.tblAssets, sortedList,
                 TableComparatorChooser.MULTIPLE_COLUMN_MOUSE_WITH_UNDO)
             sb.listChapters.setSelectedIndex 0
         }
+        sb.tblAssets.selectionModel.addListSelectionListener(
+            [valueChanged: { ListSelectionEvent lse ->
+                int row = sb.tblAssets.selectedRow
+                if (row != -1) 
+                    onRowSelect(sb.tblAssets.selectedRow)
+            }] as ListSelectionListener)
     }
     
     private def loadAssets = {
@@ -116,11 +131,24 @@ class Clerk {
         artefactsEventList.addAll assets
     }
     
-    private def launchEditor = { MouseEvent me ->
+    private def onGridClick = { MouseEvent me ->
         def row = sb.tblAssets.rowAtPoint(me.getPoint())
         if (me.getClickCount() == 2) {
-            Asset selected = filteredList.get(row)
-            new Editor(selected.load()).launchGeneric()
+            new Editor(filteredList.get(row).load()).launchGeneric()
+        } else if (me.getClickCount() == 1) {
+            onRowSelect(row)
+        }
+    }
+        
+    private def onRowSelect = { int row ->
+        Asset selected = filteredList.get(row).load()
+        IEditable e = (IEditable)selected
+        def tex = e.getPanels()[0].getComponents()[0].tex
+        if (tex.length() > 0) {
+            sb.pnlPreview.removeAll()
+            sb.pnlPreview.add new TeXLabel(tex, "Preview")
+            sb.pnlPreview.revalidate()
+            sb.pnlPreview.repaint()        
         }
     }
     
@@ -157,12 +185,13 @@ class Clerk {
     }
     
     private def filter = {
+        sb.tblAssets.clearSelection()
         List<Catalog> authorSelection = sb.listAuthors.getSelectedValuesList()
         List<Catalog> chapterSelection = sb.listChapters.getSelectedValuesList()
         List<AssetClass> classSelection = sb.listClasses.getSelectedValuesList()
         AssetsMatcher matcher = new AssetsMatcher(chapterSelection, authorSelection, classSelection, this)
         filteredList.setMatcher(matcher)
-    }    
+    }
 
     private def createTableModel = {
         def columnNames = ['Id', 'Chapter', 'Author', 'Class']

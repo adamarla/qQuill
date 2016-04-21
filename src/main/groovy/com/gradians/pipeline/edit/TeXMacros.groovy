@@ -8,7 +8,7 @@ import org.scilab.forge.jlatexmath.TeXParser
 class TeXMacros {
     
     public Atom dd(TeXParser tp, String[] args) throws ParseException {
-        return new TeXFormula(String.format("\\dfrac{d}{d%s}%s", args[2], args[1])).root;
+        new TeXFormula(String.format("\\dfrac{d}{d%s}%s", args[2], args[1])).root
     }
     
     public Atom vector(TeXParser tp, String[] args) throws ParseException {
@@ -37,11 +37,11 @@ class TeXMacros {
             }
             format += String.format("%s\\hat{\\it k} ", args[3])
         }
-        return new TeXFormula(format).root;
+        new TeXFormula(format).root
     }
     
     public Atom ora(TeXParser tp, String[] args) throws ParseException {
-        return new TeXFormula(String.format("\\overrightarrow{%s}", args[1])).root;
+        new TeXFormula(String.format("\\overrightarrow{%s}", args[1])).root
     }
     
 

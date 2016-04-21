@@ -39,7 +39,6 @@ import static java.awt.GridBagConstraints.BOTH
 import static java.awt.GridBagConstraints.CENTER
 import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.VERTICAL
-import static javax.swing.JFrame.EXIT_ON_CLOSE
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 
@@ -78,7 +77,7 @@ class Editor {
             lookAndFeel 'nimbus'
             frame(id: 'frmEditor', title: "Quill (${VERSION}) - Editor - ${a.path}", size: [960, 600],
                 show: true, locationRelativeTo: null, resizable: true, 
-                defaultCloseOperation: EXIT_ON_CLOSE) {
+                defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 getMenuBar()
                 panel() {
                     gridBagLayout()                    

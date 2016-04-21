@@ -58,17 +58,17 @@ abstract class Asset implements Comparable {
         Path vault = bank.resolve("vault")
         assert vault.getFileName().toString().equals("vault")
         
-        Path catalog = bank.resolve("common").resolve("catalog")
         qpath = vault.resolve(path)
-        def xmlPath = qpath.resolve(this.SRC_FILE)
+        def xmlPath = qpath.resolve(SRC_FILE)
         
         // If the file has never been saved before, 
         // a skeleton reference file with blank fields is pulled
         // from the catalog
         if (Files.notExists(xmlPath)) {
-            xmlPath = catalog.resolve(REF_FILE)
+            def stream = Asset.class.getClassLoader().getResourceAsStream(REF_FILE)
+            Files.copy(stream, xmlPath)
         } else {
-            assert isValidXML(xmlPath, catalog)
+            assert isValidXML(xmlPath)
         }
         parse(xmlPath)
         this
@@ -92,9 +92,9 @@ abstract class Asset implements Comparable {
     
     abstract Map<String, String> toRender()
     
-    protected boolean isValidXML(Path xmlPath, Path catalog) {
-        def xmlStream = new StreamSource(xmlPath.toFile())
-        def xsdStream = new StreamSource(catalog.resolve(SCHEMA_FILE).toFile())
+    protected boolean isValidXML(Path xmlPath) {
+        def xmlStream = new StreamSource(Files.newInputStream(xmlPath))
+        def xsdStream = new StreamSource(Asset.class.getClassLoader().getResourceAsStream(SCHEMA_FILE))
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
             .newSchema(xsdStream)
             .newValidator()
