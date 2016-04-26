@@ -14,23 +14,23 @@ class Gitter {
         git = new Git(repo)
     }
     
-    Set<String> toAdd() {
-        Status status = git.status().call()
+    Set<String> toAdd(String path) {
+        Status status = git.status().addPath(path).call()
         status.getUntracked() + status.getModified()
     }
     
-    Set<String> toDelete() {
-        Status status = git.status().call()
+    Set<String> toDelete(String path) {
+        Status status = git.status().addPath(path).call()
         status.getMissing()
     }
     
-    Set<String> toCommit() {
-        Status status = git.status().call()
+    Set<String> toCommit(String path) {
+        Status status = git.status().addPath(path).call()
         status.getAdded() + status.getRemoved() + status.getChanged()
     }
     
-    void printStatus() {
-        Status status = git.status().call()
+    void printStatus(String path) {
+        Status status = git.status().addPath(path).call()
         System.out.println("Added: " + status.getAdded());
         System.out.println("Changed: " + status.getChanged());
         System.out.println("Conflicting: " + status.getConflicting());
@@ -43,14 +43,14 @@ class Gitter {
         System.out.println("UntrackedFolders: " + status.getUntrackedFolders());
     }
     
-    void commit(Set<String> toAdd, Set<String> toDelete, String message) {
+    void commit(String path, Set<String> toAdd, Set<String> toDelete, String message) {
         toAdd.each { file ->
             git.add().addFilepattern(file).call()
         }        
         toDelete.each { file ->
             git.rm().addFilepattern(file).call()
         }        
-        if (toCommit().size() > 0) {
+        if (toCommit(path).size() > 0) {
             String[] lines = message.split("\n")
             StringBuilder sb = new StringBuilder()
             lines.each {

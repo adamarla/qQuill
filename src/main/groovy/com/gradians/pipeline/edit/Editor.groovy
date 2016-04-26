@@ -10,6 +10,7 @@ import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.Files
 
 import javax.swing.BorderFactory
@@ -184,24 +185,24 @@ class Editor {
     }
     
     private def saveAndCommit = {
+        save()
         def bankPathString = (new Config()).get("bank_path")
         Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
-        Set<String> toAdd = gitter.toAdd()
-        Set<String> toDelete = gitter.toDelete()
-        Set<String> toCommit = gitter.toCommit()
-        if (toAdd.size() + toDelete.size() + toCommit.size() > 0) {
-            String message = 
+        String path = Paths.get(bankPathString).relativize(a.qpath)
+        Set<String> toAdd = gitter.toAdd(path.toString())
+        Set<String> toDelete = gitter.toDelete(path.toString())
+        if (toAdd.size() + toDelete.size() > 0) {
+            String message =
             "# To Add: ${toAdd.toString()}\n# To Delete ${toDelete.toString()}\n" +
             "# Edit Commit message. Any line beginning with '#' will be ignored.\n" +
             "Created / Altered ${a.assetClass}."
             def dialog = sb.dialog(id: 'dlgCommit', title: 'Commit Message',
                 locationRelativeTo: sb.frmEditor) {
                 vbox() {
-                    textArea(id: 'taMessage', rows: 8, columns: 40, text: message)
+                    textArea(id: 'taCommitMessage', rows: 8, columns: 40, text: message)
                     panel() {
                         button(text: 'Commit', actionPerformed: {
-                            save()
-                            gitter.commit(toAdd, toDelete, sb.taMessage.text)
+                            gitter.commit(path.toString(), toAdd, toDelete, sb.taCommitMessage.text)
                             sb.dlgCommit.dispose()
                         })
                         button(text: 'Cancel', actionPerformed: { sb.dlgCommit.dispose() })    
@@ -224,9 +225,11 @@ class Editor {
         sb.menuBar {
             menu(text: 'File', mnemonic: 'F') {
                 menuItem(text: "Save", mnemonic: 'S', actionPerformed: { save() })
-                menuItem(text: "Save + Commit", mnemonic: 'C', actionPerformed: { saveAndCommit() })
                 menuItem(text: "Render", mnemonic: 'R', actionPerformed: { render() })
+                separator()
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
+                separator()
+                menuItem(text: "Save + Commit", actionPerformed: { saveAndCommit() })
             }
             menu(text: 'Edit', mnemonic: 'E') {                
                 menuItem(text: "Skill (not implemented)", mnemonic: 'K', actionPerformed: { })
