@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:tns="http://www.gradians.com"
+	targetNamespace="http://www.gradians.com" 
+	elementFormDefault="qualified">
+	<xsd:element name="snippet" type="tns:snippetType"/> 
+	<xsd:complexType name="snippetType">
+	    <xsd:sequence>
+	        <xsd:element name="render" type="tns:contentType"/>
+	        <xsd:element name="reason" type="tns:contentType"/>
+	        <xsd:element name="skills" type="tns:skillsType" minOccurs="0"/>
+	    </xsd:sequence>
+	</xsd:complexType>
+    <xsd:complexType name="contentType">
+        <xsd:sequence>
+            <xsd:element name="tex" type="tns:texType" />
+        </xsd:sequence>
+    </xsd:complexType>
+	<xsd:complexType name="texType">
+	    <xsd:simpleContent>
+	        <xsd:extension base="xsd:string">
+	            <xsd:attribute name="correct" type="xsd:boolean" use="optional"/>
+	        </xsd:extension>
+	    </xsd:simpleContent>
+	</xsd:complexType>
+	<xsd:complexType name="skillsType">
+	    <xsd:sequence>
+	        <xsd:element name="skill" type="tns:skillType" minOccurs="0" maxOccurs="2"/>
+	    </xsd:sequence>
+	</xsd:complexType>
+    <xsd:complexType name="skillType">
+        <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+                <xsd:attribute name="id" type="xsd:int" use="optional"/>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+</xsd:schema>

@@ -1,24 +1,8 @@
 package com.gradians.pipeline.data
 
-import java.io.FileInputStream
-import java.nio.file.DirectoryStream
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.PathMatcher
-import java.util.Map
-
 import com.gradians.pipeline.edit.Component
 import com.gradians.pipeline.edit.IEditable
 import com.gradians.pipeline.edit.Panel
-
-import groovy.util.slurpersupport.GPathResult
-
-import javax.xml.XMLConstants
-import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
-
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
 
 class Skill extends Asset implements IEditable {
@@ -56,7 +40,7 @@ class Skill extends Asset implements IEditable {
 
     @Override
     Map<String, String> toRender() {
-        def counter = 1        
+        def counter = 1
         HashMap<String, String> svgs = new HashMap<String, String>()
         
         // Create layout xml file for the svgs
@@ -78,8 +62,8 @@ class Skill extends Asset implements IEditable {
     }
     
     @Override
-    protected void parse(Path xmlPath) {
-        def xml = new XmlSlurper().parse(xmlPath.toFile())        
+    protected void parse(InputStream xmlStream) {
+        def xml = new XmlSlurper().parse(xmlStream)
         texStatement = xml.render.tex.toString()
         texReason = xml.reason.tex.toString()        
     }

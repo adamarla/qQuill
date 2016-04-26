@@ -10,13 +10,14 @@ interface IEditable {
 
 class Panel {
 
-    boolean isChoice    
     String title
+    int skill
     
     List<Component> components
     
-    def Panel(String title) {
+    def Panel(String title, int skill = -1) {
         this.title = title
+        this.skill = skill
         components = new ArrayList<Component>()
     }
     

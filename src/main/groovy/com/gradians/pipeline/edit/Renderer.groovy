@@ -65,67 +65,6 @@ class Renderer {
         this.a = a
     }
     
-    def toTeX() {
-        Question q = (Question)a        
-        def sw = new StringWriter()
-        sw.append("\\documentclass[12pt]{article}\n\\RequirePackage{prepwell}\n")
-        sw.append("\\begin{document}\n\t\\begin{question}\n")
-        
-        sw.append("\t\t\\begin{statement}\n")
-        sw.append("\t\t\t\\tex{${TeXHelper.toPureTeX(q.statement.tex)}}\n")
-        if (q.statement.image.length() > 0)
-            sw.append("\t\t\t\\img{${q.statement.image}}\n")
-        sw.append("\t\t\\end{statement}\n")
-
-        q.steps.each { stp ->
-            if (stp != null && stp.context.length() != 0) {                
-                sw.append("%STEP\n")
-                sw.append("\t\t\\begin{step}\n")
-                
-                sw.append("\t\t\\begin{context}\n")
-                sw.append("\t\t\t\\tex{${TeXHelper.toPureTeX(stp.context.trim())}}\n")
-                sw.append("\t\t\\end{context}\n")
-                
-                sw.append("\t\t\\begin{options}\n")
-                                                    
-                if (stp.imageCorrect.length() > 0)
-                    sw.append("\t\t\t\\image{${stp.imageCorrect}}\n")
-                else if (stp.texCorrect.length() > 0)
-                    sw.append("\t\t\t\\tex{${TeXHelper.toPureTeX(stp.texCorrect.trim())}}\n")
- 
-                if (stp.imageIncorrect.length() > 0)
-                    sw.append("\t\t\t\\img[false]{${stp.imageIncorrect}}\n")
-                else if (stp.texIncorrect.length() > 0)
-                    sw.append("\t\t\t\\tex[false]{${TeXHelper.toPureTeX(stp.texIncorrect.trim())}}\n")
-
-                sw.append("\t\t\\end{options}\n")
-                
-                sw.append("\t\t\\begin{reason}\n")
-                if (stp.imageReason.length() > 0)
-                    sw.append("\\img{${stp.imageReason.trim()}}\n")
-                else
-                    sw.append("\\tex{${TeXHelper.toPureTeX(stp.reason.trim())}}\n")
-                sw.append("\t\t\\end{reason}\n")
-
-                sw.append("\t\t\\end{step}\n")
-            }
-        }
-
-        if (q.choices != null) {            
-            sw.append("\t\t\\begin{choices}\n")
-            q.choices.texs.eachWithIndex { tx, i ->
-                if (q.choices.correct == i) {
-                    sw.append("\t\t\t\\tex[true]{${tx}}\n")
-                } else {
-                    sw.append("\t\t\t\\tex[false]{${tx}}\n")
-                }
-            }
-            sw.append("\t\t\\end{choices}\n")            
-        }            
-        sw.append("\\end{document}\n\\end{question}")    
-        q.qpath.resolve("outline.tex").toFile().write(sw.toString())
-    }
-    
     def toSVG() {
         Path path = a.qpath
         

@@ -7,9 +7,16 @@ import java.awt.event.MouseEvent
 import java.awt.GridBagConstraints as GBC
 import java.nio.file.Path
 
+import java.awt.event.ActionEvent
+import java.awt.event.InputEvent
+import java.awt.event.KeyEvent
+
+import javax.swing.AbstractAction
 import javax.swing.BorderFactory
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
+import javax.swing.KeyStroke
+import javax.swing.text.Keymap
 
 import com.gradians.pipeline.Config
 import com.gradians.pipeline.data.Asset
@@ -32,6 +39,7 @@ import ca.odell.glazedlists.matchers.Matcher
 import ca.odell.glazedlists.swing.AdvancedTableModel
 import ca.odell.glazedlists.swing.GlazedListsSwing
 import ca.odell.glazedlists.swing.TableComparatorChooser
+
 import static java.awt.BorderLayout.PAGE_START
 import static java.awt.BorderLayout.PAGE_END
 import static java.awt.BorderLayout.CENTER
@@ -39,9 +47,10 @@ import static java.awt.BorderLayout.LINE_START
 import static java.awt.BorderLayout.LINE_END
 import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
 import static javax.swing.JList.VERTICAL
-import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 import static javax.swing.JFrame.EXIT_ON_CLOSE
 import static javax.swing.ListSelectionModel.SINGLE_SELECTION
+import static javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
+import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 
 class Clerk {
@@ -62,22 +71,16 @@ class Clerk {
                 size: [720, 600], show: true, locationRelativeTo: null,
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 getMenuBar()
-
                 panel() {
-                    gridBagLayout()
-                    
+                    gridBagLayout()                    
                     vbox(constraints: gbc(gridx: 0, gridy: 0, gridheight: 2, weightx: 1, weighty: 1,
                             anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
                         getSelectorLists()
-                    }
-                                                        
+                    }                                                        
                     scrollPane(constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 0.8,
                             anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
-                        table(id: 'tblAssets', model: createTableModel(), 
-                            selectionMode: SINGLE_SELECTION,
-                            mouseClicked: { MouseEvent me -> onGridClick(me) })
-                    }
-                            
+                        createTable()
+                    }                            
                     panel(border: BorderFactory.createCompoundBorder(
                         BorderFactory.createEmptyBorder(2, 2, 2, 2),
                         BorderFactory.createLineBorder(new Color(0x9297a1))),
@@ -87,14 +90,9 @@ class Clerk {
             }
             tableSorter = TableComparatorChooser.install(sb.tblAssets, sortedList,
                 TableComparatorChooser.MULTIPLE_COLUMN_MOUSE_WITH_UNDO)
-            sb.listChapters.setSelectedIndex 0
+            createTable(sb.tblAssets)
+            sb.listChapters.setSelectedIndex 0            
         }
-        sb.tblAssets.selectionModel.addListSelectionListener(
-            [valueChanged: { ListSelectionEvent lse ->
-                int row = sb.tblAssets.selectedRow
-                if (row != -1) 
-                    onRowSelect(sb.tblAssets.selectedRow)
-            }] as ListSelectionListener)
     }
     
     private def loadAssets = {
@@ -125,7 +123,7 @@ class Clerk {
         chapters.each { chapter ->
             items = Network.executeHTTPGet("sku/list?c=${chapter.id}")
             items.each{ item ->
-                assets << Asset.getInstance(item, AssetClass."${item.assetClass}")
+                assets << Asset.getInstance(item)
             }
         }
         artefactsEventList.addAll assets
@@ -148,40 +146,62 @@ class Clerk {
             sb.pnlPreview.removeAll()
             sb.pnlPreview.add new TeXLabel(tex, "Preview")
             sb.pnlPreview.revalidate()
-            sb.pnlPreview.repaint()        
+            sb.pnlPreview.repaint()
         }
     }
     
     private def launchNewAssetDialog(AssetClass assetClass) {
-        newAssetDialog = sb.dialog(title: "New ${assetClass} on?", locationRelativeTo: sb.frmClerk) {
+        final def newAssetDialog = sb.dialog(id: 'dlgNewAsset', 
+            title: "New ${assetClass} on?", 
+            locationRelativeTo: sb.frmClerk) {
             vbox() {
                 comboBox(id: 'cbChapter', items: chapters, selectedIndex: 0)
-                panel() {
-                    button(text: 'Create', 
-                        actionPerformed: { 
-                            createNewAsset(assetClass, (Category)sb.cbChapter.getSelectedItem())
-                            newAssetDialog.dispose() 
-                        })
-                }
+                button(text: 'Create',
+                    actionPerformed: {
+                        Category chapter = (Category)sb.cbChapter.getSelectedItem()
+                        if (assetClass != AssetClass.Snippet) {
+                            createNewAsset(assetClass, chapter)
+                            new Editor(filteredList.get(row).load()).launchGeneric()    
+                        } else {
+                            SkillLibrary sl = new SkillLibrary(chapter, this)
+                            sl.launch(this.artefactsEventList.findAll {
+                                it.assetClass == AssetClass.Skill && it.chapterId == chapter.id
+                            })
+                        }
+                        sb.dlgNewAsset.dispose()
+                    })
             }
         }
         newAssetDialog.pack()
         newAssetDialog.visible = true
     }
     
-    private def createNewAsset(AssetClass assetClass, Category chapter) {
+    def createNewAsset(AssetClass assetClass, Category chapter, Category skill = null) {
         // call server
         def userId = config.get("user_id")
-        def url = "${assetClass.toString().toLowerCase()}/add?e=${userId}&c=${chapter.id}"
+        def url
+        if (assetClass == AssetClass.Snippet) {
+            url = "snippet/add?e=${userId}&sk=${skill.id}"
+        } else {
+            url = "${assetClass.toString().toLowerCase()}/add?e=${userId}&c=${chapter.id}"
+        }
         def params = Network.executeHTTPPost(url)
-        params.authorId = userId
         params.chapterId = chapter.id
+        params.authorId = userId
         params.assetClass = assetClass
-        Asset newAsset = Asset.getInstance(params, assetClass)
+        Asset newAsset = Asset.getInstance(params)
         newAsset.create()
+        // in the case of Snippets, explicitly write skill in source.xml
+        // TODO: Need to figure this bit out for Snippets and Questions
+        if (assetClass == AssetClass.Snippet) {
+            Snippet s = (Snippet)newAsset.load()
+            s.skill = skill.id
+            s.getFile().write(s.toXMLString())
+        }
         // refresh list
         artefactsEventList.add newAsset
         sb.listChapters.setSelectedValue(chapter, true)
+        newAsset
     }
     
     private def filter = {
@@ -191,6 +211,32 @@ class Clerk {
         List<AssetClass> classSelection = sb.listClasses.getSelectedValuesList()
         AssetsMatcher matcher = new AssetsMatcher(chapterSelection, authorSelection, classSelection, this)
         filteredList.setMatcher(matcher)
+    }
+    
+    private def pullPush = {
+        // git pull then 
+        // git push
+    }
+    
+    private def createTable = {
+        def tableAssets = sb.table(id: 'tblAssets', model: createTableModel(),
+            selectionMode: SINGLE_SELECTION,
+            mouseClicked: { MouseEvent me -> onGridClick(me) })        
+        tableAssets.selectionModel.addListSelectionListener(
+            [valueChanged: { ListSelectionEvent lse ->
+                int row = tableAssets.selectedRow
+                if (row != -1)
+                    onRowSelect(tableAssets.selectedRow)
+            }] as ListSelectionListener)
+        tableAssets.getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).
+            put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Enter")
+        tableAssets.getActionMap().put("Enter", 
+            [actionPerformed: { ActionEvent ae -> 
+                int row = tableAssets.selectedRow
+                if (row != -1)
+                    new Editor(filteredList.get(row).load()).launchGeneric()
+            }] as AbstractAction)
+        tableAssets
     }
 
     private def createTableModel = {
@@ -245,6 +291,7 @@ class Clerk {
                     menuItem(text: "Problem", mnemonic: 'P', 
                         actionPerformed: { launchNewAssetDialog(AssetClass.Question) })
                 }
+                menuItem(text: "Synch (not implemented)", mnemonic: 'H', actionPerformed: { pullPush() } )
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
             }
             menu(text: 'Edit', mnemonic: 'E') {
@@ -257,8 +304,6 @@ class Clerk {
             }
         }
     }
-    
-    private def newAssetDialog
     
     private List<Category> chapters
     private List<Category> authors

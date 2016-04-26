@@ -32,8 +32,9 @@ import com.gradians.pipeline.data.Choices
 import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Statement
 import com.gradians.pipeline.data.Step
+import com.gradians.pipeline.tag.Gitter
+import com.gradians.pipeline.tag.SkillLibrary
 
-import static java.awt.BorderLayout.EAST
 import static java.awt.GridBagConstraints.NONE
 import static java.awt.GridBagConstraints.BOTH
 import static java.awt.GridBagConstraints.CENTER
@@ -106,7 +107,7 @@ class Editor {
     
     public def updatePreview(LaTeXArea area) {
         def comp = textToComponent.get(area)
-        def display = componentToDisplay.get(comp)        
+        def display = componentToDisplay.get(comp)
         if (comp.isTex) {
             display.setText(area.getText())
             display.revalidate()
@@ -121,37 +122,36 @@ class Editor {
     }
     
     private def layoutPanel = { Panel pnl ->
-        sb.scrollPane(name: pnl.title) {
-            sb.vbox() {
-                pnl.getComponents().eachWithIndex { comp, i ->
-                    def ta = LaTeXArea.getInstance(this, 
-                        comp.isTex ? comp.tex : "file: ${comp.image}", 6, TA_WIDTH)
-                    def wigit = new RTextScrollPane(ta, true)
-                    
-                    ta.dropTarget = [
-                        drop: { DropTargetDropEvent dtde ->
-                            def t = dtde.transferable
-                            if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                                dtde.acceptDrop(DnDConstants.ACTION_REFERENCE)
-                                File f = (File)dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor)[0]
-                                if (f.getName().toLowerCase().endsWith("svg")) {
-                                    ta.text = "file: img_${f.getName()}"
-                                    comp.image = f.getName()
-                                    comp.isTex = false
-                                    Path dest = a.qpath.resolve("img_${f.getName()}")
-                                    Files.deleteIfExists(dest)
-                                    Files.copy(f.toPath(), dest)
-                                    previewPanel(comp.getParent())
-                                }
+        def title = pnl.skill == -1 ? pnl.title : "${pnl.title} (skill: ${pnl.skill})"
+        sb.vbox(name: title) {
+            pnl.getComponents().eachWithIndex { comp, i ->
+                def ta = LaTeXArea.getInstance(this, 
+                    comp.isTex ? comp.tex : "file: ${comp.image}", 6, TA_WIDTH)
+                def wigit = new RTextScrollPane(ta, true)
+                
+                ta.dropTarget = [
+                    drop: { DropTargetDropEvent dtde ->
+                        def t = dtde.transferable
+                        if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                            dtde.acceptDrop(DnDConstants.ACTION_REFERENCE)
+                            File f = (File)dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor)[0]
+                            if (f.getName().toLowerCase().endsWith("svg")) {
+                                ta.text = "file: img_${f.getName()}"
+                                comp.image = f.getName()
+                                comp.isTex = false
+                                Path dest = a.qpath.resolve("img_${f.getName()}")
+                                Files.deleteIfExists(dest)
+                                Files.copy(f.toPath(), dest)
+                                previewPanel(comp.getParent())
                             }
                         }
-                    ] as DropTarget
-                
-                    textToComponent.put(ta, comp)
-                    componentToText.put(comp, ta)
-                    wigit.setBorder(BorderFactory.createTitledBorder(comp.title))                    
-                    sb.widget(wigit)
-                }
+                    }
+                ] as DropTarget
+            
+                textToComponent.put(ta, comp)
+                componentToText.put(comp, ta)
+                wigit.setBorder(BorderFactory.createTitledBorder(comp.title))                    
+                sb.widget(wigit)
             }
         }
     }
@@ -173,14 +173,44 @@ class Editor {
         sb.vbDisplay.repaint()
     }
     
+    private def render = {
+        ((IEditable)a).updateModel(panels)
+        (new Renderer(a)).toSVG()
+    }
+    
     private def save = {
         ((IEditable)a).updateModel(panels)
         a.getFile().write(a.toXMLString())
     }
     
-    private def commit = {
-        // git add *.xml, *.svg
-        // git push origin master
+    private def saveAndCommit = {
+        def bankPathString = (new Config()).get("bank_path")
+        Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
+        Set<String> toAdd = gitter.toAdd()
+        Set<String> toDelete = gitter.toDelete()
+        Set<String> toCommit = gitter.toCommit()
+        if (toAdd.size() + toDelete.size() + toCommit.size() > 0) {
+            String message = 
+            "# To Add: ${toAdd.toString()}\n# To Delete ${toDelete.toString()}\n" +
+            "# Edit Commit message. Any line beginning with '#' will be ignored.\n" +
+            "Created / Altered ${a.assetClass}."
+            def dialog = sb.dialog(id: 'dlgCommit', title: 'Commit Message',
+                locationRelativeTo: sb.frmEditor) {
+                vbox() {
+                    textArea(id: 'taMessage', rows: 8, columns: 40, text: message)
+                    panel() {
+                        button(text: 'Commit', actionPerformed: {
+                            save()
+                            gitter.commit(toAdd, toDelete, sb.taMessage.text)
+                            sb.dlgCommit.dispose()
+                        })
+                        button(text: 'Cancel', actionPerformed: { sb.dlgCommit.dispose() })    
+                    }
+                }
+            }
+            dialog.pack()
+            dialog.visible = true
+        }
     }
     
     private def clear = {
@@ -190,9 +220,23 @@ class Editor {
         }
     }
     
-    private def render = {
-        ((IEditable)a).updateModel(panels)
-        (new Renderer(a)).toSVG()
+    private def getMenuBar = {
+        sb.menuBar {
+            menu(text: 'File', mnemonic: 'F') {
+                menuItem(text: "Save", mnemonic: 'S', actionPerformed: { save() })
+                menuItem(text: "Save + Commit", mnemonic: 'C', actionPerformed: { saveAndCommit() })
+                menuItem(text: "Render", mnemonic: 'R', actionPerformed: { render() })
+                menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
+            }
+            menu(text: 'Edit', mnemonic: 'E') {                
+                menuItem(text: "Skill (not implemented)", mnemonic: 'K', actionPerformed: { })
+                menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
+            }
+            menu(text: 'Help', mnemonic: 'H') {
+                menuItem(text: "About Quill", mnemonic: 'A', actionPerformed: { about() })
+                menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { prefs() })
+            }
+        }
     }
     
     private def about = {
@@ -201,30 +245,12 @@ class Editor {
         if (imageURL != null) {
             icon = new ImageIcon(imageURL)
         }
-        def dialog = sb.dialog(title: 'About Quill', preferredSize: [150, 50], 
+        def dialog = sb.dialog(title: 'About Quill', preferredSize: [150, 50],
             locationRelativeTo: sb.frmEditor) {
             label(text: "Administer and Author academic assets", icon: icon)
         }
         dialog.pack()
         dialog.visible = true
-    }
-    
-    private def getMenuBar = {
-        sb.menuBar {
-            menu(text: 'File', mnemonic: 'F') {
-                menuItem(text: "Save", mnemonic: 'S', actionPerformed: { save() })
-                menuItem(text: "Render", mnemonic: 'R', actionPerformed: { render() })
-                menuItem(text: "Commit", mnemonic: 'C', actionPerformed: { commit() })
-                menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
-            }
-            menu(text: 'Edit', mnemonic: 'E') {
-                menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
-            }
-            menu(text: 'Help', mnemonic: 'H') {
-                menuItem(text: "About Quill", mnemonic: 'A', actionPerformed: { about() })
-                menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { prefs() })
-            }
-        }
     }
     
     private def prefs = {
@@ -283,5 +309,6 @@ class Editor {
     }
     
     private final int TA_WIDTH = 36
+    private final def THIS_BORDA = BorderFactory.createLineBorder(new java.awt.Color(0x9297a1))
     
 }

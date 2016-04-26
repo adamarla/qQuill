@@ -16,9 +16,9 @@ import javax.xml.XMLConstants
 
 abstract class Asset implements Comparable {
     
-    static Asset getInstance(def map, AssetClass assetClass) {
+    static Asset getInstance(def map) {
         Asset asset
-        switch (assetClass) {
+        switch (AssetClass.valueOf(map.assetClass)) {
             case AssetClass.Question:
                 asset = new Question(map)
                 asset.SRC_FILE = "question.xml"
@@ -38,7 +38,7 @@ abstract class Asset implements Comparable {
         asset
     }
     
-    def create() {
+    void create() {
         def bankPathString = (new Config()).get("bank_path")
         Path bank = Paths.get(bankPathString)
         Path vault = bank.resolve("vault")
@@ -59,18 +59,18 @@ abstract class Asset implements Comparable {
         assert vault.getFileName().toString().equals("vault")
         
         qpath = vault.resolve(path)
-        def xmlPath = qpath.resolve(SRC_FILE)
-        
+        def xmlPath = qpath.resolve(SRC_FILE)        
         // If the file has never been saved before, 
         // a skeleton reference file with blank fields is pulled
         // from the catalog
+        def xmlStream
         if (Files.notExists(xmlPath)) {
-            def stream = Asset.class.getClassLoader().getResourceAsStream(REF_FILE)
-            Files.copy(stream, xmlPath)
+             xmlStream = Asset.class.getClassLoader().getResourceAsStream(REF_FILE)
         } else {
             assert isValidXML(xmlPath)
+            xmlStream = Files.newInputStream(xmlPath)
         }
-        parse(xmlPath)
+        parse(xmlStream)
         this
     }
     
@@ -93,16 +93,17 @@ abstract class Asset implements Comparable {
     abstract Map<String, String> toRender()
     
     protected boolean isValidXML(Path xmlPath) {
-        def xmlStream = new StreamSource(Files.newInputStream(xmlPath))
-        def xsdStream = new StreamSource(Asset.class.getClassLoader().getResourceAsStream(SCHEMA_FILE))
+        def schema = Asset.class.getClassLoader().getResourceAsStream(SCHEMA_FILE)
+        def xml = new StreamSource(Files.newInputStream(xmlPath))
+        def xsd = new StreamSource(schema)
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-            .newSchema(xsdStream)
+            .newSchema(xsd)
             .newValidator()
-            .validate(xmlStream)
+            .validate(xml)
         true
     }
         
-    protected abstract void parse(Path xmlPath)
+    protected abstract void parse(InputStream xmlStream)
     
     int id
     String path

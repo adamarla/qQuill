@@ -1,24 +1,8 @@
 package com.gradians.pipeline.data
 
-import java.io.FileInputStream
-import java.nio.file.DirectoryStream
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.PathMatcher
-import java.util.Map;
-
 import com.gradians.pipeline.edit.Component
 import com.gradians.pipeline.edit.IEditable
 import com.gradians.pipeline.edit.Panel
-
-import groovy.util.slurpersupport.GPathResult
-
-import javax.xml.XMLConstants
-import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
-
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
 
 class Snippet extends Asset implements IEditable {
@@ -27,46 +11,93 @@ class Snippet extends Asset implements IEditable {
     Panel[] getPanels() {
         Panel[] pnls = new Panel[1]
         pnls[0] = new Panel("Snippet")
-        pnls[0].addComponent(new Component("Statement", texStatement, 12, true))
-        pnls[0].addComponent(new Component("Rason", texReason, 12, true))        
+        pnls[0].skill = skill
+        pnls[0].addComponent(new Component("Correct", correct ? texStatement : "", 12, true))
+        pnls[0].addComponent(new Component("Incorrect", correct ? "" : texStatement, 12, true))
+        pnls[0].addComponent(new Component("Reason", texReason, 12, true))        
         pnls
     }
 
     @Override
     void updateModel(Panel[] panel) {
-        // TODO Auto-generated method stub
-        
+        if (panel[0].components[0].tex.length() > 0) {
+            texStatement = panel[0].components[0].tex
+            correct = true
+        } else {
+            texStatement = panel[0].components[1].tex
+            correct = false
+        }
+        texReason = panel[0].components[2].tex
     }
 
     @Override
     String toXMLString() {
-        // TODO Auto-generated method stub
-        return null;
+        def sw = new StringWriter()
+        def xml = new groovy.xml.MarkupBuilder(sw)
+        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
+        xml.snippet(xmlns: "http://www.gradians.com") {
+            render() {
+                def map = [:]
+                if (!correct)
+                    map.correct = "false"
+                tex(map, texStatement)
+            }
+            reason() {
+                tex(texReason)
+            }
+            if (skill != -1) {
+                delegate.skills() {
+                    delegate.skill(id: skill)
+                }
+            }            
+        }
+        sw.toString()
     }
 
     @Override
     Map<String, String> toRender() {
-        // TODO Auto-generated method stub
-        return null;
+        def counter = 1
+        HashMap<String, String> svgs = new HashMap<String, String>()
+        
+        // Create layout xml file for the svgs
+        def sw = new StringWriter()
+        def xml = new groovy.xml.MarkupBuilder(sw)
+        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
+        xml.snippet(xmlns: "http://www.gradians.com") {
+            render() {
+                def map = [src: "${counter}.svg"]
+                if (!correct)
+                    map.correct = "false"
+                tex(map)
+                svgs.put("${counter++}.svg", texStatement)
+            }
+            reason() {
+                tex(src: "${counter}.svg")
+                svgs.put("${counter++}.svg", texReason)
+            }
+            if (skill != -1) {
+                delegate.skills() {
+                    delegate.skill(id: skill)
+                }
+            }            
+        }
+        qpath.resolve(LAYOUT_FILE).toFile().write(sw.toString())
+        svgs
     }
     
     @Override
-    protected void parse(Path xmlPath) {
-        def xml = new XmlSlurper().parse(xmlPath.toFile())
-        
-        if (!xml.image.isEmpty()) {
-            imageStatement = xml.image.toString()
-            correct = !xml.image.@correct.equals("true")
-        } else {
-            texStatement = xml.tex.toString()
-            correct = !xml.tex.@correct.equals("true")
-        }
-        
+    protected void parse(InputStream xmlStream) {
+        def xml = new XmlSlurper().parse(xmlStream)
+        texStatement = xml.render.tex.toString()
+        correct = xml.render.tex.@correct.equals("false")
         texReason = xml.reason.tex.toString()
+        if (!xml.skills.isEmpty()) {
+            skill = xml.skills.skill.@id.toInteger()
+        }
     }
 
-    boolean correct = false
-    String imageStatement = "", texStatement = "", texReason = ""
-    
+    boolean correct = true
+    String texStatement = "", texReason = ""
+    int skill = -1
 }
 

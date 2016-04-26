@@ -1,18 +1,8 @@
 package com.gradians.pipeline.data
 
-import java.io.FileInputStream
-import java.nio.file.DirectoryStream
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.PathMatcher
-import java.util.Map;
-
-import com.gradians.pipeline.edit.Component;
-import com.gradians.pipeline.edit.IEditable;
-import com.gradians.pipeline.edit.Panel;
-
-import groovy.util.slurpersupport.GPathResult
+import com.gradians.pipeline.edit.Component
+import com.gradians.pipeline.edit.IEditable
+import com.gradians.pipeline.edit.Panel
 
 
 class Question extends Asset implements IEditable {
@@ -186,8 +176,8 @@ class Question extends Asset implements IEditable {
     }
     
     @Override
-    protected void parse(Path xmlPath) {
-        def xml = new XmlSlurper().parse(xmlPath.toFile())
+    protected void parse(InputStream xmlStream) {
+        def xml = new XmlSlurper().parse(xmlStream)
         statement = new Statement()
         statement.tex = xml.statement.tex.toString()
         if (!xml.statement.image.isEmpty())

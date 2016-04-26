@@ -27,6 +27,7 @@ dependencies {
     compile 'com.fifesoft:autocomplete:2.5.7'
     compile 'com.fifesoft:spellchecker:2.5.7'
     compile 'com.fifesoft:rsyntaxtextarea:2.5.7'
+    compile 'org.eclipse.jgit:org.eclipse.jgit:4.3.0.201604071810-r'
     compile files('./lib/jlatexmath-embedded-fop-1.0.3.jar')
 }
 

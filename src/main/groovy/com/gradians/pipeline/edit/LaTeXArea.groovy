@@ -1,24 +1,25 @@
 package com.gradians.pipeline.edit
 
 import java.awt.Font
-import java.awt.event.ActionEvent;
+import java.awt.event.ActionEvent
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
+
 import java.nio.file.Path
 import java.nio.file.Files
 
-import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.text.JTextComponent
 import javax.swing.JTextArea
 import javax.swing.KeyStroke
 import javax.swing.text.Keymap
-import javax.swing.text.TextAction;
+import javax.swing.text.TextAction
 
 import org.fife.ui.autocomplete.AutoCompletion
-import org.fife.ui.autocomplete.DefaultCompletionProvider;
+import org.fife.ui.autocomplete.DefaultCompletionProvider
 import org.fife.ui.autocomplete.ShorthandCompletion
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
 import org.fife.ui.rsyntaxtextarea.SyntaxScheme
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rsyntaxtextarea.spell.SpellingParser
