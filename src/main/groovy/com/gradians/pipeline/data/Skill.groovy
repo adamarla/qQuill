@@ -1,25 +1,25 @@
 package com.gradians.pipeline.data
 
-import com.gradians.pipeline.edit.Component
+import com.gradians.pipeline.edit.EditItem
 import com.gradians.pipeline.edit.IEditable
-import com.gradians.pipeline.edit.Panel
+import com.gradians.pipeline.edit.EditGroup
 
 
 class Skill extends Asset implements IEditable {
     
     @Override
-    Panel[] getPanels() {
-        Panel[] pnls = new Panel[1]
-        pnls[0] = new Panel("Skill")
-        pnls[0].addComponent(new Component("Statement", texStatement, 12, true))
-        pnls[0].addComponent(new Component("Study Note", texReason, 12, true))        
+    EditGroup[] getEditGroups() {
+        EditGroup[] pnls = new EditGroup[1]
+        pnls[0] = new EditGroup("Skill")
+        pnls[0].addEditItem(new EditItem("Statement", texStatement, 6, true))
+        pnls[0].addEditItem(new EditItem("Study Note", texReason, 10, true))        
         pnls
     }
 
     @Override
-    void updateModel(Panel[] panels) {
-        texStatement = panels[0].components[0].tex
-        texReason = panels[0].components[1].tex
+    void updateModel(EditGroup[] panels) {
+        texStatement = panels[0].editItems[0].tex
+        texReason = panels[0].editItems[1].tex
     }
 
     @Override

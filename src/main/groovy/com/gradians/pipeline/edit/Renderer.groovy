@@ -1,11 +1,7 @@
 package com.gradians.pipeline.edit
 
 import java.awt.Color
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Graphics
-import java.awt.Insets
-import java.awt.geom.RoundRectangle2D
+import java.awt.Dimension
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.io.Writer
@@ -13,21 +9,12 @@ import java.nio.file.DirectoryStream
 import java.nio.file.Path
 import java.nio.file.Files
 
-import javax.swing.JDialog
-import javax.swing.JScrollPane
 import javax.swing.Icon
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.BorderFactory
-import javax.swing.border.Border
-import javax.swing.border.LineBorder
-import javax.swing.border.TitledBorder
 
 import org.apache.batik.dom.GenericDOMImplementation
 import org.apache.batik.svggen.SVGGeneratorContext
 import org.apache.batik.svggen.SVGGraphics2D
-import org.apache.batik.swing.JSVGCanvas;
+import org.apache.batik.swing.JSVGCanvas
 import org.scilab.forge.jlatexmath.DefaultTeXFont
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
@@ -37,12 +24,7 @@ import org.scilab.forge.jlatexmath.greek.GreekRegistration
 import org.w3c.dom.DOMImplementation
 
 import com.gradians.pipeline.data.Asset
-import com.gradians.pipeline.data.Choices;
-import com.gradians.pipeline.data.Question;
-import com.gradians.pipeline.data.Statement;
-import com.gradians.pipeline.data.Step;
 
-import groovy.json.JsonBuilder
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
 import static java.awt.GridBagConstraints.HORIZONTAL

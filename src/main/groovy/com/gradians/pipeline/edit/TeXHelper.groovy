@@ -1,22 +1,20 @@
 package com.gradians.pipeline.edit;
 
-import java.awt.Component;
-import java.awt.Font;
+import java.awt.Component
+import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.font.FontRenderContext
 import java.awt.geom.Rectangle2D
 
-import javax.imageio.ImageIO;
-import javax.swing.Icon;
+import javax.imageio.ImageIO
+import javax.swing.Icon
 
 import org.scilab.forge.jlatexmath.TeXFormula
 
 import static java.awt.Color.BLACK
 import static java.awt.Color.WHITE
 
-import static org.scilab.forge.jlatexmath.TeXConstants.STYLE_DISPLAY
-import static org.scilab.forge.jlatexmath.TeXConstants.STYLE_DISPLAY
 import static org.scilab.forge.jlatexmath.TeXConstants.STYLE_DISPLAY
 
 class TeXHelper {

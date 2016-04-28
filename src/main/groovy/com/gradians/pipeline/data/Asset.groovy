@@ -1,10 +1,7 @@
 package com.gradians.pipeline.data
 
 import com.gradians.pipeline.Config
-import com.gradians.pipeline.edit.IEditable
-import com.gradians.pipeline.edit.Panel
 
-import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -31,7 +28,7 @@ abstract class Asset implements Comparable {
                 asset.REF_FILE = "skill.xml"
                 break
             default:
-                asset = new Snippet(map)            
+                asset = new Snippet(map)
                 asset.SCHEMA_FILE = "snippet.xsd"
                 asset.REF_FILE = "snippet.xml"
         }
@@ -92,6 +89,12 @@ abstract class Asset implements Comparable {
     
     abstract Map<String, String> toRender()
     
+    @Override
+    boolean equals(Object obj) {
+        Asset a = (Asset)obj
+        return id == a.id && assetClass == a.assetClass
+    }
+
     protected boolean isValidXML(Path xmlPath) {
         def schema = Asset.class.getClassLoader().getResourceAsStream(SCHEMA_FILE)
         def xml = new StreamSource(Files.newInputStream(xmlPath))

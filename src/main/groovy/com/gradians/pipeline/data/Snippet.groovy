@@ -1,33 +1,33 @@
 package com.gradians.pipeline.data
 
-import com.gradians.pipeline.edit.Component
+import com.gradians.pipeline.edit.EditItem
 import com.gradians.pipeline.edit.IEditable
-import com.gradians.pipeline.edit.Panel
+import com.gradians.pipeline.edit.EditGroup
 
 
 class Snippet extends Asset implements IEditable {
     
     @Override
-    Panel[] getPanels() {
-        Panel[] pnls = new Panel[1]
-        pnls[0] = new Panel("Snippet")
+    EditGroup[] getEditGroups() {
+        EditGroup[] pnls = new EditGroup[1]
+        pnls[0] = new EditGroup("Snippet")
         pnls[0].skill = skill
-        pnls[0].addComponent(new Component("Correct", correct ? texStatement : "", 12, true))
-        pnls[0].addComponent(new Component("Incorrect", correct ? "" : texStatement, 12, true))
-        pnls[0].addComponent(new Component("Reason", texReason, 12, true))        
+        pnls[0].addEditItem(new EditItem("Correct", correct ? texStatement : "", 4, true))
+        pnls[0].addEditItem(new EditItem("Incorrect", correct ? "" : texStatement, 4, true))
+        pnls[0].addEditItem(new EditItem("Reason", texReason, 8, true))
         pnls
     }
 
     @Override
-    void updateModel(Panel[] panel) {
-        if (panel[0].components[0].tex.length() > 0) {
-            texStatement = panel[0].components[0].tex
+    void updateModel(EditGroup[] panel) {
+        if (panel[0].editItems[0].tex.trim().length() > 0) {
+            texStatement = panel[0].editItems[0].tex
             correct = true
         } else {
-            texStatement = panel[0].components[1].tex
+            texStatement = panel[0].editItems[1].tex
             correct = false
         }
-        texReason = panel[0].components[2].tex
+        texReason = panel[0].editItems[2].tex
     }
 
     @Override

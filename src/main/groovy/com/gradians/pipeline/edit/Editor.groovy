@@ -2,67 +2,68 @@ package com.gradians.pipeline.edit
 
 import groovy.swing.SwingBuilder
 
-import java.awt.BorderLayout as BL
 import java.awt.dnd.DropTarget
 import java.awt.dnd.DnDConstants
 import java.awt.dnd.DropTargetDropEvent
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
-
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.Files
 
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
-import javax.swing.JFileChooser
-import javax.swing.JOptionPane
-import javax.swing.JTabbedPane
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
-import javax.swing.filechooser.FileFilter
-import javax.swing.filechooser.FileView
 
-import org.apache.batik.swing.JSVGCanvas;
+import org.apache.batik.swing.JSVGCanvas
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
 
 import com.gradians.pipeline.Config
 import com.gradians.pipeline.data.Asset
+import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.Choices
 import com.gradians.pipeline.data.Question
+import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.data.Statement
 import com.gradians.pipeline.data.Step
 import com.gradians.pipeline.tag.Gitter
+import com.gradians.pipeline.tag.ISkillLibClient
 import com.gradians.pipeline.tag.SkillLibrary
 
-import static java.awt.GridBagConstraints.NONE
 import static java.awt.GridBagConstraints.BOTH
-import static java.awt.GridBagConstraints.CENTER
-import static java.awt.GridBagConstraints.HORIZONTAL
 import static java.awt.GridBagConstraints.VERTICAL
+import static java.awt.GridBagConstraints.HORIZONTAL
+import static javax.swing.SwingConstants.CENTER
+import static javax.swing.SwingConstants.LEFT
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 
 /** 
- * There are three kinds of objects that are kept in sync using
- * hash maps. These are :
+ * There are three kinds of objects that are kept in sync 
+ * using HashMaps. These are,
+ * 1. TextAreas  - for displaying latex
+ * 2. Components - data objects for holding latex
+ * 3. Display    - for displaying the rendered latex
  * 
- * TextAreas (for displaying latex / svg file name)
- * Components (data structure for holding latex / svg file name)
- * Display (for displaying the rendered latex or prefab svg)
+ * HashMaps -
+ * textToComponent    (1 -> 2)
+ * componentToDisplay (2 -> 3)
+ * componentToText    (2 -> 1)
  * 
  * @author adamarla
- *
+ * 
  */
 
-class Editor {
+class Editor implements ISkillLibClient {
     
     static final String VERSION = "2.0"
     
+    Config config
     SwingBuilder sb
     Asset a
-    Panel[] panels
+    EditGroup[] editGroups
     Map textToComponent, componentToDisplay, componentToText
         
     def Editor(Asset a) {
@@ -71,38 +72,40 @@ class Editor {
         componentToDisplay = new HashMap()
         componentToText = new HashMap()
         sb = new SwingBuilder()
+        config = new Config()
     }
     
     def launchGeneric() {
-        panels = ((IEditable)a).getPanels()
+        IEditable e = (IEditable)a
+        editGroups = e.getEditGroups()
         sb.edt {
             lookAndFeel 'nimbus'
-            frame(id: 'frmEditor', title: "Quill (${VERSION}) - Editor - ${a.path}", size: [960, 600],
-                show: true, locationRelativeTo: null, resizable: true, 
+            frame(id: 'frmEditor', title: "Quill (${VERSION}) - Editor - ${a.path}", size: [840, 600],
+                show: true, resizable: true, locationRelativeTo: null, 
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 getMenuBar()
-                panel() {
-                    gridBagLayout()                    
-                    // left panel
-                    tabbedPane(id: 'tpTeX', tabPlacement: JTabbedPane.LEFT,
-                        constraints: gbc(gridx: 0, gridy: 0, weightx: 0, weighty: 1, fill: VERTICAL)) {
-                        panels.each { pnl -> layoutPanel(pnl) }
-                    }                        
-                    // right panel
-                    scrollPane(id: 'spDisplay', 
-                        constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 1, fill: BOTH)) {
-                        vbox(id: 'vbDisplay')
-                    }
+                gridBagLayout()
+                // left panel
+                tabbedPane(id: 'tpTeX', tabPlacement: LEFT,
+                    constraints: gbc(weightx: 0.75, weighty: 1, gridheight: 2, fill: BOTH)) {
+                    editGroups.each { pnl -> layoutPanel(pnl) }
                 }
+                // right panel
+                panel(id: 'pnlReference', 
+                    constraints: gbc(gridx: 1, weightx: 0.25, fill: HORIZONTAL))
+                scrollPane(id: 'spDisplay',
+                    constraints: gbc(gridx: 1, gridy: 1, weightx: 0.25, weighty: 1, fill: BOTH)) {
+                    vbox(id: 'vbDisplay')
+                }    
             }
             sb.tpTeX.addChangeListener new ChangeListener() {
                 @Override
                 void stateChanged(ChangeEvent changeEvent) {
                     int idx = sb.tpTeX.selectedIndex
-                    previewPanel(panels[idx])
+                    previewPanel(editGroups[idx])
                 }
             }
-            previewPanel(panels[0])
+            previewPanel(editGroups[0])
         }
     }
     
@@ -122,13 +125,20 @@ class Editor {
         comp.tex = area.getText()
     }
     
-    private def layoutPanel = { Panel pnl ->
-        def title = pnl.skill == -1 ? pnl.title : "${pnl.title} (skill: ${pnl.skill})"
-        sb.vbox(name: title) {
-            pnl.getComponents().eachWithIndex { comp, i ->
+    @Override
+    public void applySelectedSkill(Skill skill) {
+        int idx = sb.tpTeX.selectedIndex
+        editGroups[idx].skill = skill.id
+    }
+    
+    @Override
+    public java.awt.Component getParentComponent() { sb.frmEditor }
+    
+    private def layoutPanel = { EditGroup pnl ->
+        sb.vbox(name: pnl.title) {
+            pnl.getEditItems().eachWithIndex { comp, i ->
                 def ta = LaTeXArea.getInstance(this, 
                     comp.isTex ? comp.tex : "file: ${comp.image}", 6, TA_WIDTH)
-                def wigit = new RTextScrollPane(ta, true)
                 
                 ta.dropTarget = [
                     drop: { DropTargetDropEvent dtde ->
@@ -151,15 +161,31 @@ class Editor {
             
                 textToComponent.put(ta, comp)
                 componentToText.put(comp, ta)
+                
+                def wigit = new RTextScrollPane(ta, true)
                 wigit.setBorder(BorderFactory.createTitledBorder(comp.title))                    
                 sb.widget(wigit)
             }
         }
     }
     
-    private def previewPanel = { Panel pnl ->
+    private def previewPanel = { EditGroup pnl ->
+        def tex
+        if (pnl.skill != -1) {
+            def map = [path: "skills/${pnl.skill}", assetClass: "Skill"]
+            Skill reference = Asset.getInstance(map).load()
+            IEditable e = (IEditable)reference
+            tex = e.getEditGroups()[0].getEditItems()[0].tex
+        } else {
+            tex = "\\text{Think of something good!}"        
+        }
+        sb.pnlReference.removeAll()
+        sb.pnlReference.add new TeXLabel(tex, "Reference")
+        sb.pnlReference.revalidate()
+        sb.pnlReference.repaint()
+
         sb.vbDisplay.removeAll()
-        pnl.getComponents().eachWithIndex { comp, i ->
+        pnl.getEditItems().eachWithIndex { comp, i ->
             componentToDisplay.remove(comp)
             def drawable
             if (comp.isTex) {
@@ -174,24 +200,32 @@ class Editor {
         sb.vbDisplay.repaint()
     }
     
+    private def launchSkillBuilder = {
+        int idx = sb.tpTeX.selectedIndex        
+        SkillLibrary sl = new SkillLibrary(this)
+        sl.launch(a.chapterId, editGroups[idx].skill)
+    }
+    
     private def render = {
-        ((IEditable)a).updateModel(panels)
+        ((IEditable)a).updateModel(editGroups)
         (new Renderer(a)).toSVG()
     }
     
     private def save = {
-        ((IEditable)a).updateModel(panels)
+        ((IEditable)a).updateModel(editGroups)
         a.getFile().write(a.toXMLString())
     }
     
-    private def saveAndCommit = {
-        save()
-        def bankPathString = (new Config()).get("bank_path")
-        Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
+    private def commit = {
+        def bankPathString = config.get("bank_path")
         String path = Paths.get(bankPathString).relativize(a.qpath)
+        
+        Gitter gitter = new Gitter(new File("${bankPathString}/.git"))        
+        
         Set<String> toAdd = gitter.toAdd(path.toString())
         Set<String> toDelete = gitter.toDelete(path.toString())
-        if (toAdd.size() + toDelete.size() > 0) {
+        
+        if (toAdd.size() + toDelete.size() > 0) {            
             String message =
             "# To Add: ${toAdd.toString()}\n# To Delete ${toDelete.toString()}\n" +
             "# Edit Commit message. Any line beginning with '#' will be ignored.\n" +
@@ -216,7 +250,7 @@ class Editor {
     
     private def clear = {
         int idx = sb.tpTeX.selectedIndex
-        panels[idx].components.each { comp ->
+        editGroups[idx].editItems.each { comp ->
             componentToText.get(comp).text = ""
         }
     }
@@ -229,10 +263,11 @@ class Editor {
                 separator()
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
                 separator()
-                menuItem(text: "Save + Commit", actionPerformed: { saveAndCommit() })
+                menuItem(text: "Save + Commit", actionPerformed: { save() 
+                    commit() })
             }
             menu(text: 'Edit', mnemonic: 'E') {                
-                menuItem(text: "Skill (not implemented)", mnemonic: 'K', actionPerformed: { })
+                menuItem(text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillBuilder() })
                 menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
             }
             menu(text: 'Help', mnemonic: 'H') {
@@ -257,7 +292,6 @@ class Editor {
     }
     
     private def prefs = {
-        Config config = new Config()
         def dialog = sb.dialog(title: 'Preferences', preferredSize: [300, 200], 
             locationRelativeTo: sb.frmEditor) {            
             tableLayout {
@@ -283,26 +317,6 @@ class Editor {
         dialog.visible = true
     }
     
-    private def toggleSpellCheck = {
-        boolean spellCheckOn = taQsnTeX.getSyntaxEditingStyle() == SyntaxConstants.SYNTAX_STYLE_NONE
-        def style = spellCheckOn ? SyntaxConstants.SYNTAX_STYLE_LATEX : SyntaxConstants.SYNTAX_STYLE_NONE
-        taQsnTeX.setSyntaxEditingStyle(style)
-        if (spellCheckOn)
-            taQsnTeX.removeParser(LaTeXArea.spellingParser)
-        else
-            taQsnTeX.addParser(LaTeXArea.spellingParser)
-            
-        [taAnsTeX, taContext, taCorrect, taIncorrect, taReason].each { LaTeXArea[] list ->
-            list.each { LaTeXArea element ->
-                element.setSyntaxEditingStyle(style)
-                if (spellCheckOn)
-                    element.removeParser(LaTeXArea.spellingParser)
-                else
-                    element.addParser(LaTeXArea.spellingParser)
-            }
-        }
-    }    
-    
     private def JSVGCanvas fileToIcon(String name) {
         JSVGCanvas svgCanvas = new JSVGCanvas()
         try {
@@ -312,6 +326,5 @@ class Editor {
     }
     
     private final int TA_WIDTH = 36
-    private final def THIS_BORDA = BorderFactory.createLineBorder(new java.awt.Color(0x9297a1))
     
 }

@@ -2,39 +2,38 @@ package com.gradians.pipeline.edit
 
 interface IEditable {
 
-    Panel[] getPanels()
+    EditGroup[] getEditGroups()
     
-    void updateModel(Panel[] panel)
+    void updateModel(EditGroup[] panel)
     
 }
 
-class Panel {
+class EditGroup {
 
     String title
-    int skill
+    int skill    
+    List<EditItem> editItems
     
-    List<Component> components
-    
-    def Panel(String title, int skill = -1) {
+    def EditGroup(String title, int skill = -1) {
         this.title = title
         this.skill = skill
-        components = new ArrayList<Component>()
+        editItems = new ArrayList<EditItem>()
     }
     
-    def addComponent(Component c) {
+    def addEditItem(EditItem c) {
         c.parent = this
-        components.add(c)
+        editItems.add(c)
     }
 }
 
-class Component {
+class EditItem {
     
-    Panel parent
+    EditGroup parent
     boolean isTex
     String title = "", tex = "", image = ""
     int rows
     
-    def Component(String title, String s, int rows, boolean isTex = true) {
+    def EditItem(String title, String s, int rows, boolean isTex = true) {
         this.title = title
         this.isTex = isTex
         if (isTex)

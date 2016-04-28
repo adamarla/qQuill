@@ -1,8 +1,8 @@
 package com.gradians.pipeline.data
 
-import com.gradians.pipeline.edit.Component
+import com.gradians.pipeline.edit.EditItem
 import com.gradians.pipeline.edit.IEditable
-import com.gradians.pipeline.edit.Panel
+import com.gradians.pipeline.edit.EditGroup
 
 
 class Question extends Asset implements IEditable {
@@ -54,16 +54,16 @@ class Question extends Asset implements IEditable {
     }
     
     @Override
-    public Panel[] getPanels() {
-        Panel[] panels = new Panel[8]
-        panels[0] = new Panel("Problem")
-        panels[0].addComponent(new Component("Statement", statement.tex, 12))
+    public EditGroup[] getEditGroups() {
+        EditGroup[] panels = new EditGroup[8]
+        panels[0] = new EditGroup("Problem")
+        panels[0].addEditItem(new EditItem("Statement", statement.tex, 12))
         
         steps.eachWithIndex { step, idx ->
             if (step == null)
                 step = new Step()
-            panels[idx+1] = new Panel("Step ${idx+1}")
-            panels[idx+1].addComponent(new Component("Context", step.context, 4))            
+            panels[idx+1] = new EditGroup("Step ${idx+1}")
+            panels[idx+1].addEditItem(new EditItem("Context", step.context, 4))            
             def text, isTex
             ["Correct", "Incorrect"].each { it ->
                 if (step."tex${it}".length() > 0) {
@@ -76,44 +76,44 @@ class Question extends Asset implements IEditable {
                     isTex = true
                     text = ""
                 }
-                panels[idx+1].addComponent(new Component(it, text, 8, isTex))    
+                panels[idx+1].addEditItem(new EditItem(it, text, 8, isTex))    
             }
-            panels[idx+1].addComponent(new Component("Reason", step.reason, 12))                
+            panels[idx+1].addEditItem(new EditItem("Reason", step.reason, 6))                
         }
         
-        panels[7] = new Panel("Choices")
+        panels[7] = new EditGroup("Choices")
         choices.texs.eachWithIndex { tex, i ->
-            panels[7].addComponent(new Component(choices.correct == i ? "Correct" : "Incorrect", tex, 4))
+            panels[7].addEditItem(new EditItem(choices.correct == i ? "Correct" : "Incorrect", tex, 4))
         }
         panels
     }
 
     @Override
-    public void updateModel(Panel[] panels) {
-        panels.eachWithIndex { Panel panel, int idx ->
+    public void updateModel(EditGroup[] panels) {
+        panels.eachWithIndex { EditGroup panel, int idx ->
             if (idx == 0) {
-                statement.tex = panel.components[0].tex
+                statement.tex = panel.editItems[0].tex
             } else if (idx > 0 && idx < 7) {
-                if (panel.components[0].tex.length() > 0) {
-                    steps[idx-1].context = panel.components[0].tex
+                if (panel.editItems[0].tex.length() > 0) {
+                    steps[idx-1].context = panel.editItems[0].tex
                     
-                    if (panel.components[1].isTex)
-                        steps[idx-1].texCorrect = panel.components[1].tex
+                    if (panel.editItems[1].isTex)
+                        steps[idx-1].texCorrect = panel.editItems[1].tex
                     else
-                        steps[idx-1].texCorrect = panel.components[1].image
+                        steps[idx-1].texCorrect = panel.editItems[1].image
                         
-                    if (panel.components[2].isTex)
-                        steps[idx-1].texIncorrect = panel.components[2].tex
+                    if (panel.editItems[2].isTex)
+                        steps[idx-1].texIncorrect = panel.editItems[2].tex
                     else
-                        steps[idx-1].texCorrect = panel.components[2].image
+                        steps[idx-1].texCorrect = panel.editItems[2].image
                         
-                    if (panel.components[3])
-                        steps[idx-1].reason = panel.components[3].tex
+                    if (panel.editItems[3])
+                        steps[idx-1].reason = panel.editItems[3].tex
                     else    
-                        steps[idx-1].reason = panel.components[3].image
+                        steps[idx-1].reason = panel.editItems[3].image
                 }
             } else {
-                panels[7].components.eachWithIndex { comp, i ->
+                panels[7].editItems.eachWithIndex { comp, i ->
                     choices.texs[i] = comp.tex
                 }
             }    

@@ -6,13 +6,14 @@ import java.awt.Color
 import java.awt.event.MouseEvent
 import java.awt.GridBagConstraints as GBC
 import java.nio.file.Path
-
+import java.nio.file.Paths;
 import java.awt.event.ActionEvent
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
+import javax.swing.border.Border
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
 import javax.swing.KeyStroke
@@ -39,7 +40,6 @@ import ca.odell.glazedlists.matchers.Matcher
 import ca.odell.glazedlists.swing.AdvancedTableModel
 import ca.odell.glazedlists.swing.GlazedListsSwing
 import ca.odell.glazedlists.swing.TableComparatorChooser
-
 import static java.awt.BorderLayout.PAGE_START
 import static java.awt.BorderLayout.PAGE_END
 import static java.awt.BorderLayout.CENTER
@@ -53,7 +53,7 @@ import static javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 
-class Clerk {
+class Clerk implements ISkillLibClient {
     
     SwingBuilder sb
     Config config
@@ -68,24 +68,22 @@ class Clerk {
         sb.edt {
             lookAndFeel 'nimbus'
             frame(id: 'frmClerk', title: "Quill (${Editor.VERSION}) - Clerk",
-                size: [720, 600], show: true, locationRelativeTo: null,
+                size: [840, 600], show: true, locationRelativeTo: null,
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 getMenuBar()
                 panel() {
                     gridBagLayout()                    
-                    vbox(constraints: gbc(gridx: 0, gridy: 0, gridheight: 2, weightx: 1, weighty: 1,
-                            anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
+                    vbox(constraints: gbc(gridheight: 2, weightx: 1, weighty: 1,
+                        anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
                         getSelectorLists()
                     }                                                        
-                    scrollPane(constraints: gbc(gridx: 1, gridy: 0, weightx: 1, weighty: 0.8,
-                            anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
+                    scrollPane(constraints: gbc(gridx: 1, weightx: 1, weighty: 0.5,
+                        anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
                         createTable()
-                    }                            
-                    panel(border: BorderFactory.createCompoundBorder(
-                        BorderFactory.createEmptyBorder(2, 2, 2, 2),
-                        BorderFactory.createLineBorder(new Color(0x9297a1))),
-                        constraints: gbc(gridx: 1, gridy: 1, weightx: 1, weighty: 0.2,
-                            anchor: GBC.PAGE_END, fill: GBC.BOTH), id: 'pnlPreview')
+                    }
+                    panel(border: A_BORDER, 
+                        constraints: gbc(gridx: 1, gridy: 1, weightx: 1, weighty: 0.5,
+                        anchor: GBC.PAGE_END, fill: GBC.BOTH), id: 'pnlPreview')
                 }
             }
             tableSorter = TableComparatorChooser.install(sb.tblAssets, sortedList,
@@ -123,9 +121,11 @@ class Clerk {
         chapters.each { chapter ->
             items = Network.executeHTTPGet("sku/list?c=${chapter.id}")
             items.each{ item ->
+                config.addToChapterMap(item.path, item.chapterId)
                 assets << Asset.getInstance(item)
             }
         }
+        config.commitChapterMap()
         artefactsEventList.addAll assets
     }
     
@@ -139,9 +139,11 @@ class Clerk {
     }
         
     private def onRowSelect = { int row ->
+        if (row < 0 || row > filteredList.size()-1)
+            return
         Asset selected = filteredList.get(row).load()
         IEditable e = (IEditable)selected
-        def tex = e.getPanels()[0].getComponents()[0].tex
+        def tex = e.getEditGroups()[0].getEditItems()[0].tex
         if (tex.length() > 0) {
             sb.pnlPreview.removeAll()
             sb.pnlPreview.add new TeXLabel(tex, "Preview")
@@ -151,46 +153,56 @@ class Clerk {
     }
     
     private def launchNewAssetDialog(AssetClass assetClass) {
-        final def newAssetDialog = sb.dialog(id: 'dlgNewAsset', 
-            title: "New ${assetClass} on?", 
-            locationRelativeTo: sb.frmClerk) {
+        final def newAssetDialog = sb.dialog(id: 'dlgNewAsset', modal: true, 
+            title: "New ${assetClass} on?") {
             vbox() {
                 comboBox(id: 'cbChapter', items: chapters, selectedIndex: 0)
-                button(text: 'Create',
-                    actionPerformed: {
-                        Category chapter = (Category)sb.cbChapter.getSelectedItem()
-                        if (assetClass != AssetClass.Snippet) {
-                            createNewAsset(assetClass, chapter)
-                            new Editor(filteredList.get(row).load()).launchGeneric()    
-                        } else {
-                            SkillLibrary sl = new SkillLibrary(chapter, this)
-                            sl.launch(this.artefactsEventList.findAll {
-                                it.assetClass == AssetClass.Skill && it.chapterId == chapter.id
-                            })
-                        }
-                        sb.dlgNewAsset.dispose()
-                    })
+                panel() {
+                    button(text: 'Create',
+                        actionPerformed: {
+                            Category chapter = (Category)sb.cbChapter.getSelectedItem()
+                            if (assetClass != AssetClass.Snippet) {
+                                Asset asset = createNewAsset(assetClass, chapter)
+                                new Editor(asset.load()).launchGeneric()
+                            } else {
+                                SkillLibrary sl = new SkillLibrary(this)
+                                sl.launch(chapter.id)
+                            }
+                            sb.dlgNewAsset.dispose()
+                        })
+                    button(text: 'Cancel', actionPerformed: { sb.dlgNewAsset.dispose() })    
+                }
             }
         }
         newAssetDialog.pack()
+        newAssetDialog.setLocationRelativeTo(sb.frmClerk)
         newAssetDialog.visible = true
     }
     
-    def createNewAsset(AssetClass assetClass, Category chapter, Category skill = null) {
+    @Override
+    public void applySelectedSkill(Skill skill) {
+        Snippet snippet = createNewAsset(AssetClass.Snippet,
+            chapterById.get(skill.chapterId), new Category([id: skill.id]))
+        new Editor(snippet.load()).launchGeneric()
+    }
+    
+    @Override
+    public java.awt.Component getParentComponent() { sb.frmClerk }
+
+    private Asset createNewAsset(AssetClass assetClass, Category chapter, Category skill = null) {
         // call server
         def userId = config.get("user_id")
-        def url
-        if (assetClass == AssetClass.Snippet) {
-            url = "snippet/add?e=${userId}&sk=${skill.id}"
-        } else {
-            url = "${assetClass.toString().toLowerCase()}/add?e=${userId}&c=${chapter.id}"
-        }
+        def key = assetClass == AssetClass.Snippet ? "sk" : "c"
+        def value = assetClass == AssetClass.Snippet ? skill.id : chapter.id
+        def url = "${assetClass.toString().toLowerCase()}/add?e=${userId}&${key}=${value}"        
         def params = Network.executeHTTPPost(url)
+        
         params.chapterId = chapter.id
         params.authorId = userId
-        params.assetClass = assetClass
+        params.assetClass = assetClass        
         Asset newAsset = Asset.getInstance(params)
         newAsset.create()
+        
         // in the case of Snippets, explicitly write skill in source.xml
         // TODO: Need to figure this bit out for Snippets and Questions
         if (assetClass == AssetClass.Snippet) {
@@ -200,14 +212,14 @@ class Clerk {
         }
         // refresh list
         artefactsEventList.add newAsset
-        sb.listChapters.setSelectedValue(chapter, true)
+        // TODO: Figure out how to select (blue) this sucker!
         newAsset
     }
     
     private def filter = {
         sb.tblAssets.clearSelection()
-        List<Catalog> authorSelection = sb.listAuthors.getSelectedValuesList()
-        List<Catalog> chapterSelection = sb.listChapters.getSelectedValuesList()
+        List<Category> authorSelection = sb.listAuthors.getSelectedValuesList()
+        List<Category> chapterSelection = sb.listChapters.getSelectedValuesList()
         List<AssetClass> classSelection = sb.listClasses.getSelectedValuesList()
         AssetsMatcher matcher = new AssetsMatcher(chapterSelection, authorSelection, classSelection, this)
         filteredList.setMatcher(matcher)
@@ -225,8 +237,7 @@ class Clerk {
         tableAssets.selectionModel.addListSelectionListener(
             [valueChanged: { ListSelectionEvent lse ->
                 int row = tableAssets.selectedRow
-                if (row != -1)
-                    onRowSelect(tableAssets.selectedRow)
+                onRowSelect(tableAssets.selectedRow)
             }] as ListSelectionListener)
         tableAssets.getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).
             put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Enter")
@@ -264,7 +275,7 @@ class Clerk {
     private def getSelectorLists = {
         sb.scrollPane(horizontalScrollBarPolicy: HORIZONTAL_SCROLLBAR_NEVER) {
             list(id: 'listChapters', listData: chapters, valueChanged: { filter() },
-                layoutOrientation: VERTICAL, visibleRowCount: 12)
+                layoutOrientation: VERTICAL, visibleRowCount: 12, selectionMode: SINGLE_SELECTION)
         }
         sb.scrollPane() {
             list(id: 'listAuthors', listData: authors, valueChanged: { filter() },
@@ -285,11 +296,20 @@ class Clerk {
             menu(text: 'File', mnemonic: 'F') {
                 menu(text: "New", mnemonic: 'N') {
                     menuItem(text: "Skill", mnemonic: 'K', 
-                        actionPerformed: { launchNewAssetDialog(AssetClass.Skill) })
+                        actionPerformed: { 
+                            def skill = createNewAsset(AssetClass.Skill, sb.listChapters.selectedValue)
+                            new Editor(skill.load()).launchGeneric()
+                            })
                     menuItem(text: "Snippet", mnemonic: 'N', 
-                        actionPerformed: { launchNewAssetDialog(AssetClass.Snippet) })
+                        actionPerformed: {
+                            SkillLibrary sl = new SkillLibrary(this)
+                            sl.launch(sb.listChapters.selectedValue)
+                        })
                     menuItem(text: "Problem", mnemonic: 'P', 
-                        actionPerformed: { launchNewAssetDialog(AssetClass.Question) })
+                        actionPerformed: { 
+                            def question = createNewAsset(AssetClass.Question, sb.listChapters.selectedValue)
+                            new Editor(question.load()).launchGeneric()
+                            })
                 }
                 menuItem(text: "Synch (not implemented)", mnemonic: 'H', actionPerformed: { pullPush() } )
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
@@ -304,7 +324,7 @@ class Clerk {
             }
         }
     }
-    
+        
     private List<Category> chapters
     private List<Category> authors
     private EnumSet<AssetClass> classes = EnumSet.allOf(AssetClass.class)
@@ -318,6 +338,9 @@ class Clerk {
     private EventList<Asset> artefactsEventList
     private TableComparatorChooser<Asset> tableSorter
     
+    final Border A_BORDER = BorderFactory.createCompoundBorder(
+        BorderFactory.createEmptyBorder(2, 2, 2, 2),
+        BorderFactory.createLineBorder(new Color(0x9297a1)))    
 }
 
 class AssetsMatcher implements Matcher {
@@ -370,6 +393,12 @@ class Category {
     int id    
     String name
     
+    @Override
+    public boolean equals(Object obj) {
+        Category c = (Category)obj
+        return id == c.id && name.equals(c.name)
+    }
+
     @Override
     public String toString() {
         "${name}"
