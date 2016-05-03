@@ -48,7 +48,8 @@ class SkillLibrary {
         sb.edt {
             lookAndFeel 'nimbus'
             dialog(id: 'dlgSkills', title: 'Skill Library', modal: true,
-            defaultCloseOperation: DISPOSE_ON_CLOSE) {
+                preferredSize: [480, 160],
+                defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 gridBagLayout()
                 
                 comboBox(id: 'cbChapters', items: chapters, selectedItem: chapter,
@@ -62,7 +63,7 @@ class SkillLibrary {
                     renderer: renderer, maximumRowCount: 5)
                 
                 panel(constraints: gbc(gridy: 2, weightx: 1, fill: HORIZONTAL)) {
-                    button(text: 'Select',
+                    button(id: 'btnSelectSkill', text: 'Select',
                         actionPerformed: {
                             sb.dlgSkills.modal = false
                             client.applySelectedSkill(sb.cbSkills.selectedItem)
@@ -124,8 +125,13 @@ class SkillRenderer extends JLabel implements ListCellRenderer {
         } else {
             setBackground(list.getBackground())
         }
-        Skill skill = ((Skill)value).load()
-        this.icon = TeXHelper.createIcon(skill.texStatement, 15, false)
+        Skill skill
+        if (value != null) {
+            skill = ((Skill)value).load()
+            this.icon = TeXHelper.createIcon(skill.texStatement, 15, false)
+        } else {
+            this.icon = TeXHelper.createIcon("\\text{No Skills defined}", 15, false)
+        }
         this.border = new EmptyBorder(5, 5, 5, 5)
         return this
     }

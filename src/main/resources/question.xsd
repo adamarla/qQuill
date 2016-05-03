@@ -19,10 +19,11 @@
 	</xsd:complexType>
 	<xsd:complexType name="stepType">
 	   <xsd:sequence>
-	       <xsd:element name="context" type="tns:texType"/>
+	       <xsd:element name="context" type="tns:texType" minOccurs="0" />
 	       <xsd:element name="tex" type="tns:texType" minOccurs="0" maxOccurs="2"/>
            <xsd:element name="image" type="tns:texType" minOccurs="0" maxOccurs="2"/>
            <xsd:element name="reason" type="tns:texType"/>
+            <xsd:element name="skills" type="tns:skillsType" minOccurs="0"/>
 	   </xsd:sequence>
 	   <xsd:attribute name="swipe" type="xsd:boolean"/>
 	</xsd:complexType>
@@ -39,5 +40,17 @@
 	        </xsd:extension>
 	    </xsd:simpleContent>
 	</xsd:complexType>
+    <xsd:complexType name="skillsType">
+        <xsd:sequence>
+            <xsd:element name="skill" type="tns:skillType" minOccurs="0" maxOccurs="2"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="skillType">
+        <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+                <xsd:attribute name="id" type="xsd:int" use="optional"/>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
 </xsd:schema>
 

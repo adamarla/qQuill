@@ -98,10 +98,10 @@ class LaTeXArea extends RSyntaxTextArea {
         def area = new LaTeXArea(editor, tex, row, col)
         area.getDocument().addDocumentListener(new DocumentListener() {
             void insertUpdate(DocumentEvent e) {
-                editor.updatePreview(area)
+                editor.refreshLaTeXPreview(area)
             }
             void removeUpdate(DocumentEvent e) {
-                editor.updatePreview(area)
+                editor.refreshLaTeXPreview(area)
             }
             void changedUpdate(DocumentEvent e) { }
         })

@@ -18,7 +18,6 @@ abstract class Asset implements Comparable {
         switch (AssetClass.valueOf(map.assetClass)) {
             case AssetClass.Question:
                 asset = new Question(map)
-                asset.SRC_FILE = "question.xml"
                 asset.SCHEMA_FILE = "question.xsd"
                 asset.REF_FILE = "question.xml"
                 break

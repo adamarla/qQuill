@@ -319,11 +319,49 @@ class Clerk implements ISkillLibClient {
                     actionPerformed: { })
             }
             menu(text: 'Help', mnemonic: 'H') {
-                menuItem(text: "About", mnemonic: 'A', actionPerformed: { })
-                menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { })
+                menuItem(text: "About", mnemonic: 'A', actionPerformed: { showAbout() })
+                menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { showSettings() })
             }
         }
     }
+    
+    private def showSettings() {
+        def dialog = sb.dialog(id: 'dlgSettings', title: 'Settings',
+            modal: true, locationRelativeTo: sb.frmClerk) {
+            vbox() {                
+                table(id: 'tblSettings', showHorizontalLines: true, showVerticalLines: true) {
+                    tableModel: {
+                        def model = []
+                        config.config.keySet().each {
+                            model << [ 'name': it, 'value': config.get(it) ]
+                        }
+                        tableModel(list: model) {
+                            closureColumn(header: 'Property', width: 100, read: { row -> return row.name} )
+                            closureColumn(header: 'Value', width: 400, read: { row -> return row.value} )
+                        }
+                    }
+                }
+                panel() {
+                    button(text: 'Apply', actionPerformed: { 
+                        sb.dlgSettings.dispose() 
+                    })
+                    button(text: 'Cancel', actionPerformed: { 
+                        sb.dlgSettings.dispose() 
+                    })    
+                }
+            }
+        }
+        dialog.pack()
+        dialog.visible = true
+    }
+    
+    void showAbout() {
+        def iconURL = Clerk.class.getClassLoader().getResource("logo-prepwell.png")
+        def pane = sb.optionPane(message: 'Quill - Author and Administer Assets\n Version 2.0',
+            icon: new javax.swing.ImageIcon(iconURL))
+        def dialog = pane.createDialog(sb.frmClerk, 'About Quill')
+        dialog.visible = true
+   }
         
     private List<Category> chapters
     private List<Category> authors

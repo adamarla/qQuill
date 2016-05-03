@@ -17,34 +17,34 @@ class Question extends Asset implements IEditable {
                 tex(statement.tex) 
             }
             steps.each { step ->
-                if (step != null && step.context.length() != 0) {
-                    delegate.step(step.noswipe ? [swipe: false] : [:]) {
-                        if (step.imageContext.length() > 0)
-                            context(image: "true", step.imageContext)
-                        else
-                            context(step.context)
+                if (step.reason.length() > 0) {                    
+                    delegate.step() {
                         
                         if (step.imageCorrect.length() > 0)
-                            image(correct: "true", step.imageCorrect)
+                            image(correct: true, step.imageCorrect)
                         else if (step.texCorrect.length() > 0)
-                            tex(correct: "true", step.texCorrect)
+                            tex(correct: true, step.texCorrect)
                             
                         if (step.imageIncorrect.length() > 0)
                             image(step.imageIncorrect)
                         else if (step.texIncorrect.length() > 0)
                             tex(step.texIncorrect)
                             
-                        if (step.imageReason.length() > 0)
-                            reason(image: "true", step.imageReason)
-                        else
-                            reason(step.reason)
+                        reason(step.reason)
+                        
+                        if (step.skill != -1) {
+                            delegate.skills() {
+                                delegate.skill(id: step.skill)
+                            }
+                        }            
                     }
                 }
             }
+            
             if (choices.texs[0].length() > 0) {
                 delegate.choices() {
                     choices.texs.eachWithIndex { tex, i ->
-                        def map = choices.correct == i ? [correct: 'true'] : [:]
+                        def map = choices.correct == i ? [correct: true] : [:]
                         delegate.tex(map, tex)
                     }
                 }
@@ -60,12 +60,10 @@ class Question extends Asset implements IEditable {
         panels[0].addEditItem(new EditItem("Statement", statement.tex, 12))
         
         steps.eachWithIndex { step, idx ->
-            if (step == null)
-                step = new Step()
             panels[idx+1] = new EditGroup("Step ${idx+1}")
-            panels[idx+1].addEditItem(new EditItem("Context", step.context, 4))            
+            panels[idx+1].skill = step.skill
             def text, isTex
-            ["Correct", "Incorrect"].each { it ->
+            ["Correct", "Incorrect"].each { it ->                
                 if (step."tex${it}".length() > 0) {
                     isTex = true
                     text = step."tex${it}"
@@ -94,23 +92,24 @@ class Question extends Asset implements IEditable {
             if (idx == 0) {
                 statement.tex = panel.editItems[0].tex
             } else if (idx > 0 && idx < 7) {
-                if (panel.editItems[0].tex.length() > 0) {
-                    steps[idx-1].context = panel.editItems[0].tex
+                if (panel.editItems[REASON_IDX].tex.length() > 0) {
                     
-                    if (panel.editItems[1].isTex)
-                        steps[idx-1].texCorrect = panel.editItems[1].tex
+                    steps[idx-1].skill = panel.skill
+                    
+                    if (panel.editItems[CORRECT_IDX].isTex)
+                        steps[idx-1].texCorrect = panel.editItems[CORRECT_IDX].tex
                     else
-                        steps[idx-1].texCorrect = panel.editItems[1].image
+                        steps[idx-1].texCorrect = panel.editItems[CORRECT_IDX].image
                         
-                    if (panel.editItems[2].isTex)
-                        steps[idx-1].texIncorrect = panel.editItems[2].tex
+                    if (panel.editItems[INCORRECT_IDX].isTex)
+                        steps[idx-1].texIncorrect = panel.editItems[INCORRECT_IDX].tex
                     else
-                        steps[idx-1].texCorrect = panel.editItems[2].image
+                        steps[idx-1].texCorrect = panel.editItems[INCORRECT_IDX].image
                         
-                    if (panel.editItems[3])
-                        steps[idx-1].reason = panel.editItems[3].tex
-                    else    
-                        steps[idx-1].reason = panel.editItems[3].image
+                    if (panel.editItems[REASON_IDX].isTex)
+                        steps[idx-1].reason = panel.editItems[REASON_IDX].tex
+                    else
+                        steps[idx-1].reason = panel.editItems[REASON_IDX].image
                 }
             } else {
                 panels[7].editItems.eachWithIndex { comp, i ->
@@ -135,15 +134,11 @@ class Question extends Asset implements IEditable {
                 svgs.put("${counter++}.svg", statement.tex)
             }
             steps.each { step ->
-                if (step != null && step.context.length() > 0) {
+                if (step.reason.length() > 0) {
                     delegate.step() {
-                        context() {
-                            tex(src: "${counter}.svg")
-                            svgs.put("${counter++}.svg", step.context)                    
-                        }
                         options() {
                             ["Correct", "Incorrect"].each { option ->
-                                def correct = option.equals("Correct") ? 'true' : 'false'
+                                def correct = option.equals("Correct")
                                 if (step."tex${option}".length() > 0) {
                                     tex(src: "${counter}.svg", correct: correct)
                                     svgs.put("${counter++}.svg", step."tex${option}")
@@ -156,6 +151,12 @@ class Question extends Asset implements IEditable {
                             tex(src: "${counter}.svg")
                         }
                         svgs.put("${counter++}.svg", step.reason)
+                        
+                        if (step.skill != -1) {
+                            delegate.skills() {
+                                delegate.skill(id: step.skill)
+                            }
+                        }
                     }
                 }
             }
@@ -164,7 +165,7 @@ class Question extends Asset implements IEditable {
                 delegate.choices() {
                     choices.texs.eachWithIndex { tex, i ->
                         def map = i == choices.correct ? [src: "${counter}.svg"] : 
-                            [src: "${counter}.svg", correct: 'false']
+                            [src: "${counter}.svg", correct: false]
                         delegate.tex(map)
                         svgs.put("${counter++}.svg", tex)
                     }
@@ -184,35 +185,18 @@ class Question extends Asset implements IEditable {
             statement.image = xml.statement.image.toString()
             
         steps = new Step[6]
+        steps.eachWithIndex { it, i -> steps[i] = new Step() }
         xml.step.eachWithIndex { it, i ->
-            Step step = new Step()
-            if (it.@swipe.isEmpty()) {
-                step.noswipe = false
-            } else if (it.@swipe.equals("false")) {
-                step.noswipe = true
-            }
-            
-            if (it.context.@image.equals("true"))
-                step.imageContext = it.context.toString()
-            else
-                step.context = it.context.toString()
-            
             ["tex", "image"].each { content ->
                 it."${content}".each { option ->
                     if (option.@correct.equals("true")) {
-                        step."${content}Correct" = option.toString()
+                        steps[i]."${content}Correct" = option.toString()
                     } else {
-                        step."${content}Incorrect" = option.toString()
+                        steps[i]."${content}Incorrect" = option.toString()
                     }
                 }
             }
-            
-            if (it.reason.@image.equals("true"))
-                step.imageReason = it.reason.toString()
-            else
-                step.reason = it.reason.toString()
-                        
-            steps[i] = step
+            steps[i].reason = it.reason.toString()
         }
         
         choices = new Choices()
@@ -228,7 +212,9 @@ class Question extends Asset implements IEditable {
     
     Statement statement
     Step[] steps
-    Choices choices    
+    Choices choices
+    
+    final int CORRECT_IDX = 0, INCORRECT_IDX = 1, REASON_IDX = 2 
 
 }
 
@@ -238,8 +224,9 @@ class Statement {
 
 class Step {
     boolean noswipe
-    String imageCorrect = "", imageIncorrect = "", imageContext = "", imageReason = ""
-    String texCorrect = "", texIncorrect = "", context = "", reason = ""
+    String imageCorrect = "", imageIncorrect = "", imageReason = ""
+    String texCorrect = "", texIncorrect = "", reason = ""
+    int skill = -1
 }
 
 class Choices {

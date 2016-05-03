@@ -28,6 +28,7 @@ class Snippet extends Asset implements IEditable {
             correct = false
         }
         texReason = panel[0].editItems[2].tex
+        skill = panel[0].skill
     }
 
     @Override

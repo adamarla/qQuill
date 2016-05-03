@@ -43,14 +43,10 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 /** 
  * There are three kinds of objects that are kept in sync 
  * using HashMaps. These are,
- * 1. TextAreas  - for displaying latex
- * 2. Components - data objects for holding latex
- * 3. Display    - for displaying the rendered latex
- * 
- * HashMaps -
- * textToComponent    (1 -> 2)
- * componentToDisplay (2 -> 3)
- * componentToText    (2 -> 1)
+ * 1. LatexAreas - text area objects for displaying latex
+ * 2. Items      - generic data objects for holding latex be it
+ *                 for a Question, Skill or Snippet
+ * 3. Display    - display widgets for previewing rendered latex
  * 
  * @author adamarla
  * 
@@ -64,13 +60,15 @@ class Editor implements ISkillLibClient {
     SwingBuilder sb
     Asset a
     EditGroup[] editGroups
-    Map textToComponent, componentToDisplay, componentToText
+    Map latexToItem, itemToDisplay, itemToLatex
         
-    def Editor(Asset a) {
-        this.a = a
-        textToComponent = new HashMap()
-        componentToDisplay = new HashMap()
-        componentToText = new HashMap()
+    def Editor(Asset asset) {
+        a = asset
+        
+        latexToItem = new HashMap()
+        itemToDisplay = new HashMap()
+        itemToLatex = new HashMap()
+        
         sb = new SwingBuilder()
         config = new Config()
     }
@@ -88,12 +86,13 @@ class Editor implements ISkillLibClient {
                 // left panel
                 tabbedPane(id: 'tpTeX', tabPlacement: LEFT,
                     constraints: gbc(weightx: 0.75, weighty: 1, gridheight: 2, fill: BOTH)) {
-                    editGroups.each { pnl -> layoutPanel(pnl) }
+                    editGroups.each { group -> layoutEditGroup(group) }
                 }
                 // right panel
-                panel(id: 'pnlReference', 
+                panel(id: 'pnlReference', preferredSize: [420, 200],
                     constraints: gbc(gridx: 1, weightx: 0.25, fill: HORIZONTAL))
-                scrollPane(id: 'spDisplay',
+                
+                scrollPane(id: 'spDisplay', preferredSize: [420, 400],
                     constraints: gbc(gridx: 1, gridy: 1, weightx: 0.25, weighty: 1, fill: BOTH)) {
                     vbox(id: 'vbDisplay')
                 }    
@@ -102,43 +101,46 @@ class Editor implements ISkillLibClient {
                 @Override
                 void stateChanged(ChangeEvent changeEvent) {
                     int idx = sb.tpTeX.selectedIndex
-                    previewPanel(editGroups[idx])
+                    layoutEditGroupPreview(editGroups[idx])
+                    refreshSkillPreview(editGroups[idx])
                 }
             }
-            previewPanel(editGroups[0])
+            layoutEditGroupPreview(editGroups[0])
+            refreshSkillPreview(editGroups[0])
         }
     }
     
-    public def updatePreview(LaTeXArea area) {
-        def comp = textToComponent.get(area)
-        def display = componentToDisplay.get(comp)
-        if (comp.isTex) {
+    public def refreshLaTeXPreview(LaTeXArea area) {
+        def item = latexToItem.get(area)
+        def display = itemToDisplay.get(item)
+        if (item.isTex) {
             display.setText(area.getText())
             display.revalidate()
             display.repaint()
         } else {
-            comp.isTex = true
-            Files.deleteIfExists(a.qpath.resolve(comp.image))
-            componentToDisplay.remove(comp)
-            previewPanel(comp.parent)
+            item.isTex = true
+            Files.deleteIfExists(a.qpath.resolve(item.image))
+            itemToDisplay.remove(item)
+            layoutEditGroupPreview(item.parent)
         }
-        comp.tex = area.getText()
+        item.tex = area.getText()
     }
     
     @Override
     public void applySelectedSkill(Skill skill) {
         int idx = sb.tpTeX.selectedIndex
         editGroups[idx].skill = skill.id
+        refreshSkillPreview(editGroups[idx])
     }
     
     @Override
     public java.awt.Component getParentComponent() { sb.frmEditor }
     
-    private def layoutPanel = { EditGroup pnl ->
-        sb.vbox(name: pnl.title) {
-            pnl.getEditItems().eachWithIndex { comp, i ->
+    private def layoutEditGroup = { EditGroup eg ->
+        sb.vbox(name: eg.title) {
+            eg.getEditItems().eachWithIndex { item, i ->
                 def ta = LaTeXArea.getInstance(this, 
-                    comp.isTex ? comp.tex : "file: ${comp.image}", 6, TA_WIDTH)
+                    item.isTex ? item.tex : "file: ${item.image}", 6, TA_WIDTH)
                 
                 ta.dropTarget = [
                     drop: { DropTargetDropEvent dtde ->
@@ -148,75 +150,78 @@ class Editor implements ISkillLibClient {
                             File f = (File)dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor)[0]
                             if (f.getName().toLowerCase().endsWith("svg")) {
                                 ta.text = "file: img_${f.getName()}"
-                                comp.image = f.getName()
-                                comp.isTex = false
+                                item.image = f.getName()
+                                item.isTex = false
                                 Path dest = a.qpath.resolve("img_${f.getName()}")
                                 Files.deleteIfExists(dest)
                                 Files.copy(f.toPath(), dest)
-                                previewPanel(comp.getParent())
+                                layoutEditGroupPreview(item.getParent())
                             }
                         }
                     }
                 ] as DropTarget
             
-                textToComponent.put(ta, comp)
-                componentToText.put(comp, ta)
+                latexToItem.put(ta, item)
+                itemToLatex.put(item, ta)
                 
                 def wigit = new RTextScrollPane(ta, true)
-                wigit.setBorder(BorderFactory.createTitledBorder(comp.title))                    
+                wigit.setBorder(BorderFactory.createTitledBorder(item.title))
                 sb.widget(wigit)
             }
         }
     }
     
-    private def previewPanel = { EditGroup pnl ->
-        def tex
-        if (pnl.skill != -1) {
-            def map = [path: "skills/${pnl.skill}", assetClass: "Skill"]
-            Skill reference = Asset.getInstance(map).load()
-            IEditable e = (IEditable)reference
-            tex = e.getEditGroups()[0].getEditItems()[0].tex
-        } else {
-            tex = "\\text{Think of something good!}"        
-        }
-        sb.pnlReference.removeAll()
-        sb.pnlReference.add new TeXLabel(tex, "Reference")
-        sb.pnlReference.revalidate()
-        sb.pnlReference.repaint()
-
+    private def layoutEditGroupPreview = { EditGroup eg ->
         sb.vbDisplay.removeAll()
-        pnl.getEditItems().eachWithIndex { comp, i ->
-            componentToDisplay.remove(comp)
+        eg.getEditItems().eachWithIndex { item, i ->
+            itemToDisplay.remove(item)
             def drawable
-            if (comp.isTex) {
-                drawable = new TeXLabel(comp.tex, comp.title)
+            if (item.isTex) {
+                drawable = new TeXLabel(item.tex, item.title)
             } else {
-                drawable = fileToIcon(comp.image)
+                drawable = fileToIcon(item.image)
             }
-            componentToDisplay.put(comp, drawable)
+            itemToDisplay.put(item, drawable)
             sb.vbDisplay.add drawable
         }
         sb.vbDisplay.revalidate()
         sb.vbDisplay.repaint()
     }
     
-    private def launchSkillBuilder = {
+    private def refreshSkillPreview(EditGroup eg) {
+        def tex
+        if (eg.skill != -1) {
+            def map = [path: "skills/${eg.skill}", assetClass: "Skill"]
+            Skill reference = Asset.getInstance(map).load()
+            IEditable e = (IEditable)reference
+            tex = e.getEditGroups()[0].getEditItems()[0].tex
+        } else {
+            tex = "\\text{A skill. Is whistling a skill?}"
+        }
+        
+        sb.pnlReference.removeAll()
+        sb.pnlReference.add new TeXLabel(tex, "Reference")
+        sb.pnlReference.revalidate()
+        sb.pnlReference.repaint()
+    }
+    
+    private def launchSkillBuilder() {
         int idx = sb.tpTeX.selectedIndex        
         SkillLibrary sl = new SkillLibrary(this)
         sl.launch(a.chapterId, editGroups[idx].skill)
     }
     
-    private def render = {
+    private def render() {
         ((IEditable)a).updateModel(editGroups)
         (new Renderer(a)).toSVG()
     }
     
-    private def save = {
+    private def save() {
         ((IEditable)a).updateModel(editGroups)
         a.getFile().write(a.toXMLString())
     }
     
-    private def commit = {
+    private def commit() {
         def bankPathString = config.get("bank_path")
         String path = Paths.get(bankPathString).relativize(a.qpath)
         
@@ -248,10 +253,10 @@ class Editor implements ISkillLibClient {
         }
     }
     
-    private def clear = {
+    private def clear() {
         int idx = sb.tpTeX.selectedIndex
         editGroups[idx].editItems.each { comp ->
-            componentToText.get(comp).text = ""
+            itemToLatex.get(comp).text = ""
         }
     }
     
@@ -270,51 +275,7 @@ class Editor implements ISkillLibClient {
                 menuItem(text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillBuilder() })
                 menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
             }
-            menu(text: 'Help', mnemonic: 'H') {
-                menuItem(text: "About Quill", mnemonic: 'A', actionPerformed: { about() })
-                menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { prefs() })
-            }
         }
-    }
-    
-    private def about = {
-        def imageURL = Editor.class.getResource("logo-prepwell.png")
-        ImageIcon icon
-        if (imageURL != null) {
-            icon = new ImageIcon(imageURL)
-        }
-        def dialog = sb.dialog(title: 'About Quill', preferredSize: [150, 50],
-            locationRelativeTo: sb.frmEditor) {
-            label(text: "Administer and Author academic assets", icon: icon)
-        }
-        dialog.pack()
-        dialog.visible = true
-    }
-    
-    private def prefs = {
-        def dialog = sb.dialog(title: 'Preferences', preferredSize: [300, 200], 
-            locationRelativeTo: sb.frmEditor) {            
-            tableLayout {
-                tr {
-                    td {
-                        label(text: 'User Id')
-                    }
-                    td {
-                        label(text: config.get("prefs.user_id"))
-                    }
-                }
-                tr {
-                    td {
-                        label(text: 'Role')
-                    }
-                    td {
-                        label(text: config.get("prefs.role"))
-                    }
-                }
-            }            
-        }
-        dialog.pack()
-        dialog.visible = true
     }
     
     private def JSVGCanvas fileToIcon(String name) {

@@ -29,7 +29,6 @@ class Driver {
         
         Options options = new Options()
         options.addOption(Option.builder("e").argName("edit").longOpt("edit").build())
-        options.addOption(Option.builder("r").argName("render").longOpt("render").build())
         options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())        
         
         try {
@@ -37,7 +36,6 @@ class Driver {
             CommandLine cl = (new DefaultParser()).parse(options, args)
             boolean editOnly = cl.hasOption('e')
             boolean renderOnly = cl.hasOption('r')
-            boolean bundleOnly = cl.hasOption('b')
             
             if (cl.argList.size() == 0) {
                 (new Clerk()).go(true)
@@ -70,14 +68,12 @@ class Driver {
                 
                 if (renderOnly) {
                     (new Renderer(a)).toSVG()
-                } else if (bundleOnly) {
-                    (new Bundler(a)).bundle()
                 } else if (editOnly) {
                     (new Editor(a)).launchGeneric()
                 }
             }
         } catch (Exception e) {
-            println e
+            e.printStackTrace()
         }
     }        
 }
