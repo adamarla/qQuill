@@ -18,17 +18,14 @@ abstract class Asset implements Comparable {
         switch (AssetClass.valueOf(map.assetClass)) {
             case AssetClass.Question:
                 asset = new Question(map)
-                asset.SCHEMA_FILE = "question.xsd"
                 asset.REF_FILE = "question.xml"
                 break
             case AssetClass.Skill:
                 asset = new Skill(map)
-                asset.SCHEMA_FILE = "skill.xsd"
                 asset.REF_FILE = "skill.xml"
                 break
             default:
                 asset = new Snippet(map)
-                asset.SCHEMA_FILE = "snippet.xsd"
                 asset.REF_FILE = "snippet.xml"
         }
         asset
@@ -115,7 +112,7 @@ abstract class Asset implements Comparable {
     
     Path qpath
     
-    String REF_FILE, SCHEMA_FILE, LAYOUT_FILE = "layout.xml", SRC_FILE = "source.xml"
+    String REF_FILE, SCHEMA_FILE = "assets.xsd", LAYOUT_FILE = "layout.xml", SRC_FILE = "source.xml"
     
 }
 

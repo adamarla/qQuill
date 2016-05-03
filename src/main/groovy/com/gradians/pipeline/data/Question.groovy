@@ -187,6 +187,7 @@ class Question extends Asset implements IEditable {
         steps = new Step[6]
         steps.eachWithIndex { it, i -> steps[i] = new Step() }
         xml.step.eachWithIndex { it, i ->
+            
             ["tex", "image"].each { content ->
                 it."${content}".each { option ->
                     if (option.@correct.equals("true")) {
@@ -197,6 +198,10 @@ class Question extends Asset implements IEditable {
                 }
             }
             steps[i].reason = it.reason.toString()
+            
+            if (!it.skills.isEmpty()) {
+                steps[i].skill = it.skills.skill.@id.toInteger()
+            }    
         }
         
         choices = new Choices()
