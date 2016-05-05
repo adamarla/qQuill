@@ -27,7 +27,7 @@ class Skill extends Asset implements IEditable {
         def sw = new StringWriter()
         def xml = new groovy.xml.MarkupBuilder(sw)
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.skill(xmlns: "http://www.gradians.com") {
+        xml.skill([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
             render() {
                 tex(texStatement)                
             }
@@ -47,7 +47,7 @@ class Skill extends Asset implements IEditable {
         def sw = new StringWriter()
         def xml = new groovy.xml.MarkupBuilder(sw)
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.skill(xmlns: "http://www.gradians.com") {
+        xml.skill([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
             render() {
                 tex(src: "${counter}.svg")
                 svgs.put("${counter++}.svg", texStatement)
@@ -62,10 +62,13 @@ class Skill extends Asset implements IEditable {
     }
     
     @Override
-    protected void parse(InputStream xmlStream) {
+    protected Asset parse(InputStream xmlStream) {
         def xml = new XmlSlurper().parse(xmlStream)
+        if (!xml.@chapterId.isEmpty())
+            chapterId = xml.@chapterId.toInteger()
         texStatement = xml.render.tex.toString()
-        texReason = xml.reason.tex.toString()        
+        texReason = xml.reason.tex.toString()
+        this        
     }
     
     String texStatement = "", texReason = ""

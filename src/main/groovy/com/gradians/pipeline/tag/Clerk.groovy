@@ -28,7 +28,7 @@ import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.data.Snippet
 import com.gradians.pipeline.edit.Editor
 import com.gradians.pipeline.edit.IEditable
-import com.gradians.pipeline.edit.TeXHelper;
+import com.gradians.pipeline.edit.TeXHelper
 import com.gradians.pipeline.edit.TeXLabel
 
 import ca.odell.glazedlists.BasicEventList
@@ -40,6 +40,7 @@ import ca.odell.glazedlists.matchers.Matcher
 import ca.odell.glazedlists.swing.AdvancedTableModel
 import ca.odell.glazedlists.swing.GlazedListsSwing
 import ca.odell.glazedlists.swing.TableComparatorChooser
+
 import static java.awt.BorderLayout.PAGE_START
 import static java.awt.BorderLayout.PAGE_END
 import static java.awt.BorderLayout.CENTER
@@ -59,7 +60,7 @@ class Clerk implements ISkillLibClient {
     Config config
     
     public Clerk() {
-        config = new Config()
+        config = Config.getInstance()
         loadAssets()
     }
     
@@ -95,22 +96,24 @@ class Clerk implements ISkillLibClient {
     
     private def loadAssets = {
         chapters = new ArrayList<Category>()
-        chapterById = new HashMap<Integer, Category>()
         def items = Network.executeHTTPGet("chapter/list")
         items.eachWithIndex{ item, i ->
             Category c = new Category(item)
             chapters.add c
-            chapterById.put c.id, c
+            config.addChapter(c.id, c.name)
         }
         
         authors = new ArrayList<Category>()
-        authorById = new HashMap<Integer, Category>()
         items = Network.executeHTTPGet("examiner/list")
         items.eachWithIndex{ item, i ->
             Category c = new Category(item)
             authors.add c
-            authorById.put c.id, c
+            config.addAuthor(c.id, c.name)
         }
+        
+        // Persist chapter and author names locally for 
+        // later use 
+        config.commit()
         
         // Collections for display table
         artefactsEventList = new BasicEventList<Asset>()
@@ -121,11 +124,9 @@ class Clerk implements ISkillLibClient {
         chapters.each { chapter ->
             items = Network.executeHTTPGet("sku/list?c=${chapter.id}")
             items.each{ item ->
-                config.addToChapterMap(item.path, item.chapterId)
                 assets << Asset.getInstance(item)
             }
         }
-        config.commitChapterMap()
         artefactsEventList.addAll assets
     }
     
@@ -182,37 +183,38 @@ class Clerk implements ISkillLibClient {
     @Override
     public void applySelectedSkill(Skill skill) {
         Snippet snippet = createNewAsset(AssetClass.Snippet,
-            chapterById.get(skill.chapterId), new Category([id: skill.id]))
+            new Category([id: skill.chapterId, name: config.getChapter(skill.chapterId)]),
+            new Category([id: skill.id]))
         new Editor(snippet.load()).launchGeneric()
     }
     
     @Override
     public java.awt.Component getParentComponent() { sb.frmClerk }
 
-    private Asset createNewAsset(AssetClass assetClass, Category chapter, Category skill = null) {
+    private Asset createNewAsset(AssetClass assetClass, int referenceId) {
         // call server
         def userId = config.get("user_id")
         def key = assetClass == AssetClass.Snippet ? "sk" : "c"
-        def value = assetClass == AssetClass.Snippet ? skill.id : chapter.id
-        def url = "${assetClass.toString().toLowerCase()}/add?e=${userId}&${key}=${value}"        
-        def params = Network.executeHTTPPost(url)
+        def url = "${assetClass.toString().toLowerCase()}/add"
+        Map map = [e: userId, "${key}": referenceId]
         
-        params.chapterId = chapter.id
+        // create asset
+        def params = Network.executeHTTPPostBody(url, map)        
+        def referenceIdType = "chapterId"
+        if (assetClass == AssetClass.Snippet) {
+            referenceIdType = "skillId"
+            Skill s = Asset.getInstance([path: "skills/${referenceId}", assetClass: "Skill"])
+            params.chapterId = s.chapterId
+        }
+        params."$referenceIdType" = referenceId
         params.authorId = userId
-        params.assetClass = assetClass        
+        params.assetClass = assetClass
         Asset newAsset = Asset.getInstance(params)
         newAsset.create()
+        newAsset.getFile().write(newAsset.toXMLString())
         
-        // in the case of Snippets, explicitly write skill in source.xml
-        // TODO: Need to figure this bit out for Snippets and Questions
-        if (assetClass == AssetClass.Snippet) {
-            Snippet s = (Snippet)newAsset.load()
-            s.skill = skill.id
-            s.getFile().write(s.toXMLString())
-        }
         // refresh list
         artefactsEventList.add newAsset
-        // TODO: Figure out how to select (blue) this sucker!
         newAsset
     }
     
@@ -221,7 +223,7 @@ class Clerk implements ISkillLibClient {
         List<Category> authorSelection = sb.listAuthors.getSelectedValuesList()
         List<Category> chapterSelection = sb.listChapters.getSelectedValuesList()
         List<AssetClass> classSelection = sb.listClasses.getSelectedValuesList()
-        AssetsMatcher matcher = new AssetsMatcher(chapterSelection, authorSelection, classSelection, this)
+        AssetsMatcher matcher = new AssetsMatcher(chapterSelection*.name, authorSelection*.name, classSelection)
         filteredList.setMatcher(matcher)
     }
     
@@ -255,16 +257,14 @@ class Clerk implements ISkillLibClient {
         def variableNames = ['id', 'chapter', 'author', 'assetClass']
         def tableModel = GlazedListsSwing.eventTableModel(filteredList,
             [getColumnCount: { return columnNames.size()},
-             getColumnName: { index -> columnNames[index] },  
+             getColumnName: { index -> columnNames[index] },
              getColumnValue: { object, index ->
                      switch(index) {
                          case [0, 3]: 
                              object."${variableNames[index]}"
                              break
                          case [1, 2]:
-                             HashMap<Integer, Category> reference = this."${variableNames[index]}ById"
-                             Category c = reference.get(object."${variableNames[index]}Id")
-                             c.name
+                             config."get${columnNames[index]}"(object."${variableNames[index]}Id")
                              break
                      }
                  }
@@ -357,7 +357,7 @@ class Clerk implements ISkillLibClient {
     
     void showAbout() {
         def iconURL = Clerk.class.getClassLoader().getResource("logo-prepwell.png")
-        def pane = sb.optionPane(message: 'Quill - Author and Administer Assets\n Version 2.0',
+        def pane = sb.optionPane(message: 'Quill - author and administer assets\n Version 2.0',
             icon: new javax.swing.ImageIcon(iconURL))
         def dialog = pane.createDialog(sb.frmClerk, 'About Quill')
         dialog.visible = true
@@ -368,9 +368,6 @@ class Clerk implements ISkillLibClient {
     private EnumSet<AssetClass> classes = EnumSet.allOf(AssetClass.class)
     private EnumSet<AssetState> states = EnumSet.allOf(AssetState.class)
     
-    protected HashMap<Integer, Category> authorById
-    protected HashMap<Integer, Category> chapterById
-
     private FilterList<Asset> filteredList
     private SortedList<Asset> sortedList
     private EventList<Asset> artefactsEventList
@@ -383,22 +380,23 @@ class Clerk implements ISkillLibClient {
 
 class AssetsMatcher implements Matcher {
 
-    protected Clerk clerk
-    private Set chapters = new HashSet<Category>()
-    private Set authors = new HashSet<Category>()
-    private Set classes = new HashSet<AssetClass>()
+    protected Config config
+    private Set<String> chapters = new HashSet<String>()
+    private Set<String> authors = new HashSet<String>()
+    private Set<AssetClass> classes = new HashSet<AssetClass>()
 
     /**
      * Create a new {@link AssetsByChapterMatcher} that matches only 
      * {@link Asset}s belonging to one or more chapters in the specified list.
      */
-    public AssetsMatcher(Collection<Category> chapters, Collection<Category> authors, 
-        Collection<AssetClass> classes, Clerk clerk) {
+    public AssetsMatcher(Collection<String> chapters, Collection<String> authors, 
+        Collection<AssetClass> classes) {
+        this.config = Config.getInstance()
+        
         // make a defensive copy of the assets
         this.chapters.addAll(chapters)
         this.authors.addAll(authors)
         this.classes.addAll(classes)
-        this.clerk = clerk
     }
 
     /**
@@ -415,10 +413,9 @@ class AssetsMatcher implements Matcher {
         Asset asset = (Asset)o
         int chapterId = asset.getChapterId()
         int authorId = asset.getAuthorId()
-        
-        def match = chapters.contains(clerk.chapterById.get(chapterId))
+        def match = chapters.contains(config.getChapter(chapterId))
         if (authors.size() > 0) {
-            match = match && authors.contains(clerk.authorById.get(authorId))
+            match = match && authors.contains(config.getAuthor(authorId))
         }
         if (classes.size() > 0) {
             match = match && classes.contains(asset.assetClass)

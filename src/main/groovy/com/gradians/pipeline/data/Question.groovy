@@ -12,36 +12,31 @@ class Question extends Asset implements IEditable {
         def sw = new StringWriter()
         def xml = new groovy.xml.MarkupBuilder(sw)
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.question(xmlns: "http://www.gradians.com") {
+        xml.question([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
             statement() {
                 tex(statement.tex) 
             }
             steps.each { step ->
-                if (step.reason.length() > 0) {                    
-                    delegate.step() {
-                        
-                        if (step.imageCorrect.length() > 0)
+                if (step.reason) {
+                    def map = step.skill == -1 ? [:] : [skillId: step.skill]
+                    delegate.step(map) {
+                                               
+                        if (step.imageCorrect)
                             image(correct: true, step.imageCorrect)
-                        else if (step.texCorrect.length() > 0)
+                        else if (step.texCorrect)
                             tex(correct: true, step.texCorrect)
                             
-                        if (step.imageIncorrect.length() > 0)
+                        if (step.imageIncorrect)
                             image(step.imageIncorrect)
-                        else if (step.texIncorrect.length() > 0)
+                        else if (step.texIncorrect)
                             tex(step.texIncorrect)
                             
-                        reason(step.reason)
-                        
-                        if (step.skill != -1) {
-                            delegate.skills() {
-                                delegate.skill(id: step.skill)
-                            }
-                        }            
+                        reason(step.reason)                        
                     }
                 }
             }
             
-            if (choices.texs[0].length() > 0) {
+            if (choices.texs[0]) {
                 delegate.choices() {
                     choices.texs.eachWithIndex { tex, i ->
                         def map = choices.correct == i ? [correct: true] : [:]
@@ -63,11 +58,11 @@ class Question extends Asset implements IEditable {
             panels[idx+1] = new EditGroup("Step ${idx+1}")
             panels[idx+1].skill = step.skill
             def text, isTex
-            ["Correct", "Incorrect"].each { it ->                
-                if (step."tex${it}".length() > 0) {
+            ["Correct", "Incorrect"].each { it ->
+                if (step."tex${it}") {
                     isTex = true
                     text = step."tex${it}"
-                } else if (step."image${it}".length() > 0) {
+                } else if (step."image${it}") {
                     isTex = false
                     text = step."image${it}"
                 } else {
@@ -92,7 +87,7 @@ class Question extends Asset implements IEditable {
             if (idx == 0) {
                 statement.tex = panel.editItems[0].tex
             } else if (idx > 0 && idx < 7) {
-                if (panel.editItems[REASON_IDX].tex.length() > 0) {
+                if (panel.editItems[REASON_IDX].tex) {
                     
                     steps[idx-1].skill = panel.skill
                     
@@ -116,7 +111,7 @@ class Question extends Asset implements IEditable {
                     choices.texs[i] = comp.tex
                 }
             }    
-        }        
+        }
     }
 
     @Override
@@ -134,15 +129,16 @@ class Question extends Asset implements IEditable {
                 svgs.put("${counter++}.svg", statement.tex)
             }
             steps.each { step ->
-                if (step.reason.length() > 0) {
+                if (step.reason) {
+                    def map = step.skill != -1 ? [skillId: step.skill] : [:]
                     delegate.step() {
                         options() {
                             ["Correct", "Incorrect"].each { option ->
                                 def correct = option.equals("Correct")
-                                if (step."tex${option}".length() > 0) {
+                                if (step."tex${option}") {
                                     tex(src: "${counter}.svg", correct: correct)
                                     svgs.put("${counter++}.svg", step."tex${option}")
-                                } else if (step."image${option}".length() > 0) {
+                                } else if (step."image${option}") {
                                     image(src: "image${option}.svg", correct: correct)
                                 }
                             }
@@ -160,7 +156,7 @@ class Question extends Asset implements IEditable {
                     }
                 }
             }
-            if (choices.texs[0].length() > 0) {
+            if (choices.texs[0]) {
                 // http://mrhaki.blogspot.in/2012/01/groovy-goodness-solve-naming-conflicts.html
                 delegate.choices() {
                     choices.texs.eachWithIndex { tex, i ->
@@ -177,8 +173,10 @@ class Question extends Asset implements IEditable {
     }
     
     @Override
-    protected void parse(InputStream xmlStream) {
+    protected Asset parse(InputStream xmlStream) {
         def xml = new XmlSlurper().parse(xmlStream)
+        if (!xml.@chapterId.isEmpty())
+            chapterId = xml.@chapterId.toInteger()
         statement = new Statement()
         statement.tex = xml.statement.tex.toString()
         if (!xml.statement.image.isEmpty())
@@ -186,8 +184,7 @@ class Question extends Asset implements IEditable {
             
         steps = new Step[6]
         steps.eachWithIndex { it, i -> steps[i] = new Step() }
-        xml.step.eachWithIndex { it, i ->
-            
+        xml.step.eachWithIndex { it, i ->            
             ["tex", "image"].each { content ->
                 it."${content}".each { option ->
                     if (option.@correct.equals("true")) {
@@ -199,8 +196,8 @@ class Question extends Asset implements IEditable {
             }
             steps[i].reason = it.reason.toString()
             
-            if (!it.skills.isEmpty()) {
-                steps[i].skill = it.skills.skill.@id.toInteger()
+            if (!it.@skillId.isEmpty()) {
+                steps[i].skill = it.@skillId.toInteger()
             }    
         }
         
@@ -213,6 +210,7 @@ class Question extends Asset implements IEditable {
                 }
             }
         }
+        this
     }
     
     Statement statement

@@ -32,39 +32,34 @@ abstract class Asset implements Comparable {
     }
     
     void create() {
-        def bankPathString = (new Config()).get("bank_path")
-        Path bank = Paths.get(bankPathString)
-        Path vault = bank.resolve("vault")
-        Path assetDir = vault.resolve(path)
+        Config config = Config.getInstance()        
+        Path vault = Paths.get(config.get("bank_path")).resolve("vault")
+        qpath = vault.resolve(path)
         
-        if (Files.notExists(assetDir)) {
-            Files.createDirectories(assetDir)
-            Path makefile = assetDir.resolve("Makefile")
+        if (Files.notExists(qpath)) {
+            Files.createDirectories(qpath)
+            Path makefile = qpath.resolve("Makefile")
             Path target = vault.resolve("bin").resolve("compile.mk")
-            Files.createSymbolicLink(makefile, assetDir.relativize(target))
+            Files.createSymbolicLink(makefile, qpath.relativize(target))
         }
     }
 
     Asset load() {
-        def bankPathString = (new Config()).get("bank_path")
-        Path bank = Paths.get(bankPathString)
-        Path vault = bank.resolve("vault")
+        Config config = Config.getInstance()
+        Path vault = Paths.get(config.get("bank_path")).resolve("vault")
         assert vault.getFileName().toString().equals("vault")
         
         qpath = vault.resolve(path)
-        def xmlPath = qpath.resolve(SRC_FILE)        
-        // If the file has never been saved before, 
-        // a skeleton reference file with blank fields is pulled
-        // from the catalog
+        def xmlPath = qpath.resolve(SRC_FILE)
         def xmlStream
         if (Files.notExists(xmlPath)) {
              xmlStream = Asset.class.getClassLoader().getResourceAsStream(REF_FILE)
         } else {
             assert isValidXML(xmlPath)
             xmlStream = Files.newInputStream(xmlPath)
+            assert isValidXML(xmlPath)
         }
         parse(xmlStream)
-        this
     }
     
     File getFile() {
@@ -91,7 +86,7 @@ abstract class Asset implements Comparable {
         return id == a.id && assetClass == a.assetClass
     }
 
-    protected boolean isValidXML(Path xmlPath) {
+    private boolean isValidXML(Path xmlPath) {
         def schema = Asset.class.getClassLoader().getResourceAsStream(SCHEMA_FILE)
         def xml = new StreamSource(Files.newInputStream(xmlPath))
         def xsd = new StreamSource(schema)
@@ -102,7 +97,7 @@ abstract class Asset implements Comparable {
         true
     }
         
-    protected abstract void parse(InputStream xmlStream)
+    protected abstract Asset parse(InputStream xmlStream)
     
     int id
     String path
@@ -112,7 +107,8 @@ abstract class Asset implements Comparable {
     
     Path qpath
     
-    String REF_FILE, SCHEMA_FILE = "assets.xsd", LAYOUT_FILE = "layout.xml", SRC_FILE = "source.xml"
+    String REF_FILE
+    final String SCHEMA_FILE = "assets.xsd", LAYOUT_FILE = "layout.xml", SRC_FILE = "source.xml"
     
 }
 

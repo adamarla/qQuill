@@ -70,7 +70,7 @@ class Editor implements ISkillLibClient {
         itemToLatex = new HashMap()
         
         sb = new SwingBuilder()
-        config = new Config()
+        config = Config.getInstance()
     }
     
     def launchGeneric() {

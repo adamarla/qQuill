@@ -5,8 +5,6 @@ import groovy.swing.SwingBuilder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
-import java.nio.charset.StandardCharsets
 
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.CommandLine
@@ -56,14 +54,12 @@ class Driver {
                 else if (path.toString().contains("snippet"))
                     assetClass = "Snippet"
                     
-                Config config = new Config()
+                Config config = Config.getInstance()
                 def bankPathString = config.get("bank_path")
                 Path vault = Paths.get(bankPathString).resolve("vault")
                 path = vault.relativize(path)
                 
-                def chapterId = config.getChapter(path.toString())
-                assert chapterId != null
-                def map = [path: path.toString(), assetClass: assetClass, chapterId: chapterId]
+                def map = [path: path.toString(), assetClass: assetClass]
                 Asset a = Asset.getInstance(map).load()
                 
                 if (renderOnly) {
@@ -78,41 +74,3 @@ class Driver {
     }        
 }
 
-class Config {
-    
-    ConfigObject config
-    ConfigObject chapterMap
-    Path configPath
-    Path chapterMapPath
-    
-    public Config() {        
-        def userHome = System.getProperty("user.home")
-        
-        configPath = Paths.get("${userHome}/.quill/config.groovy")
-        config = new ConfigSlurper().parse(configPath.toUri().toURL())
-        
-        chapterMapPath = Paths.get("${userHome}/.quill/chapterMap.groovy")
-        if (Files.notExists(chapterMapPath)) {
-            Files.createFile(chapterMapPath)
-        }
-        chapterMap = new ConfigSlurper().parse(chapterMapPath.toUri().toURL())
-    }
-    
-    def get(String name) {
-        config."${name}"
-    }
-    
-    def getChapter(String path) {
-        chapterMap.get(path.replace('/', '_'))
-    }
-    
-    def addToChapterMap(String path, int chapterId) {
-        chapterMap.put(path.replace('/', '_'), chapterId)
-    }
-    
-    def commitChapterMap() {        
-        chapterMap.writeTo(Files.newBufferedWriter(chapterMapPath, 
-            StandardCharsets.UTF_8, StandardOpenOption.WRITE))
-    }
-
-}

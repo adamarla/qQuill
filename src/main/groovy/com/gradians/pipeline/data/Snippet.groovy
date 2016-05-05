@@ -11,7 +11,7 @@ class Snippet extends Asset implements IEditable {
     EditGroup[] getEditGroups() {
         EditGroup[] pnls = new EditGroup[1]
         pnls[0] = new EditGroup("Snippet")
-        pnls[0].skill = skill
+        pnls[0].skill = skillId
         pnls[0].addEditItem(new EditItem("Correct", correct ? texStatement : "", 4, true))
         pnls[0].addEditItem(new EditItem("Incorrect", correct ? "" : texStatement, 4, true))
         pnls[0].addEditItem(new EditItem("Reason", texReason, 8, true))
@@ -28,7 +28,7 @@ class Snippet extends Asset implements IEditable {
             correct = false
         }
         texReason = panel[0].editItems[2].tex
-        skill = panel[0].skill
+        skillId = panel[0].skill
     }
 
     @Override
@@ -36,7 +36,7 @@ class Snippet extends Asset implements IEditable {
         def sw = new StringWriter()
         def xml = new groovy.xml.MarkupBuilder(sw)
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.snippet(xmlns: "http://www.gradians.com") {
+        xml.snippet([xmlns: "http://www.gradians.com", skillId: skillId]) {
             render() {
                 def map = [:]
                 if (!correct)
@@ -46,9 +46,9 @@ class Snippet extends Asset implements IEditable {
             reason() {
                 tex(texReason)
             }
-            if (skill != -1) {
+            if (skillId != -1) {
                 delegate.skills() {
-                    delegate.skill(id: skill)
+                    delegate.skill(id: skillId)
                 }
             }            
         }
@@ -76,9 +76,9 @@ class Snippet extends Asset implements IEditable {
                 tex(src: "${counter}.svg")
                 svgs.put("${counter++}.svg", texReason)
             }
-            if (skill != -1) {
+            if (skillId != -1) {
                 delegate.skills() {
-                    delegate.skill(id: skill)
+                    delegate.skill(id: skillId)
                 }
             }            
         }
@@ -87,18 +87,18 @@ class Snippet extends Asset implements IEditable {
     }
     
     @Override
-    protected void parse(InputStream xmlStream) {
+    protected Asset parse(InputStream xmlStream) {
         def xml = new XmlSlurper().parse(xmlStream)
+        if (!xml.@skillId.isEmpty())
+            skillId = xml.@skillId.toInteger()
         texStatement = xml.render.tex.toString()
         correct = xml.render.tex.@correct.equals("false")
         texReason = xml.reason.tex.toString()
-        if (!xml.skills.isEmpty()) {
-            skill = xml.skills.skill.@id.toInteger()
-        }
+        this
     }
 
     boolean correct = true
     String texStatement = "", texReason = ""
-    int skill = -1
+    int skillId = -1
 }
 
