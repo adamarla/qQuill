@@ -153,38 +153,9 @@ class Clerk implements ISkillLibClient {
         }
     }
     
-    private def launchNewAssetDialog(AssetClass assetClass) {
-        final def newAssetDialog = sb.dialog(id: 'dlgNewAsset', modal: true, 
-            title: "New ${assetClass} on?") {
-            vbox() {
-                comboBox(id: 'cbChapter', items: chapters, selectedIndex: 0)
-                panel() {
-                    button(text: 'Create',
-                        actionPerformed: {
-                            Category chapter = (Category)sb.cbChapter.getSelectedItem()
-                            if (assetClass != AssetClass.Snippet) {
-                                Asset asset = createNewAsset(assetClass, chapter)
-                                new Editor(asset.load()).launchGeneric()
-                            } else {
-                                SkillLibrary sl = new SkillLibrary(this)
-                                sl.launch(chapter.id)
-                            }
-                            sb.dlgNewAsset.dispose()
-                        })
-                    button(text: 'Cancel', actionPerformed: { sb.dlgNewAsset.dispose() })    
-                }
-            }
-        }
-        newAssetDialog.pack()
-        newAssetDialog.setLocationRelativeTo(sb.frmClerk)
-        newAssetDialog.visible = true
-    }
-    
     @Override
     public void applySelectedSkill(Skill skill) {
-        Snippet snippet = createNewAsset(AssetClass.Snippet,
-            new Category([id: skill.chapterId, name: config.getChapter(skill.chapterId)]),
-            new Category([id: skill.id]))
+        Snippet snippet = createNewAsset(AssetClass.Snippet, skill.id)
         new Editor(snippet.load()).launchGeneric()
     }
     
@@ -297,17 +268,17 @@ class Clerk implements ISkillLibClient {
                 menu(text: "New", mnemonic: 'N') {
                     menuItem(text: "Skill", mnemonic: 'K', 
                         actionPerformed: { 
-                            def skill = createNewAsset(AssetClass.Skill, sb.listChapters.selectedValue)
+                            def skill = createNewAsset(AssetClass.Skill, sb.listChapters.selectedValue.id)
                             new Editor(skill.load()).launchGeneric()
                             })
                     menuItem(text: "Snippet", mnemonic: 'N', 
                         actionPerformed: {
                             SkillLibrary sl = new SkillLibrary(this)
-                            sl.launch(sb.listChapters.selectedValue)
+                            sl.launch(sb.listChapters.selectedValue.id)
                         })
                     menuItem(text: "Problem", mnemonic: 'P', 
                         actionPerformed: { 
-                            def question = createNewAsset(AssetClass.Question, sb.listChapters.selectedValue)
+                            def question = createNewAsset(AssetClass.Question, sb.listChapters.selectedValue.id)
                             new Editor(question.load()).launchGeneric()
                             })
                 }

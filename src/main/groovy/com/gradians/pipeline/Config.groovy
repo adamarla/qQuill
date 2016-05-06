@@ -13,10 +13,10 @@ class Config {
     Path configPath
     
     public static Config getInstance() {
-        if (theInstance == null) {
-            theInstance = new Config()
+        if (Config.theInstance == null) {
+            Config.theInstance = new Config()
         }
-        theInstance
+        Config.theInstance
     }
     
     private Config() {        
@@ -25,29 +25,36 @@ class Config {
         config = new ConfigSlurper().parse(configPath.toUri().toURL())
     }
     
-    def get(String name) {
-        config."${name}"
+    def get(String key) {
+        config."${key}"
     }
     
-    def addChapter(int id, String name) {
-        config.put("chapter.c${id}".toString(), name)
+    String getHostPort(String mode) {
+        config."${mode}HostPort"
     }
     
-    def addAuthor(int id, String name) {
-        config.put("author.a${id}".toString(), name)
+    void add(String key, String value) {
+        config."${key}" = value
     }
     
-    def getChapter(int id) {
-        config."chapter.c${id}"
+    void addChapter(int id, String name) {
+        config."c${id}" = name
     }
     
-    def getAuthor(int id) {
-        config."author.a${id}"
+    void addAuthor(int id, String name) {
+        config."a${id}" = name
     }
     
-    def commit() {
-        config.writeTo(Files.newBufferedWriter(configPath,
-            StandardCharsets.UTF_8, StandardOpenOption.WRITE))
+    String getChapter(int id) {
+        config."c${id}"
+    }
+    
+    String getAuthor(int id) {
+        config."a${id}"
+    }
+    
+    void commit() {
+        config.writeTo(new PrintWriter(configPath.toFile()))
     }
     
     private static Config theInstance

@@ -27,16 +27,49 @@ class Driver {
         
         Options options = new Options()
         options.addOption(Option.builder("e").argName("edit").longOpt("edit").build())
-        options.addOption(Option.builder("b").argName("bundle").longOpt("bundle").build())        
+        options.addOption(Option.builder("r").argName("render").longOpt("render").build())        
+        options.addOption(Option.builder("m").argName("mode").longOpt("mode").build())
         
-        try {
-            
+        try {            
             CommandLine cl = (new DefaultParser()).parse(options, args)
-            boolean editOnly = cl.hasOption('e')
-            boolean renderOnly = cl.hasOption('r')
+            def edit, render, mode, list 
+            if (cl.hasOption('e'))
+                edit = true
+            else if (cl.hasOption('r')) 
+                render = true
+            else if (cl.hasOption('m'))
+                mode = true
+            else
+                list = true
             
-            if (cl.argList.size() == 0) {
+            Config config = Config.getInstance()
+            if (list) {
                 (new Clerk()).go(true)
+            } else if (mode) {
+                if (!config.get("mode")) {
+                    config.add("sandboxHostPort", "http://localhost:3000")
+                    config.add("productionHostPort", "http://www.gradians.com")
+                    config.add("mode", "sandbox")
+                    config.commit()
+                }
+            
+                def modes = ["sandbox", "production", "display"]
+                def modeAction = cl.argList[0]
+                if (!modeAction || !modes.contains(modeAction)) {
+                    println "${modeAction} ???"
+                    println "Please use one of the following options ${modes}"
+                } else {
+                    if (!modeAction.equals("display")) {
+                        println "modeAction is not: display"
+                        if (!config.get("mode").equals(modeAction)) {
+                            config.add("mode", modeAction)
+                            config.commit()
+                        }
+                    }
+                    def modeOption = config.get("mode")
+                    def hostport = config.getHostPort(modeOption)
+                    println "Quill is in ${modeOption} mode connecting to ${hostport}"
+                }
             } else {
                 Path path = Paths.get(pwd)
                 if (!cl.argList.empty)
@@ -54,7 +87,6 @@ class Driver {
                 else if (path.toString().contains("snippet"))
                     assetClass = "Snippet"
                     
-                Config config = Config.getInstance()
                 def bankPathString = config.get("bank_path")
                 Path vault = Paths.get(bankPathString).resolve("vault")
                 path = vault.relativize(path)
@@ -62,14 +94,14 @@ class Driver {
                 def map = [path: path.toString(), assetClass: assetClass]
                 Asset a = Asset.getInstance(map).load()
                 
-                if (renderOnly) {
+                if (render) {
                     (new Renderer(a)).toSVG()
-                } else if (editOnly) {
+                } else if (edit) {
                     (new Editor(a)).launchGeneric()
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace()
+            println e
         }
     }        
 }

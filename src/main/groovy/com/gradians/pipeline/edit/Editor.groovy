@@ -268,8 +268,11 @@ class Editor implements ISkillLibClient {
                 separator()
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
                 separator()
-                menuItem(text: "Save + Commit", actionPerformed: { save() 
-                    commit() })
+                menuItem(text: "Save + Commit", actionPerformed: { 
+                    save()
+                    if (config.get("mode").equals("production"))
+                        commit() 
+                    })
             }
             menu(text: 'Edit', mnemonic: 'E') {                
                 menuItem(text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillBuilder() })

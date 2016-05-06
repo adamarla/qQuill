@@ -17,7 +17,8 @@ class Network {
     
     static def executeHTTPGet(String url) {
         def payload
-        def hostport = Config.getInstance().get("host_port")
+        Config config = Config.getInstance()
+        def hostport = config.getHostPort(config.get("mode"))
         def httpClient = new HTTPBuilder("http://${hostport}/${url}")
         httpClient.setHeaders(Accept: 'application/json')
         httpClient.request(GET, JSON) { req ->            
@@ -31,7 +32,8 @@ class Network {
 
     static def executeHTTPPostBody(String url, Map params) {
         def payload
-        def hostport = Config.getInstance().get("host_port")
+        Config config = Config.getInstance()
+        def hostport = config.getHostPort(config.get("mode"))
         def httpClient = new HTTPBuilder("http://${hostport}/${url}")
         httpClient.setHeaders(Accept: 'application/json')
         httpClient.request(POST, JSON) { req ->
