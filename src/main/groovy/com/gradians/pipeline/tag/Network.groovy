@@ -19,7 +19,7 @@ class Network {
         def payload
         Config config = Config.getInstance()
         def hostport = config.getHostPort(config.get("mode"))
-        def httpClient = new HTTPBuilder("http://${hostport}/${url}")
+        def httpClient = new HTTPBuilder("${hostport}/${url}")
         httpClient.setHeaders(Accept: 'application/json')
         httpClient.request(GET, JSON) { req ->            
             response.success = { resp, json ->
@@ -34,7 +34,7 @@ class Network {
         def payload
         Config config = Config.getInstance()
         def hostport = config.getHostPort(config.get("mode"))
-        def httpClient = new HTTPBuilder("http://${hostport}/${url}")
+        def httpClient = new HTTPBuilder("${hostport}/${url}")
         httpClient.setHeaders(Accept: 'application/json')
         httpClient.request(POST, JSON) { req ->
             body = params
