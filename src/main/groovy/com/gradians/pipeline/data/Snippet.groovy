@@ -92,7 +92,7 @@ class Snippet extends Asset implements IEditable {
         if (!xml.@skillId.isEmpty())
             skillId = xml.@skillId.toInteger()
         texStatement = xml.render.tex.toString()
-        correct = xml.render.tex.@correct.equals("false")
+        correct = !xml.render.tex.@correct.equals(false)
         texReason = xml.reason.tex.toString()
         this
     }
