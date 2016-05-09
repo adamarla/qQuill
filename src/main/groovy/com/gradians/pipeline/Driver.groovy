@@ -60,7 +60,6 @@ class Driver {
                     println "Please use one of the following options ${modes}"
                 } else {
                     if (!modeAction.equals("display")) {
-                        println "modeAction is not: display"
                         if (!config.get("mode").equals(modeAction)) {
                             config.add("mode", modeAction)
                             config.commit()

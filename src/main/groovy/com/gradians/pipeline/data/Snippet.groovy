@@ -89,8 +89,11 @@ class Snippet extends Asset implements IEditable {
     @Override
     protected Asset parse(InputStream xmlStream) {
         def xml = new XmlSlurper().parse(xmlStream)
-        if (!xml.@skillId.isEmpty())
-            skillId = xml.@skillId.toInteger()
+        if (!xml.@skillId.isEmpty() && xml.@skillId.toInteger() != -1) {
+            skillId =  xml.@skillId.toInteger()
+        } else if (!xml.skills.isEmpty()) {
+            skillId = xml.skills.skill.@id.toInteger()
+        }
         texStatement = xml.render.tex.toString()
         correct = !xml.render.tex.@correct.equals(false)
         texReason = xml.reason.tex.toString()
