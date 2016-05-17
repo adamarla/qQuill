@@ -4,32 +4,43 @@ import com.gradians.pipeline.edit.EditItem
 import com.gradians.pipeline.edit.IEditable
 import com.gradians.pipeline.edit.EditGroup
 
+import groovy.xml.XmlUtil
 
-class Skill extends Asset implements IEditable {
+
+class Skill extends Asset {
     
     @Override
     EditGroup[] getEditGroups() {
         EditGroup[] pnls = new EditGroup[1]
         pnls[0] = new EditGroup("Skill")
-        pnls[0].addEditItem(new EditItem("Statement", texStatement, 6, true))
-        pnls[0].addEditItem(new EditItem("Study Note", texReason, 10, true))        
+        pnls[0].addEditItem("Statement", xml.render.tex.toString(), 6, xml.render.tex.@isImage.equals(true))
+        pnls[0].addEditItem("Study Note", xml.reason.tex.toString(), 10, xml.reason.tex.@isImage.equals(true))        
         pnls
     }
 
     @Override
     void updateModel(EditGroup[] panels) {
-        texStatement = panels[0].editItems[0].tex
-        texReason = panels[0].editItems[1].tex
+        xml.render.replaceNode {
+            render() {
+                def map = panels[0].editItems[0].isImage ? [isImage: true] : [:]
+                tex(map, panels[0].editItems[0].text)    
+            }
+        }
+        xml.reason.replaceNode {
+            reason() {
+                def map = panels[0].editItems[1].isImage ? [isImage: true] : [:]
+                tex(map, panels[0].editItems[1].text)    
+            }
+        }
     }
 
-    @Override
     String toXMLString() {
         def sw = new StringWriter()
         def xml = new groovy.xml.MarkupBuilder(sw)
         xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
         xml.skill([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
             render() {
-                tex(texStatement)                
+                tex(texStatement)
             }
             reason() {
                 tex(texReason)
@@ -44,35 +55,46 @@ class Skill extends Asset implements IEditable {
         HashMap<String, String> svgs = new HashMap<String, String>()
         
         // Create layout xml file for the svgs
-        def sw = new StringWriter()
-        def xml = new groovy.xml.MarkupBuilder(sw)
-        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.skill([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
-            render() {
-                tex(src: "${counter}.svg")
-                svgs.put("${counter++}.svg", texStatement)
-            }
-            reason() {
-                tex(src: "${counter}.svg")
-                svgs.put("${counter++}.svg", texReason)
+        def xmlStream = java.nio.file.Files.newInputStream(qpath.resolve(SRC_FILE))
+        def layoutXml = new XmlSlurper(false, false).parse(xmlStream)
+        
+        ["render", "reason"].each {
+            if (!layoutXml."$it".tex.@isImage.equals(true)) {
+                def src = "${counter++}.svg"
+                svgs.put(src, layoutXml."$it".tex.toString())
+                layoutXml."$it".replaceNode { node ->
+                    "$it"() {
+                        tex(src: src)
+                    }
+                }
+            } else {
+                layoutXml."$it".replaceNode { node ->
+                    "$it"() {
+                        tex(src: node.toString(), isImage: true)
+                    }
+                }
             }
         }
-        qpath.resolve(LAYOUT_FILE).toFile().write(sw.toString())
+        qpath.resolve(LAYOUT_FILE).toFile().write(XmlUtil.serialize(layoutXml))
+        
+//        def sw = new StringWriter()
+//        def xml = new groovy.xml.MarkupBuilder(sw)
+//        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
+//        xml.skill([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
+//            render() {
+//                tex(src: "${counter}.svg")
+//                svgs.put("${counter++}.svg", this.xml.render.tex.toString())
+//            }
+//            reason() {
+//                tex(src: "${counter}.svg")
+//                svgs.put("${counter++}.svg", this.xml.reason.tex.toString())
+//            }
+//        }
+//        qpath.resolve(LAYOUT_FILE).toFile().write(sw.toString())
         svgs
     }
     
-    @Override
-    protected Asset parse(InputStream xmlStream) {
-        def xml = new XmlSlurper().parse(xmlStream)
-        if (!xml.@chapterId.isEmpty())
-            chapterId = xml.@chapterId.toInteger()
-        texStatement = xml.render.tex.toString()
-        texReason = xml.reason.tex.toString()
-        this        
-    }
-    
     String texStatement = "", texReason = ""
-    
 
 }
 

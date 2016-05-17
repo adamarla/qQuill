@@ -8,75 +8,43 @@ import com.gradians.pipeline.edit.EditGroup
 class Question extends Asset implements IEditable {
     
     @Override
-    String toXMLString() {
-        def sw = new StringWriter()
-        def xml = new groovy.xml.MarkupBuilder(sw)
-        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.question([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
-            statement() {
-                tex(statement.tex) 
-            }
-            steps.each { step ->
-                if (step.reason) {
-                    def map = step.skill == -1 ? [:] : [skillId: step.skill]
-                    delegate.step(map) {
-                                               
-                        if (step.imageCorrect)
-                            image(correct: true, step.imageCorrect)
-                        else if (step.texCorrect)
-                            tex(correct: true, step.texCorrect)
-                            
-                        if (step.imageIncorrect)
-                            image(step.imageIncorrect)
-                        else if (step.texIncorrect)
-                            tex(step.texIncorrect)
-                            
-                        reason(step.reason)                        
-                    }
-                }
-            }
-            
-            if (choices.texs[0]) {
-                delegate.choices() {
-                    choices.texs.eachWithIndex { tex, i ->
-                        def map = choices.correct == i ? [correct: true] : [:]
-                        delegate.tex(map, tex)
-                    }
-                }
-            }
-        }
-        sw.toString()
-    }
-    
-    @Override
     public EditGroup[] getEditGroups() {
         EditGroup[] panels = new EditGroup[8]
         panels[0] = new EditGroup("Problem")
-        panels[0].addEditItem(new EditItem("Statement", statement.tex, 12))
+        panels[0].addEditItem(new EditItem("Statement", 
+            xml.statement.tex.toString(), 12, xml.statement.tex.@isImage))
         
-        steps.eachWithIndex { step, idx ->
-            panels[idx+1] = new EditGroup("Step ${idx+1}")
-            panels[idx+1].skill = step.skill
-            def text, isTex
-            ["Correct", "Incorrect"].each { it ->
-                if (step."tex${it}") {
-                    isTex = true
-                    text = step."tex${it}"
-                } else if (step."image${it}") {
-                    isTex = false
-                    text = step."image${it}"
-                } else {
-                    isTex = true
-                    text = ""
-                }
-                panels[idx+1].addEditItem(new EditItem(it, text, 8, isTex))    
+        xml.step.eachWithIndex { step, idx ->
+            panels[idx+1] = new EditGroup("Step ${idx+1}")            
+            panels[idx+1].editItems = new EditItem[xml.options.tex.size()]
+            
+            def incorrect = step.options.tex.find{ it -> it.@correct }
+            def correct = step.options.tex.find{ it -> it.@correct.isEmpty() }
+            
+            panels[idx+1].addEditItem("Correct", correct.toString(), 8, correct.@isImage.isEmpty())
+            panels[idx+1].addEditItem("Correct", incorrect.toString(), 8, incorrect.@isImage.isEmpty())
+            panels[idx+1].addEditItem("Reason", step.reason.tex.toString(), 8)
+        }
+        
+        (1..6).each {
+            if (panels[it] == null) {
+                panels[it] = new EditGroup("Step ${it}")
+                panels[it].addEditItem("Correct", "", 8)
+                panels[it].addEditItem("Incorrect", "", 8)
+                panels[it].addEditItem("Reason", "", 8)
             }
-            panels[idx+1].addEditItem(new EditItem("Reason", step.reason, 6))                
         }
         
         panels[7] = new EditGroup("Choices")
-        choices.texs.eachWithIndex { tex, i ->
-            panels[7].addEditItem(new EditItem(choices.correct == i ? "Correct" : "Incorrect", tex, 4))
+        if (xml.choices.isEmpty()) {
+            xml.choices.tex.eachWithIndex { tex, i ->
+                panels[7].addEditItem(tex.@correct ? "Correct" : "Incorrect" , tex, 4, tex.@isImage.isEmpty())
+            }
+        } else {
+            int correct = ((int)Math.random()*100)%4            
+            (0..3).each {
+                panels[7].addEditItem( it == correct ? "Correct" : "Incorrect", "", 4)
+            }
         }
         panels
     }
@@ -112,6 +80,46 @@ class Question extends Asset implements IEditable {
                 }
             }    
         }
+    }
+    
+    String toXMLString() {
+        def sw = new StringWriter()
+        def xml = new groovy.xml.MarkupBuilder(sw)
+        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
+        xml.question([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
+            statement() {
+                tex(statement.tex)
+            }
+            steps.each { step ->
+                if (step.reason) {
+                    def map = step.skill == -1 ? [:] : [skillId: step.skill]
+                    delegate.step(map) {
+                                               
+                        if (step.imageCorrect)
+                            image(correct: true, step.imageCorrect)
+                        else if (step.texCorrect)
+                            tex(correct: true, step.texCorrect)
+                            
+                        if (step.imageIncorrect)
+                            image(step.imageIncorrect)
+                        else if (step.texIncorrect)
+                            tex(step.texIncorrect)
+                            
+                        reason(step.reason)
+                    }
+                }
+            }
+            
+            if (choices.texs[0]) {
+                delegate.choices() {
+                    choices.texs.eachWithIndex { tex, i ->
+                        def map = choices.correct == i ? [correct: true] : [:]
+                        delegate.tex(map, tex)
+                    }
+                }
+            }
+        }
+        sw.toString()
     }
 
     @Override

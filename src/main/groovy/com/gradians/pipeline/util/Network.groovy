@@ -1,6 +1,6 @@
-package com.gradians.pipeline.tag
+package com.gradians.pipeline.util
 
-import com.gradians.pipeline.Config
+import com.gradians.pipeline.util.Config
 import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.edit.Renderer
 

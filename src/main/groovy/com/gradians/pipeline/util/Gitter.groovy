@@ -1,15 +1,17 @@
-package com.gradians.pipeline.tag
+package com.gradians.pipeline.util
 
-import com.gradians.pipeline.Config
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
+import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 
 class Gitter {
         
+    Repository repo
+    
     public Gitter(File repoLocation) {
-        Repository repo = loadRepo(repoLocation)        
+        repo = loadRepo(repoLocation)        
         assert repo != null
         git = new Git(repo)
     }
@@ -59,6 +61,10 @@ class Gitter {
             }
             git.commit().setMessage(sb.toString()).call()
         }
+    }
+    
+    void pullFromUpstream() {
+        // Get a reference
     }
     
     void pushToRemote() {

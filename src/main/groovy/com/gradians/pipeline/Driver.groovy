@@ -17,6 +17,7 @@ import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.edit.Editor
 import com.gradians.pipeline.edit.Renderer
 import com.gradians.pipeline.tag.Clerk
+import com.gradians.pipeline.util.Config;
 
 
 class Driver {
@@ -86,12 +87,12 @@ class Driver {
                 else if (path.toString().contains("snippet"))
                     assetClass = "Snippet"
                     
-                def bankPathString = config.get("bank_path")
-                Path vault = Paths.get(bankPathString).resolve("vault")
+                Path vault = Paths.get(config.getBankPath()).resolve("vault")
                 path = vault.relativize(path)
                 
-                def map = [path: path.toString(), assetClass: assetClass]
-                Asset a = Asset.getInstance(map).load()
+                int id = Integer.parseInt(path.getFileName().toString())
+                def map = [id: id, path: path.toString(), assetClass: assetClass]
+                Asset a = Asset.getInstance(map)
                 
                 if (render) {
                     (new Renderer(a)).toSVG()
@@ -100,7 +101,7 @@ class Driver {
                 }
             }
         } catch (Exception e) {
-            println e
+            e.printStackTrace()
         }
     }        
 }

@@ -10,9 +10,11 @@ import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.AssetState
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.edit.TeXHelper
+import com.gradians.pipeline.util.Network;
 
 import groovy.swing.SwingBuilder
 
+import javax.swing.BorderFactory
 import javax.swing.ComboBoxModel
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JLabel
@@ -41,47 +43,82 @@ class SkillLibrary {
         loadAssets()
     }
 
-    def launch(int chapterId, int skillId = -1) {
-        Category chapter = chapters.find { it.id == chapterId }
+    def launch(int chapterId, int[] skillId) {
+        def chapter = [NO_CHAPTER, NO_CHAPTER, NO_CHAPTER]
+        def skill = new int[3]
+        
+        skillId.eachWithIndex { it, i ->
+            if (it != 0) {
+                skill[i] = it
+                Skill s = skills.find { s -> s.id == it }
+                chapter[i] = chapters.find { c -> c.id == s.chapterId }
+            }
+        }
+        
         renderer = new SkillRenderer()
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel 'nimbus'
             dialog(id: 'dlgSkills', title: 'Skill Library', modal: true,
-                preferredSize: [480, 160],
+                preferredSize: [360, 480],
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 gridBagLayout()
                 
-                comboBox(id: 'cbChapters', items: chapters, selectedItem: chapter,
-                    constraints: gbc(weightx: 1, fill: HORIZONTAL),
-                    actionPerformed: {
-                        sb.cbSkills.model = getSkillList(sb.cbChapters.selectedItem)
-                    })
+                vbox(border: BorderFactory.createTitledBorder("Primary Skill"),
+                    constraints: gbc(weightx: 1, fill: HORIZONTAL)) {
+                    label(text: chapter[0].name)
+                    comboBox(id: 'cbSkills0', model: getSkillList(chapter[0]),
+                        renderer: renderer, maximumRowCount: 5)    
+                }                
                 
-                comboBox(id: 'cbSkills', model: getSkillList(chapter),
-                    constraints: gbc(gridy: 1, weightx: 1, fill: BOTH),
-                    renderer: renderer, maximumRowCount: 5)
+                vbox(border: BorderFactory.createTitledBorder("Secondary Skill"),
+                    constraints: gbc(gridy: 1, weightx: 1, fill: HORIZONTAL)) {
+                    comboBox(id: 'cbChapters1', items: chapters, selectedItem: chapter[1])
+                    comboBox(id: 'cbSkills1', model: getSkillList(chapter[1]),
+                        renderer: renderer, maximumRowCount: 5)
+                }
                 
-                panel(constraints: gbc(gridy: 2, weightx: 1, fill: HORIZONTAL)) {
+                vbox(border: BorderFactory.createTitledBorder("Tertiary Skill"),
+                    constraints: gbc(gridy: 2, weightx: 1, fill: HORIZONTAL)) {
+                    comboBox(id: 'cbChapters2', items: chapters, selectedItem: chapter[2])
+                    comboBox(id: 'cbSkills2', model: getSkillList(chapter[2]),
+                        renderer: renderer, maximumRowCount: 5)
+                }
+                
+                panel(constraints: gbc(gridy: 3, weightx: 1, fill: HORIZONTAL)) {
                     button(id: 'btnSelectSkill', text: 'Select',
                         actionPerformed: {
                             sb.dlgSkills.modal = false
-                            client.applySelectedSkill(sb.cbSkills.selectedItem)
+                            skill[0] = sb.cbSkills0.selectedItem != null ?
+                                sb.cbSkills0.selectedItem.id : 0
+                            (1..2).each {
+                                if (!sb."cbChapters${it}".selectedItem.equals(NO_CHAPTER) &&
+                                    sb."cbSkills${it}".selectedItem != null) {
+                                    skill[it] = sb."cbSkills${it}".selectedItem.id
+                                } else {
+                                    skill[it] = 0
+                                }
+                            }
+                            client.applySelectedSkill(skill)
                             sb.dlgSkills.dispose() })
                     button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
                 }
+
+            }
+                
+            sb.cbChapters1.actionPerformed = {
+                sb.cbSkills1.model = getSkillList(sb.cbChapters1.selectedItem)
+            }
+            sb.cbChapters2.actionPerformed = {
+                sb.cbSkills2.model = getSkillList(sb.cbChapters2.selectedItem)
             }
             
-            if (skillId != -1) {
-                def model = sb.cbSkills.model
-                for (int i = 0; i < model.getSize(); i++) {
-                    Skill s = model.getElementAt(i)
-                    if (s.id == skillId) {
-                        model.selectedItem = s
-                    }
-                }        
+            skill.eachWithIndex { s, i ->
+                if (s != 0) {
+                    sb."cbSkills${i}".selectedItem = skills.find{ it.id == s }                 
+                }
             }
-            
+
             sb.dlgSkills.getContentPane().setBorder(new EmptyBorder(5, 5, 5, 5))
             sb.dlgSkills.pack()
             sb.dlgSkills.setLocationRelativeTo(client.getParentComponent())
@@ -97,21 +134,26 @@ class SkillLibrary {
 
     private def loadAssets = {
         chapters = new ArrayList<Category>()
+        chapters.add NO_CHAPTER
         def items = Network.executeHTTPGet("chapter/list")
         items.eachWithIndex{ item, i ->
             Category c = new Category(item)
             chapters.add c
         }
-
+        
         skills = new ArrayList<Skill>()
-        chapters.each { chapter ->
-            def json = Network.executeHTTPGet("skills/list?c=${chapter.id}")
-            json.skills.each{ item -> skills << Asset.getInstance(item) }
+        items = Network.executeHTTPGet("skills/all")
+        items.each{ item ->
+            def skill = Asset.getInstance(item)
+            if (skill.xml)
+                skills << skill 
         }
     }
 
     private List<Skill> skills
     private List<Category> chapters
+    
+    private final Category NO_CHAPTER = new Category([id: 0, name: "No Selection"])
 
 }
 
@@ -125,10 +167,9 @@ class SkillRenderer extends JLabel implements ListCellRenderer {
         } else {
             setBackground(list.getBackground())
         }
-        Skill skill
-        if (value != null) {
-            skill = ((Skill)value).load()
-            this.icon = TeXHelper.createIcon(skill.texStatement, 15, false)
+        if (value) {
+            def skill = (Skill)value
+            this.icon = TeXHelper.createIcon(skill.xml.render.tex.toString(), 15, false)
         } else {
             this.icon = TeXHelper.createIcon("\\text{No Skills defined}", 15, false)
         }
@@ -140,7 +181,7 @@ class SkillRenderer extends JLabel implements ListCellRenderer {
 
 interface ISkillLibClient {
 
-    def void applySelectedSkill(Skill skill)
+    def void applySelectedSkill(int[] skills)
 
     def Component getParentComponent()
 

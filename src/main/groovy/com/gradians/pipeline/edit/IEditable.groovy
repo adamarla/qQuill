@@ -1,45 +1,51 @@
 package com.gradians.pipeline.edit
 
+import java.nio.file.Path
+
 interface IEditable {
 
     EditGroup[] getEditGroups()
     
     void updateModel(EditGroup[] panel)
     
+    void save()
+    
+    Path getDirPath()
 }
 
 class EditGroup {
 
     String title
-    int skill    
+    int skill
+    int[] skills
     List<EditItem> editItems
     
-    def EditGroup(String title, int skill = -1) {
+    def EditGroup(String title, int skill = 0) {
         this.title = title
         this.skill = skill
         editItems = new ArrayList<EditItem>()
     }
     
-    def addEditItem(EditItem c) {
-        c.parent = this
-        editItems.add(c)
+    def addEditItem(EditItem ei) {
+        ei.parent = this
+        editItems.add(ei)
+    }
+    
+    def addEditItem(String title, String s, int rows, boolean isImage = false) {
+        EditItem ei = new EditItem([title: title, text: s, rows: rows, isImage: isImage])
+        addEditItem(ei)
     }
 }
 
 class EditItem {
     
     EditGroup parent
-    boolean isTex
-    String title = "", tex = "", image = ""
+    boolean isImage
+    String title = "", text = ""
     int rows
     
-    def EditItem(String title, String s, int rows, boolean isTex = true) {
-        this.title = title
-        this.isTex = isTex
-        if (isTex)
-            tex = s
-        else
-            image = s    
+    public def getXmlNode = {
+        def map = isImage ? [isImage: true] : [:]
+        tex(map: map, text)
     }
-    
 }

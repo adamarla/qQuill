@@ -1,7 +1,12 @@
 package com.gradians.pipeline.data
 
-import com.gradians.pipeline.Config
+import com.gradians.pipeline.edit.EditGroup
+import com.gradians.pipeline.edit.IEditable
+import com.gradians.pipeline.util.Config
 
+import groovy.xml.XmlUtil
+
+import java.io.InputStream;
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -11,7 +16,7 @@ import javax.xml.validation.SchemaFactory
 import javax.xml.XMLConstants
 
 
-abstract class Asset implements Comparable {
+abstract class Asset implements IEditable, Comparable {
     
     static Asset getInstance(def map) {
         Asset asset
@@ -28,38 +33,54 @@ abstract class Asset implements Comparable {
                 asset = new Snippet(map)
                 asset.REF_FILE = "snippet.xml"
         }
+        Config config = Config.getInstance()
+        Path vault = Paths.get(config.getBankPath()).resolve("vault")
+        asset.qpath = vault.resolve(asset.path)
+        if (Files.exists(asset.qpath)) {
+            asset.load()
+        }
         asset
     }
     
     void create() {
-        Config config = Config.getInstance()        
-        Path vault = Paths.get(config.get("bank_path")).resolve("vault")
-        qpath = vault.resolve(path)
-        
         if (Files.notExists(qpath)) {
+            Config config = Config.getInstance()
+            Path vault = Paths.get(config.getBankPath()).resolve("vault")
             Files.createDirectories(qpath)
+            
             Path makefile = qpath.resolve("Makefile")
             Path target = vault.resolve("bin").resolve("compile.mk")
             Files.createSymbolicLink(makefile, qpath.relativize(target))
+            
+            def xmlStream = Asset.class.getClassLoader().getResourceAsStream(REF_FILE)
+            parse(xmlStream)
         }
+        save()
     }
 
     Asset load() {
-        Config config = Config.getInstance()
-        Path vault = Paths.get(config.get("bank_path")).resolve("vault")
-        assert vault.getFileName().toString().equals("vault")
-        
-        qpath = vault.resolve(path)
-        def xmlPath = qpath.resolve(SRC_FILE)
-        def xmlStream
-        if (Files.notExists(xmlPath)) {
-             xmlStream = Asset.class.getClassLoader().getResourceAsStream(REF_FILE)
-        } else {
-            assert isValidXML(xmlPath)
-            xmlStream = Files.newInputStream(xmlPath)
-            assert isValidXML(xmlPath)
-        }
+        def xmlPath = qpath.resolve(SRC_FILE)        
+        assert isValidXML(xmlPath)
+        def xmlStream = Files.newInputStream(xmlPath)
+        assert isValidXML(xmlPath)
         parse(xmlStream)
+    }
+    
+    @Override
+    abstract EditGroup[] getEditGroups()
+
+    @Override
+    abstract void updateModel(EditGroup... panel)
+
+    @Override
+    void save() {
+        qpath.resolve(SRC_FILE).toFile().write(XmlUtil.serialize(xml))
+//        qpath.resolve(SRC_FILE).toFile().write(toXMLString())
+    }
+    
+    @Override
+    Path getDirPath() {
+        qpath.resolve(SRC_FILE).getParent()
     }
     
     File getFile() {
@@ -76,8 +97,6 @@ abstract class Asset implements Comparable {
         "${assetClass}: ${id}-${path}-${authorId}-${chapterId}"
     }
 
-    abstract String toXMLString()
-    
     abstract Map<String, String> toRender()
     
     @Override
@@ -97,13 +116,20 @@ abstract class Asset implements Comparable {
         true
     }
         
-    protected abstract Asset parse(InputStream xmlStream)
+    protected Asset parse(InputStream xmlStream) {
+        xml = new XmlSlurper(false, false).parse(xmlStream)
+        if (!xml.@chapterId.isEmpty())
+            chapterId = xml.@chapterId.toInteger()
+        this
+    }    
     
     int id
     String path
     int authorId
     int chapterId
     AssetClass assetClass
+    
+    protected def xml
     
     Path qpath
     
@@ -115,7 +141,7 @@ abstract class Asset implements Comparable {
 enum AssetClass {    
     Skill,
     Snippet,
-    Question        
+    Question
 }
 
 enum AssetState {

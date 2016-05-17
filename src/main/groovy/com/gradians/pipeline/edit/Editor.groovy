@@ -20,7 +20,6 @@ import org.apache.batik.swing.JSVGCanvas
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
 import org.fife.ui.rtextarea.RTextScrollPane
 
-import com.gradians.pipeline.Config
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.Choices
@@ -28,9 +27,11 @@ import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.data.Statement
 import com.gradians.pipeline.data.Step
-import com.gradians.pipeline.tag.Gitter
 import com.gradians.pipeline.tag.ISkillLibClient
 import com.gradians.pipeline.tag.SkillLibrary
+import com.gradians.pipeline.util.Config;
+import com.gradians.pipeline.util.Gitter;
+import com.gradians.pipeline.util.Network
 
 import static java.awt.GridBagConstraints.BOTH
 import static java.awt.GridBagConstraints.VERTICAL
@@ -58,12 +59,12 @@ class Editor implements ISkillLibClient {
     
     Config config
     SwingBuilder sb
-    Asset a
+    IEditable e
     EditGroup[] editGroups
     Map latexToItem, itemToDisplay, itemToLatex
         
-    def Editor(Asset asset) {
-        a = asset
+    def Editor(IEditable editable) {
+        e = editable
         
         latexToItem = new HashMap()
         itemToDisplay = new HashMap()
@@ -74,30 +75,35 @@ class Editor implements ISkillLibClient {
     }
     
     def launchGeneric() {
-        IEditable e = (IEditable)a
         editGroups = e.getEditGroups()
         sb.edt {
             lookAndFeel 'nimbus'
-            frame(id: 'frmEditor', title: "Quill (${VERSION}) - Editor - ${a.path}", size: [840, 600],
+            frame(id: 'frmEditor', title: "Quill (${VERSION}) - Editor - ${e.getDirPath()}", size: [900, 600],
                 show: true, resizable: true, locationRelativeTo: null, 
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 getMenuBar()
                 gridBagLayout()
+                
                 // left panel
                 tabbedPane(id: 'tpTeX', tabPlacement: LEFT,
                     constraints: gbc(weightx: 0.75, weighty: 1, gridheight: 2, fill: BOTH)) {
                     editGroups.each { group -> layoutEditGroup(group) }
                 }
+                    
                 // right panel
-                panel(id: 'pnlReference', preferredSize: [420, 200],
-                    constraints: gbc(gridx: 1, weightx: 0.25, fill: HORIZONTAL))
+                scrollPane(
+                    constraints: gbc(gridx: 1, weightx: 0.25, weighty: 0.25, fill: BOTH)) {
+                    vbox(id: 'vbReference')
+                }
                 
-                scrollPane(id: 'spDisplay', preferredSize: [420, 400],
-                    constraints: gbc(gridx: 1, gridy: 1, weightx: 0.25, weighty: 1, fill: BOTH)) {
+                scrollPane(
+                    constraints: gbc(gridx: 1, gridy: 1, weightx: 0.25, weighty: 0.75, fill: BOTH)) {
                     vbox(id: 'vbDisplay')
                 }    
             }
+                
             sb.tpTeX.addChangeListener new ChangeListener() {
+                                
                 @Override
                 void stateChanged(ChangeEvent changeEvent) {
                     int idx = sb.tpTeX.selectedIndex
@@ -105,32 +111,42 @@ class Editor implements ISkillLibClient {
                     refreshSkillPreview(editGroups[idx])
                 }
             }
+            
             layoutEditGroupPreview(editGroups[0])
             refreshSkillPreview(editGroups[0])
         }
     }
     
     public def refreshLaTeXPreview(LaTeXArea area) {
-        def item = latexToItem.get(area)
+        EditItem item = latexToItem.get(area)
         def display = itemToDisplay.get(item)
-        if (item.isTex) {
+        if (!item.isImage) {
             display.setText(area.getText())
             display.revalidate()
             display.repaint()
         } else {
-            item.isTex = true
-            Files.deleteIfExists(a.qpath.resolve(item.image))
+            item.isImage = false
+            Files.deleteIfExists(e.getDirPath().resolve(item.text))
             itemToDisplay.remove(item)
             layoutEditGroupPreview(item.parent)
         }
-        item.tex = area.getText()
+        item.text = area.getText()
     }
     
     @Override
-    public void applySelectedSkill(Skill skill) {
+    public void applySelectedSkill(int[] skills) {
         int idx = sb.tpTeX.selectedIndex
-        editGroups[idx].skill = skill.id
+        editGroups[idx].skills = skills
         refreshSkillPreview(editGroups[idx])
+        
+        // HTTP POST skills list to server
+        def userId = config.get("user_id")
+        def a = (Asset)e
+        def url = "${a.assetClass.toString().toLowerCase()}/tag"
+        Map map = [id: a.id, skills: editGroups.collect { it.skills }.flatten().findAll { it != 0 }]
+        
+        // create asset
+        Network.executeHTTPPostBody(url, map)
     }
     
     @Override
@@ -138,28 +154,31 @@ class Editor implements ISkillLibClient {
     
     private def layoutEditGroup = { EditGroup eg ->
         sb.vbox(name: eg.title) {
-            eg.getEditItems().eachWithIndex { item, i ->
+            eg.getEditItems().each { item ->
                 def ta = LaTeXArea.getInstance(this, 
-                    item.isTex ? item.tex : "file: ${item.image}", 6, TA_WIDTH)
+                    item.isImage ? "file: ${item.text}" : item.text, 6, TA_WIDTH)
                 
-                ta.dropTarget = [
-                    drop: { DropTargetDropEvent dtde ->
-                        def t = dtde.transferable
-                        if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                            dtde.acceptDrop(DnDConstants.ACTION_REFERENCE)
-                            File f = (File)dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor)[0]
-                            if (f.getName().toLowerCase().endsWith("svg")) {
-                                ta.text = "file: img_${f.getName()}"
-                                item.image = f.getName()
-                                item.isTex = false
-                                Path dest = a.qpath.resolve("img_${f.getName()}")
-                                Files.deleteIfExists(dest)
-                                Files.copy(f.toPath(), dest)
-                                layoutEditGroupPreview(item.getParent())
-                            }
+                ta.dropTarget = [drop: { DropTargetDropEvent dtde ->
+                    def t = dtde.transferable
+                    if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                        dtde.acceptDrop(DnDConstants.ACTION_REFERENCE)
+                        File f = (File)dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor)[0]
+                        if (f.getName().toLowerCase().endsWith("svg")) {
+                            Path dest = e.getDirPath().resolve("img_${f.getName()}")
+                            
+                            // this triggers the TextArea edit callback
+                            // first let that run its course
+                            ta.text = "file: ${dest.getFileName()}"
+                            
+                            // next, ensure directly that panel is repainted
+                            Files.deleteIfExists(dest)
+                            Files.copy(f.toPath(), dest)
+                            item.text = dest.getFileName()
+                            item.isImage = true
+                            layoutEditGroupPreview(eg)
                         }
                     }
-                ] as DropTarget
+                }] as DropTarget
             
                 latexToItem.put(ta, item)
                 itemToLatex.put(item, ta)
@@ -173,13 +192,13 @@ class Editor implements ISkillLibClient {
     
     private def layoutEditGroupPreview = { EditGroup eg ->
         sb.vbDisplay.removeAll()
-        eg.getEditItems().eachWithIndex { item, i ->
+        eg.getEditItems().each { item ->
             itemToDisplay.remove(item)
             def drawable
-            if (item.isTex) {
-                drawable = new TeXLabel(item.tex, item.title)
+            if (!item.isImage) {
+                drawable = new TeXLabel(item.text, item.title)
             } else {
-                drawable = fileToIcon(item.image)
+                drawable = fileToIcon(item.text)
             }
             itemToDisplay.put(item, drawable)
             sb.vbDisplay.add drawable
@@ -189,40 +208,33 @@ class Editor implements ISkillLibClient {
     }
     
     private def refreshSkillPreview(EditGroup eg) {
-        def tex
-        if (eg.skill != -1) {
-            def map = [path: "skills/${eg.skill}", assetClass: "Skill"]
-            Skill reference = Asset.getInstance(map).load()
-            IEditable e = (IEditable)reference
-            tex = e.getEditGroups()[0].getEditItems()[0].tex
-        } else {
-            tex = "\\text{A skill. Is whistling a skill?}"
+        sb.vbReference.removeAll()
+        eg.skills.eachWithIndex { it, i ->
+            if (it != 0) {
+                def map = [path: "skills/${it}", assetClass: "Skill"]
+                Skill reference = Asset.getInstance(map)
+                IEditable e = (IEditable)reference
+                def tex = e.getEditGroups()[0].getEditItems()[0].text
+                sb.vbReference.add new TeXLabel(tex, "Skill ${i+1}")    
+            }
         }
-        
-        sb.pnlReference.removeAll()
-        sb.pnlReference.add new TeXLabel(tex, "Reference")
-        sb.pnlReference.revalidate()
-        sb.pnlReference.repaint()
+        sb.vbReference.revalidate()
+        sb.vbReference.repaint()
     }
     
-    private def launchSkillBuilder() {
-        int idx = sb.tpTeX.selectedIndex        
-        SkillLibrary sl = new SkillLibrary(this)
-        sl.launch(a.chapterId, editGroups[idx].skill)
-    }
-    
-    private def render() {
-        ((IEditable)a).updateModel(editGroups)
-        (new Renderer(a)).toSVG()
-    }
-    
-    private def save() {
-        ((IEditable)a).updateModel(editGroups)
-        a.getFile().write(a.toXMLString())
+    private def launchSkillLibrary() {
+        int idx = sb.tpTeX.selectedIndex
+        try {
+            SkillLibrary sl
+            sl = new SkillLibrary(this)
+            Asset a = (Asset)e
+            sl.launch(a.chapterId, editGroups[idx].skills)
+        } catch (Exception e) { println e }
     }
     
     private def commit() {
-        def bankPathString = config.get("bank_path")
+        Asset a = (Asset)e
+        def bankPathString = config.getBankPath()
         String path = Paths.get(bankPathString).relativize(a.qpath)
         
         Gitter gitter = new Gitter(new File("${bankPathString}/.git"))        
@@ -230,7 +242,7 @@ class Editor implements ISkillLibClient {
         Set<String> toAdd = gitter.toAdd(path.toString())
         Set<String> toDelete = gitter.toDelete(path.toString())
         
-        if (toAdd.size() + toDelete.size() > 0) {            
+        if (toAdd.size() + toDelete.size() > 0) {
             String message =
             "# To Add: ${toAdd.toString()}\n# To Delete ${toDelete.toString()}\n" +
             "# Edit Commit message. Any line beginning with '#' will be ignored.\n" +
@@ -263,19 +275,25 @@ class Editor implements ISkillLibClient {
     private def getMenuBar = {
         sb.menuBar {
             menu(text: 'File', mnemonic: 'F') {
-                menuItem(text: "Save", mnemonic: 'S', actionPerformed: { save() })
-                menuItem(text: "Render", mnemonic: 'R', actionPerformed: { render() })
+                menuItem(text: "Save", mnemonic: 'S', actionPerformed: {
+                    e.updateModel(editGroups)
+                    e.save()            
+                })
+                menuItem(text: "Render", mnemonic: 'R', actionPerformed: {
+                    (new Renderer(e)).toSVG()            
+                })
                 separator()
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
                 separator()
                 menuItem(text: "Save + Commit", actionPerformed: { 
-                    save()
+                    e.updateModel(editGroups)
+                    e.save()
                     if (config.get("mode").equals("production"))
                         commit() 
-                    })
+                })
             }
             menu(text: 'Edit', mnemonic: 'E') {                
-                menuItem(text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillBuilder() })
+                menuItem(text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillLibrary() })
                 menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
             }
         }
@@ -284,7 +302,7 @@ class Editor implements ISkillLibClient {
     private def JSVGCanvas fileToIcon(String name) {
         JSVGCanvas svgCanvas = new JSVGCanvas()
         try {
-            svgCanvas.setURI(((Asset)e).qpath.resolve(name).toUri().toURL().toString())
+            svgCanvas.setURI(e.getDirPath().resolve(name).toUri().toURL().toString())
         } catch (Exception e) { }
         svgCanvas
     }

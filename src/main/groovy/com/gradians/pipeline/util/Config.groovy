@@ -1,5 +1,6 @@
-package com.gradians.pipeline;
+package com.gradians.pipeline.util;
 
+import groovy.json.JsonSlurper
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.Files
@@ -27,6 +28,10 @@ class Config {
     
     def get(String key) {
         config."${key}"
+    }
+    
+    String getBankPath() {
+        config.bank_path
     }
     
     String getHostPort(String mode) {

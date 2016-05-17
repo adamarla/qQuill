@@ -19,7 +19,6 @@ import javax.swing.event.ListSelectionListener
 import javax.swing.KeyStroke
 import javax.swing.text.Keymap
 
-import com.gradians.pipeline.Config
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.AssetState
@@ -30,6 +29,9 @@ import com.gradians.pipeline.edit.Editor
 import com.gradians.pipeline.edit.IEditable
 import com.gradians.pipeline.edit.TeXHelper
 import com.gradians.pipeline.edit.TeXLabel
+import com.gradians.pipeline.util.Config;
+import com.gradians.pipeline.util.Gitter;
+import com.gradians.pipeline.util.Network;
 
 import ca.odell.glazedlists.BasicEventList
 import ca.odell.glazedlists.EventList
@@ -40,7 +42,6 @@ import ca.odell.glazedlists.matchers.Matcher
 import ca.odell.glazedlists.swing.AdvancedTableModel
 import ca.odell.glazedlists.swing.GlazedListsSwing
 import ca.odell.glazedlists.swing.TableComparatorChooser
-
 import static java.awt.BorderLayout.PAGE_START
 import static java.awt.BorderLayout.PAGE_END
 import static java.awt.BorderLayout.CENTER
@@ -54,7 +55,7 @@ import static javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 
-class Clerk implements ISkillLibClient {
+class Clerk {
     
     SwingBuilder sb
     Config config
@@ -94,7 +95,7 @@ class Clerk implements ISkillLibClient {
         }
     }
     
-    private def loadAssets = {
+    private def loadAssets() {        
         chapters = new ArrayList<Category>()
         def items = Network.executeHTTPGet("chapter/list")
         items.eachWithIndex{ item, i ->
@@ -133,7 +134,7 @@ class Clerk implements ISkillLibClient {
     private def onGridClick = { MouseEvent me ->
         def row = sb.tblAssets.rowAtPoint(me.getPoint())
         if (me.getClickCount() == 2) {
-            new Editor(filteredList.get(row).load()).launchGeneric()
+            new Editor(filteredList.get(row)).launchGeneric()
         } else if (me.getClickCount() == 1) {
             onRowSelect(row)
         }
@@ -142,9 +143,9 @@ class Clerk implements ISkillLibClient {
     private def onRowSelect = { int row ->
         if (row < 0 || row > filteredList.size()-1)
             return
-        Asset selected = filteredList.get(row).load()
+        Asset selected = filteredList.get(row)
         IEditable e = (IEditable)selected
-        def tex = e.getEditGroups()[0].getEditItems()[0].tex
+        def tex = e.getEditGroups()[0].getEditItems()[0].text
         if (tex.length() > 0) {
             sb.pnlPreview.removeAll()
             sb.pnlPreview.add new TeXLabel(tex, "Preview")
@@ -153,35 +154,24 @@ class Clerk implements ISkillLibClient {
         }
     }
     
-    @Override
-    public void applySelectedSkill(Skill skill) {
-        Snippet snippet = createNewAsset(AssetClass.Snippet, skill.id)
-        new Editor(snippet.load()).launchGeneric()
+    private void newAssetAction(AssetClass assetClass) {
+        def asset = createNewAsset(assetClass, sb.listChapters.selectedValue.id)
+        new Editor(asset).launchGeneric()
     }
     
-    @Override
-    public java.awt.Component getParentComponent() { sb.frmClerk }
-
-    private Asset createNewAsset(AssetClass assetClass, int referenceId) {
+    private Asset createNewAsset(AssetClass assetClass, int chapterId) {
         // call server
         def userId = config.get("user_id")
-        def key = assetClass == AssetClass.Snippet ? "sk" : "c"
         def url = "${assetClass.toString().toLowerCase()}/add"
-        Map map = [e: userId, "${key}": referenceId]
+        Map map = [e: userId, c: chapterId]
         
         // create asset
-        def params = Network.executeHTTPPostBody(url, map)        
-        def referenceIdType = "chapterId"
-        if (assetClass == AssetClass.Snippet) {
-            referenceIdType = "skillId"
-            Skill s = Asset.getInstance([path: "skills/${referenceId}", assetClass: "Skill"])
-            params.chapterId = s.chapterId
-        }
-        params."$referenceIdType" = referenceId
+        def params = Network.executeHTTPPostBody(url, map)
+        params.chapterId = chapterId
         params.authorId = userId
         params.assetClass = assetClass
         Asset newAsset = Asset.getInstance(params)
-        newAsset.create()
+        newAsset.create(Paths.get(config.getBankPath()))
         newAsset.getFile().write(newAsset.toXMLString())
         
         // refresh list
@@ -199,6 +189,9 @@ class Clerk implements ISkillLibClient {
     }
     
     private def pullPush = {
+        def bankPathString = config.getBankPath()
+        Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
+        
         // git pull then 
         // git push
     }
@@ -218,7 +211,7 @@ class Clerk implements ISkillLibClient {
             [actionPerformed: { ActionEvent ae -> 
                 int row = tableAssets.selectedRow
                 if (row != -1)
-                    new Editor(filteredList.get(row).load()).launchGeneric()
+                    new Editor(filteredList.get(row)).launchGeneric()
             }] as AbstractAction)
         tableAssets
     }
@@ -267,20 +260,11 @@ class Clerk implements ISkillLibClient {
             menu(text: 'File', mnemonic: 'F') {
                 menu(text: "New", mnemonic: 'N') {
                     menuItem(text: "Skill", mnemonic: 'K', 
-                        actionPerformed: { 
-                            def skill = createNewAsset(AssetClass.Skill, sb.listChapters.selectedValue.id)
-                            new Editor(skill.load()).launchGeneric()
-                            })
+                        actionPerformed: { newAssetAction(AssetClass.Skill) })
                     menuItem(text: "Snippet", mnemonic: 'N', 
-                        actionPerformed: {
-                            SkillLibrary sl = new SkillLibrary(this)
-                            sl.launch(sb.listChapters.selectedValue.id)
-                        })
+                        actionPerformed: { newAssetAction(AssetClass.Snippet) })
                     menuItem(text: "Problem", mnemonic: 'P', 
-                        actionPerformed: { 
-                            def question = createNewAsset(AssetClass.Question, sb.listChapters.selectedValue.id)
-                            new Editor(question.load()).launchGeneric()
-                            })
+                        actionPerformed: { newAssetAction(AssetClass.Question) })
                 }
                 menuItem(text: "Synch (not implemented)", mnemonic: 'H', actionPerformed: { pullPush() } )
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
