@@ -73,7 +73,7 @@ class Driver {
             } else {
                 Path path = Paths.get(pwd)
                 if (!cl.argList.empty)
-                    path = path.resolve(cl.argList.get(0))
+                    path = path.resolve(cl.argList.get(0)).normalize()
     
                 if (!path.toString().contains("vault")) {
                     println "Locate path to a question folder"

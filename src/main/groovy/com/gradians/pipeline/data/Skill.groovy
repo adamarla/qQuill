@@ -13,8 +13,10 @@ class Skill extends Asset {
     EditGroup[] getEditGroups() {
         EditGroup[] pnls = new EditGroup[1]
         pnls[0] = new EditGroup("Skill")
-        pnls[0].addEditItem("Statement", xml.render.tex.toString(), 6, xml.render.tex.@isImage.equals(true))
-        pnls[0].addEditItem("Study Note", xml.reason.tex.toString(), 10, xml.reason.tex.@isImage.equals(true))        
+        pnls[0].addEditItem("Statement", xml.render.tex.toString(), 6, 
+            xml.render.tex.@isImage.equals(true))
+        pnls[0].addEditItem("Study Note", xml.reason.tex.toString(), 10, 
+            xml.reason.tex.@isImage.equals(true))        
         pnls
     }
 
@@ -34,21 +36,6 @@ class Skill extends Asset {
         }
     }
 
-    String toXMLString() {
-        def sw = new StringWriter()
-        def xml = new groovy.xml.MarkupBuilder(sw)
-        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.skill([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
-            render() {
-                tex(texStatement)
-            }
-            reason() {
-                tex(texReason)
-            }
-        }
-        sw.toString()
-    }
-
     @Override
     Map<String, String> toRender() {
         def counter = 1
@@ -59,42 +46,29 @@ class Skill extends Asset {
         def layoutXml = new XmlSlurper(false, false).parse(xmlStream)
         
         ["render", "reason"].each {
+            def map = [:]
+                        
             if (!layoutXml."$it".tex.@isImage.equals(true)) {
                 def src = "${counter++}.svg"
                 svgs.put(src, layoutXml."$it".tex.toString())
-                layoutXml."$it".replaceNode { node ->
-                    "$it"() {
-                        tex(src: src)
-                    }
-                }
+                map.src = src
             } else {
-                layoutXml."$it".replaceNode { node ->
-                    "$it"() {
-                        tex(src: node.toString(), isImage: true)
-                    }
-                }
+                map.src = layoutXml."$it".tex.toString()
+                map.isImage = true
             }
+            
+            // some wierd quirk, this does not work without
+            // specifying "node" as parameter
+            layoutXml."$it".replaceNode { node ->
+                "$it"() {
+                    tex(map)
+                }
+            }    
         }
-        qpath.resolve(LAYOUT_FILE).toFile().write(XmlUtil.serialize(layoutXml))
-        
-//        def sw = new StringWriter()
-//        def xml = new groovy.xml.MarkupBuilder(sw)
-//        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-//        xml.skill([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
-//            render() {
-//                tex(src: "${counter}.svg")
-//                svgs.put("${counter++}.svg", this.xml.render.tex.toString())
-//            }
-//            reason() {
-//                tex(src: "${counter}.svg")
-//                svgs.put("${counter++}.svg", this.xml.reason.tex.toString())
-//            }
-//        }
-//        qpath.resolve(LAYOUT_FILE).toFile().write(sw.toString())
+        serialize(layoutXml, java.nio.file.Files.newOutputStream(qpath.resolve(LAYOUT_FILE)))
         svgs
     }
     
-    String texStatement = "", texReason = ""
 
 }
 

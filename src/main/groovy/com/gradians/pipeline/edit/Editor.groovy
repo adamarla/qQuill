@@ -22,11 +22,8 @@ import org.fife.ui.rtextarea.RTextScrollPane
 
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
-import com.gradians.pipeline.data.Choices
 import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Skill
-import com.gradians.pipeline.data.Statement
-import com.gradians.pipeline.data.Step
 import com.gradians.pipeline.tag.ISkillLibClient
 import com.gradians.pipeline.tag.SkillLibrary
 import com.gradians.pipeline.util.Config;

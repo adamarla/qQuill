@@ -11,19 +11,27 @@ class Question extends Asset implements IEditable {
     public EditGroup[] getEditGroups() {
         EditGroup[] panels = new EditGroup[8]
         panels[0] = new EditGroup("Problem")
-        panels[0].addEditItem(new EditItem("Statement", 
-            xml.statement.tex.toString(), 12, xml.statement.tex.@isImage))
+        panels[0].addEditItem("Statement", 
+            xml.statement.tex.toString(), 12, 
+            xml.statement.tex.@isImage.equals(true))
         
         xml.step.eachWithIndex { step, idx ->
-            panels[idx+1] = new EditGroup("Step ${idx+1}")            
+            panels[idx+1] = new EditGroup("Step ${idx+1}")
             panels[idx+1].editItems = new EditItem[xml.options.tex.size()]
             
-            def incorrect = step.options.tex.find{ it -> it.@correct }
-            def correct = step.options.tex.find{ it -> it.@correct.isEmpty() }
+            def incorrect = step.options.tex.find { it -> it.@correct.equals(false) }
+            def correct = step.options.tex.find { it -> it.@correct.isEmpty() }
             
-            panels[idx+1].addEditItem("Correct", correct.toString(), 8, correct.@isImage.isEmpty())
-            panels[idx+1].addEditItem("Correct", incorrect.toString(), 8, incorrect.@isImage.isEmpty())
-            panels[idx+1].addEditItem("Reason", step.reason.tex.toString(), 8)
+            panels[idx+1].addEditItem("Correct", 
+                correct.isEmpty() ? "" : correct.toString(), 8,
+                correct.isEmpty() ? false : correct.@isImage.equals(true))
+            panels[idx+1].addEditItem("Incorrect", 
+                incorrect.isEmpty() ? "" : incorrect.toString(), 8,
+                incorrect.isEmpty() ? false : incorrect.@isImage.equals(true))
+            panels[idx+1].addEditItem("Reason", step.reason.tex.toString(), 8,
+                step.reason.tex.@isImage.equals(true))
+            
+            panels[idx+1].skills = step.skills.skill.@id*.toInteger()            
         }
         
         (1..6).each {
@@ -36,12 +44,13 @@ class Question extends Asset implements IEditable {
         }
         
         panels[7] = new EditGroup("Choices")
-        if (xml.choices.isEmpty()) {
+        if (!xml.choices.isEmpty()) {
             xml.choices.tex.eachWithIndex { tex, i ->
-                panels[7].addEditItem(tex.@correct ? "Correct" : "Incorrect" , tex, 4, tex.@isImage.isEmpty())
+                panels[7].addEditItem(tex.@correct.equals(false) ? "Incorrect" : "Correct" , 
+                    tex.toString(), 4, tex.@isImage.equals(true))
             }
         } else {
-            int correct = ((int)Math.random()*100)%4            
+            int correct = ((int)Math.random()*100)%4
             (0..3).each {
                 panels[7].addEditItem( it == correct ? "Correct" : "Incorrect", "", 4)
             }
@@ -50,200 +59,149 @@ class Question extends Asset implements IEditable {
     }
 
     @Override
-    public void updateModel(EditGroup[] panels) {
-        panels.eachWithIndex { EditGroup panel, int idx ->
-            if (idx == 0) {
-                statement.tex = panel.editItems[0].tex
-            } else if (idx > 0 && idx < 7) {
-                if (panel.editItems[REASON_IDX].tex) {
-                    
-                    steps[idx-1].skill = panel.skill
-                    
-                    if (panel.editItems[CORRECT_IDX].isTex)
-                        steps[idx-1].texCorrect = panel.editItems[CORRECT_IDX].tex
-                    else
-                        steps[idx-1].texCorrect = panel.editItems[CORRECT_IDX].image
-                        
-                    if (panel.editItems[INCORRECT_IDX].isTex)
-                        steps[idx-1].texIncorrect = panel.editItems[INCORRECT_IDX].tex
-                    else
-                        steps[idx-1].texCorrect = panel.editItems[INCORRECT_IDX].image
-                        
-                    if (panel.editItems[REASON_IDX].isTex)
-                        steps[idx-1].reason = panel.editItems[REASON_IDX].tex
-                    else
-                        steps[idx-1].reason = panel.editItems[REASON_IDX].image
-                }
-            } else {
-                panels[7].editItems.eachWithIndex { comp, i ->
-                    choices.texs[i] = comp.tex
-                }
-            }    
-        }
-    }
-    
-    String toXMLString() {
-        def sw = new StringWriter()
-        def xml = new groovy.xml.MarkupBuilder(sw)
-        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.question([xmlns: "http://www.gradians.com", chapterId: chapterId]) {
+    public void updateModel(EditGroup[] panels) {        
+        def text = 
+            "<?xml version='1.0' encoding='utf-8'?>\n" +
+            "<question xmlns='http://www.gradians.com' chapterId='${chapterId}' />"
+        xml = new XmlSlurper().parseText(text)
+        
+        xml.appendNode {
             statement() {
-                tex(statement.tex)
-            }
-            steps.each { step ->
-                if (step.reason) {
-                    def map = step.skill == -1 ? [:] : [skillId: step.skill]
-                    delegate.step(map) {
-                                               
-                        if (step.imageCorrect)
-                            image(correct: true, step.imageCorrect)
-                        else if (step.texCorrect)
-                            tex(correct: true, step.texCorrect)
-                            
-                        if (step.imageIncorrect)
-                            image(step.imageIncorrect)
-                        else if (step.texIncorrect)
-                            tex(step.texIncorrect)
-                            
-                        reason(step.reason)
-                    }
-                }
-            }
-            
-            if (choices.texs[0]) {
-                delegate.choices() {
-                    choices.texs.eachWithIndex { tex, i ->
-                        def map = choices.correct == i ? [correct: true] : [:]
-                        delegate.tex(map, tex)
-                    }
-                }
+                def map = panels[0].editItems[0].isImage ? [isImage: true] : [:]
+                tex(map, panels[0].editItems[0].text)
             }
         }
-        sw.toString()
-    }
 
+        (1..6).each { int idx ->
+            EditGroup panel = panels[idx]
+            
+            if (panel.editItems[REASON_IDX].text) {                
+                def stepNode = {
+                    step() {
+                        options() {
+                            def map = panel.editItems[CORRECT_IDX].isImage ? [isImage: true] : [:]
+                            tex(map, panel.editItems[CORRECT_IDX].text)
+                            
+                            map = panel.editItems[INCORRECT_IDX].isImage ? [isImage: true] : [:]
+                            map.correct = false
+                            tex(map, panel.editItems[INCORRECT_IDX].text)
+                        }
+                        
+                        reason() {
+                            def map = panel.editItems[REASON_IDX].isImage ? [isImage: true] : [:]
+                            tex(map, panel.editItems[REASON_IDX].text)    
+                        }
+                        
+                        if (panel.skills[0]) {
+                            xml.skills.replaceNode {
+                                skills() {
+                                    panel.skills.each {
+                                        if (it)
+                                            skill(id: it)
+                                    }
+                                }
+                            }    
+                        }        
+                    }                    
+                }
+                xml.appendNode stepNode
+            }
+        }
+
+        if (panels[7].editItems[0].text) {
+            def choicesNode = {
+                choices() {
+                    panels[7].editItems.each {
+                        def map = it.title.equals("Correct") ? [:] : [correct: false]
+                        if (it.isImage)
+                            map.isImage = true
+                        tex(map, it.text)
+                    }
+                }
+            }
+            xml.appendNode choicesNode
+        }
+    }   
+    
     @Override
     public Map<String, String> toRender() {
         def counter = 1        
         HashMap<String, String> svgs = new HashMap<String, String>()
         
         // Create layout xml file for the svgs
-        def sw = new StringWriter()
-        def xml = new groovy.xml.MarkupBuilder(sw)
-        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
-        xml.question(xmlns: "http://www.gradians.com") {
+        def xmlStream = java.nio.file.Files.newInputStream(qpath.resolve(SRC_FILE))
+        def layoutXml = new XmlSlurper(false, false).parse(xmlStream)
+        
+        def mapStatement = [:]
+        if (!layoutXml.statement.tex.@isImage.equals(true)) {
+            def srcStatement = "${counter}.svg"
+            counter++
+            svgs.put(srcStatement, layoutXml.statement.tex.toString())
+            mapStatement.src = srcStatement
+        } else {
+            mapStatement.src = layoutXml.statement.tex.toString()
+            mapStatement.isImage = true
+        }
+        layoutXml.statement.replaceNode { node ->
             statement() {
-                tex(src: "${counter}.svg")
-                svgs.put("${counter++}.svg", statement.tex)
-            }
-            steps.each { step ->
-                if (step.reason) {
-                    def map = step.skill != -1 ? [skillId: step.skill] : [:]
-                    delegate.step() {
-                        options() {
-                            ["Correct", "Incorrect"].each { option ->
-                                def correct = option.equals("Correct")
-                                if (step."tex${option}") {
-                                    tex(src: "${counter}.svg", correct: correct)
-                                    svgs.put("${counter++}.svg", step."tex${option}")
-                                } else if (step."image${option}") {
-                                    image(src: "image${option}.svg", correct: correct)
-                                }
-                            }
-                        }
-                        reason() {
-                            tex(src: "${counter}.svg")
-                        }
-                        svgs.put("${counter++}.svg", step.reason)
-                        
-                        if (step.skill != -1) {
-                            delegate.skills() {
-                                delegate.skill(id: step.skill)
-                            }
-                        }
-                    }
-                }
-            }
-            if (choices.texs[0]) {
-                // http://mrhaki.blogspot.in/2012/01/groovy-goodness-solve-naming-conflicts.html
-                delegate.choices() {
-                    choices.texs.eachWithIndex { tex, i ->
-                        def map = i == choices.correct ? [src: "${counter}.svg"] : 
-                            [src: "${counter}.svg", correct: false]
-                        delegate.tex(map)
-                        svgs.put("${counter++}.svg", tex)
-                    }
-                }
+                tex(mapStatement)
             }
         }
-        qpath.resolve(LAYOUT_FILE).toFile().write(sw.toString())
-        svgs
-    }
-    
-    @Override
-    protected Asset parse(InputStream xmlStream) {
-        def xml = new XmlSlurper().parse(xmlStream)
-        if (!xml.@chapterId.isEmpty())
-            chapterId = xml.@chapterId.toInteger()
-        statement = new Statement()
-        statement.tex = xml.statement.tex.toString()
-        if (!xml.statement.image.isEmpty())
-            statement.image = xml.statement.image.toString()
-            
-        steps = new Step[6]
-        steps.eachWithIndex { it, i -> steps[i] = new Step() }
-        xml.step.eachWithIndex { it, i ->            
-            ["tex", "image"].each { content ->
-                it."${content}".each { option ->
-                    if (option.@correct.equals("true")) {
-                        steps[i]."${content}Correct" = option.toString()
-                    } else {
-                        steps[i]."${content}Incorrect" = option.toString()
-                    }
-                }
+
+        layoutXml.step.each { stepNode ->
+            // options
+            stepNode.options.tex.each {
+                def correct = !it.@correct.equals(false)
+                def map = correct ? [:] : [correct: false]
+
+                if (!it.@isImage.equals(true)) {
+                    def src = "${counter++}.svg"
+                    svgs.put(src, it.toString())
+                    map.src = src
+                } else {
+                    map.src = node.toString()
+                    map.isImage = true
+                }                
+                it.replaceNode { node ->
+                    tex(map)
+                }    
             }
-            steps[i].reason = it.reason.toString()
             
-            if (!it.@skillId.isEmpty()) {
-                steps[i].skill = it.@skillId.toInteger()
-            }    
+            // reason
+            def mapReason = [:]
+            if (!stepNode.reason.tex.@isImage.equals(true)) {
+                def srcReason = "${counter++}.svg"
+                svgs.put(srcReason, stepNode.reason.tex.toString())
+                mapReason.src = srcReason
+            } else {
+                mapReason.src = stepNode.reason.tex.toString()
+                mapReason.isImage = true
+            }                        
+            stepNode.reason.tex.replaceNode { node ->
+                tex(mapReason)
+            }
         }
         
-        choices = new Choices()
-        if (!xml.choices.tex.isEmpty()) {
-            xml.choices.tex.eachWithIndex { it, i ->
-                choices.texs[i] = it.toString()
-                if (it.@correct == true) {
-                    choices.correct = i
-                }
+        layoutXml.choices.tex.each {
+            def mapChoice = it.@correct.equals(false) ? [correct: false] : [:]
+            if (!it.@isImage.equals(true)) {
+                def srcChoice = "${counter++}.svg"
+                svgs.put(srcChoice, it.toString())                
+                mapChoice.src = srcChoice
+            } else {
+                mapChoice.src = it.toString()
+                mapChoice.isImage = true
+            }
+            
+            it.replaceNode { node ->
+                tex(mapChoice)
             }
         }
-        this
+        
+        serialize(layoutXml, java.nio.file.Files.newOutputStream(qpath.resolve(LAYOUT_FILE)))
+        svgs
     }
-    
-    Statement statement
-    Step[] steps
-    Choices choices
-    
+        
     final int CORRECT_IDX = 0, INCORRECT_IDX = 1, REASON_IDX = 2 
 
-}
-
-class Statement {
-    String tex = "", image = ""
-}
-
-class Step {
-    boolean noswipe
-    String imageCorrect = "", imageIncorrect = "", imageReason = ""
-    String texCorrect = "", texIncorrect = "", reason = ""
-    int skill = -1
-}
-
-class Choices {
-    public Choices() {
-        correct = ((int)Math.random()*100)%4 
-    }
-    String[] texs = ["", "", "", ""]
-    int correct    
 }

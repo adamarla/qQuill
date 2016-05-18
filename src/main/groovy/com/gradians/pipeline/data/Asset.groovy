@@ -11,6 +11,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import javax.xml.transform.OutputKeys
+import javax.xml.transform.Transformer
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
 import javax.xml.XMLConstants
@@ -74,8 +78,7 @@ abstract class Asset implements IEditable, Comparable {
 
     @Override
     void save() {
-        qpath.resolve(SRC_FILE).toFile().write(XmlUtil.serialize(xml))
-//        qpath.resolve(SRC_FILE).toFile().write(toXMLString())
+        serialize(xml, Files.newOutputStream(qpath.resolve(SRC_FILE)))
     }
     
     @Override
@@ -84,7 +87,7 @@ abstract class Asset implements IEditable, Comparable {
     }
     
     File getFile() {
-        return qpath.resolve(SRC_FILE).toFile()
+        qpath.resolve(SRC_FILE).toFile()
     }    
     
     @Override
@@ -102,7 +105,35 @@ abstract class Asset implements IEditable, Comparable {
     @Override
     boolean equals(Object obj) {
         Asset a = (Asset)obj
-        return id == a.id && assetClass == a.assetClass
+        id == a.id && assetClass == a.assetClass
+    }
+
+    protected Asset parse(InputStream xmlStream) {
+        xml = new XmlSlurper(false, false).parse(xmlStream)
+        if (!xml.@chapterId.isEmpty())
+            chapterId = xml.@chapterId.toInteger()
+        this
+    }    
+    
+    protected void serialize(def xmlNode, OutputStream ostream) {
+        TransformerFactory factory = TransformerFactory.newInstance()
+        def smb = new groovy.xml.StreamingMarkupBuilder()
+        smb.encoding = "utf-8"
+        def xmlString = "<?xml version='1.0' encoding='utf-8'?>\n" + smb.bindNode(xmlNode).toString()
+        def source = new StreamSource(new StringReader(xmlString))
+        def target = new StreamResult(ostream)
+                
+        try {
+            Transformer transformer = factory.newTransformer()
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2")
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes")
+            transformer.setOutputProperty(OutputKeys.METHOD, "xml")
+            transformer.setOutputProperty(OutputKeys.MEDIA_TYPE, "text/xml")
+            
+            transformer.transform(source, target)
+        } catch (Exception e) {
+            throw new GroovyRuntimeException(e.getMessage())
+        }
     }
 
     private boolean isValidXML(Path xmlPath) {
@@ -116,21 +147,14 @@ abstract class Asset implements IEditable, Comparable {
         true
     }
         
-    protected Asset parse(InputStream xmlStream) {
-        xml = new XmlSlurper(false, false).parse(xmlStream)
-        if (!xml.@chapterId.isEmpty())
-            chapterId = xml.@chapterId.toInteger()
-        this
-    }    
-    
+
     int id
     String path
     int authorId
     int chapterId
     AssetClass assetClass
     
-    protected def xml
-    
+    protected def xml    
     Path qpath
     
     String REF_FILE
