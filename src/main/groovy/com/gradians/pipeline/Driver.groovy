@@ -2,6 +2,7 @@ package com.gradians.pipeline
 
 import groovy.swing.SwingBuilder
 
+import java.beans.MetaData.javax_swing_border_MatteBorder_PersistenceDelegate;
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -80,7 +81,6 @@ class Driver {
                     return
                 }
                 
-                assert Files.isDirectory(path)
                 def assetClass = "Question"
                 if (path.toString().contains("skill"))
                     assetClass = "Skill"
@@ -102,6 +102,9 @@ class Driver {
             }
         } catch (Exception e) {
             e.printStackTrace()
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Crash. Send stack trace to akshay@gradians.com", 
+                "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
         }
     }        
 }

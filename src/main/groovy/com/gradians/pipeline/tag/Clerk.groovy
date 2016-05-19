@@ -13,6 +13,7 @@ import java.awt.event.KeyEvent
 
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
+import javax.swing.JOptionPane
 import javax.swing.border.Border
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
@@ -134,33 +135,31 @@ class Clerk {
     private def onGridClick = { MouseEvent me ->
         def row = sb.tblAssets.rowAtPoint(me.getPoint())
         if (me.getClickCount() == 2) {
-            new Editor(filteredList.get(row)).launchGeneric()
+            Asset a = filteredList.get(row)
         } else if (me.getClickCount() == 1) {
             onRowSelect(row)
         }
     }
         
     private def onRowSelect = { int row ->
-        if (row < 0 || row > filteredList.size()-1)
+        if (!filteredList.size() || !(0..<filteredList.size()).contains(row))
             return
-        Asset selected = filteredList.get(row)
-        IEditable e = (IEditable)selected
-        def tex = e.getEditGroups()[0].getEditItems()[0].text
-        if (tex.length() > 0) {
-            sb.pnlPreview.removeAll()
-            sb.pnlPreview.add new TeXLabel(tex, "Preview")
-            sb.pnlPreview.revalidate()
-            sb.pnlPreview.repaint()
+        Asset selected = filteredList.get(row)        
+        if (selected.isLoaded()) {
+            IEditable e = (IEditable)selected
+            def tex = e.getEditGroups()[0].getEditItems()[0].text
+            if (tex.length() > 0) {
+                sb.pnlPreview.removeAll()
+                sb.pnlPreview.add new TeXLabel(tex, "Preview")
+                sb.pnlPreview.revalidate()
+                sb.pnlPreview.repaint()
+            }    
         }
     }
     
-    private void newAssetAction(AssetClass assetClass) {
-        def asset = createNewAsset(assetClass, sb.listChapters.selectedValue.id)
-        new Editor(asset).launchGeneric()
-    }
-    
-    private Asset createNewAsset(AssetClass assetClass, int chapterId) {
+    private Asset createNewAsset(AssetClass assetClass) {
         // call server
+        int chapterId = sb.listChapters.selectedValue.id
         def userId = config.get("user_id")
         def url = "${assetClass.toString().toLowerCase()}/add"
         Map map = [e: userId, c: chapterId]
@@ -171,12 +170,35 @@ class Clerk {
         params.authorId = userId
         params.assetClass = assetClass
         Asset newAsset = Asset.getInstance(params)
-        newAsset.create(Paths.get(config.getBankPath()))
-        newAsset.getFile().write(newAsset.toXMLString())
+        newAsset.create()
         
         // refresh list
         artefactsEventList.add newAsset
         newAsset
+    }
+    
+    private def launchEditor(Asset a) {
+        if (a.isLoaded()) {
+            new Editor(a).launchGeneric()
+        } else {
+            def author = config.getAuthor(a.id)
+            def pane = sb.optionPane(message:
+                "The slot for this ${a.assetClass} was created by\n" +
+                "${author}, but it has not been filled yet.\n" +
+                "Someone may be working on it. \n" +
+                "Do you still want to edit this ${a.assetClass}?",
+                optionType: JOptionPane.OK_CANCEL_OPTION,
+                messageType: JOptionPane.INFORMATION_MESSAGE,
+                options: ["Yes, I want to", "No, never mind"])
+            def dialog = pane.createDialog(sb.frmClerk, 'Hang on a sec!')
+            dialog.visible = true
+            
+            String value = (String)pane.getValue()
+            if (value.startsWith("Yes")) {
+                a.create()
+                new Editor(a).launchGeneric()
+            }
+        }
     }
     
     private def filter = {
@@ -210,8 +232,8 @@ class Clerk {
         tableAssets.getActionMap().put("Enter", 
             [actionPerformed: { ActionEvent ae -> 
                 int row = tableAssets.selectedRow
-                if (row != -1)
-                    new Editor(filteredList.get(row)).launchGeneric()
+                if (tableAssets.selectedRow != -1)
+                    launchEditor(filteredList.get(row))
             }] as AbstractAction)
         tableAssets
     }
@@ -260,11 +282,20 @@ class Clerk {
             menu(text: 'File', mnemonic: 'F') {
                 menu(text: "New", mnemonic: 'N') {
                     menuItem(text: "Skill", mnemonic: 'K', 
-                        actionPerformed: { newAssetAction(AssetClass.Skill) })
+                        actionPerformed: {
+                            def asset = createNewAsset(AssetClass.Skill)
+                            launchEditor(asset)                
+                        })
                     menuItem(text: "Snippet", mnemonic: 'N', 
-                        actionPerformed: { newAssetAction(AssetClass.Snippet) })
+                        actionPerformed: { 
+                            def asset = createNewAsset(AssetClass.Snippet) 
+                            launchEditor(asset)                
+                        })
                     menuItem(text: "Problem", mnemonic: 'P', 
-                        actionPerformed: { newAssetAction(AssetClass.Question) })
+                        actionPerformed: {
+                            def asset = createNewAsset(AssetClass.Snippet) 
+                            launchEditor(asset)                
+                        })
                 }
                 menuItem(text: "Synch (not implemented)", mnemonic: 'H', actionPerformed: { pullPush() } )
                 menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })

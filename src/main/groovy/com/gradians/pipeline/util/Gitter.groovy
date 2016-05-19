@@ -11,8 +11,7 @@ class Gitter {
     Repository repo
     
     public Gitter(File repoLocation) {
-        repo = loadRepo(repoLocation)        
-        assert repo != null
+        repo = loadRepo(repoLocation)
         git = new Git(repo)
     }
     

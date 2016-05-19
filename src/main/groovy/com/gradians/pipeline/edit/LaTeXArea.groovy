@@ -38,7 +38,6 @@ class LaTeXArea extends RSyntaxTextArea {
             if (Files.notExists(path)) {
                 Files.copy(ostream, path)
             }
-            assert Files.exists(path)
             
             Properties p = new Properties()
             p.load(Files.newInputStream(path))
@@ -70,7 +69,6 @@ class LaTeXArea extends RSyntaxTextArea {
             if (Files.notExists(path)) {
                 Files.copy(ostream, path)
             }
-            assert Files.exists(path)
             
             Properties p = new Properties()
             p.load(Files.newInputStream(path))

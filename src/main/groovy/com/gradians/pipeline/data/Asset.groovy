@@ -61,15 +61,11 @@ abstract class Asset implements IEditable, Comparable {
         }
         save()
     }
-
-    Asset load() {
-        def xmlPath = qpath.resolve(SRC_FILE)        
-        assert isValidXML(xmlPath)
-        def xmlStream = Files.newInputStream(xmlPath)
-        assert isValidXML(xmlPath)
-        parse(xmlStream)
-    }
     
+    boolean isLoaded() {
+        xml != null
+    }
+
     @Override
     abstract EditGroup[] getEditGroups()
 
@@ -113,7 +109,7 @@ abstract class Asset implements IEditable, Comparable {
         if (!xml.@chapterId.isEmpty())
             chapterId = xml.@chapterId.toInteger()
         this
-    }    
+    }
     
     protected void serialize(def xmlNode, OutputStream ostream) {
         TransformerFactory factory = TransformerFactory.newInstance()
@@ -136,6 +132,16 @@ abstract class Asset implements IEditable, Comparable {
         }
     }
 
+    protected Asset load() {
+        def xmlPath = qpath.resolve(SRC_FILE)
+        if (isValidXML(xmlPath)) {
+            def xmlStream = Files.newInputStream(xmlPath)
+            parse(xmlStream)    
+        } else {
+            throw new Exception("${xmlPath.toString()} contains invalid XML")
+        }
+    }
+
     private boolean isValidXML(Path xmlPath) {
         def schema = Asset.class.getClassLoader().getResourceAsStream(SCHEMA_FILE)
         def xml = new StreamSource(Files.newInputStream(xmlPath))
@@ -147,7 +153,6 @@ abstract class Asset implements IEditable, Comparable {
         true
     }
         
-
     int id
     String path
     int authorId

@@ -23,8 +23,8 @@ class Network {
         httpClient.setHeaders(Accept: 'application/json')
         httpClient.request(GET, JSON) { req ->            
             response.success = { resp, json ->
-                assert Status.SUCCESS.matches(resp.statusLine.statusCode)
-                payload = json
+                if (Status.SUCCESS.matches(resp.statusLine.statusCode))
+                    payload = json
             }
         }
         payload
@@ -39,8 +39,8 @@ class Network {
         httpClient.request(POST, JSON) { req ->
             body = params
             response.success = { resp, json ->
-                assert Status.SUCCESS.matches(resp.statusLine.statusCode)
-                payload = json
+                if (Status.SUCCESS.matches(resp.statusLine.statusCode))
+                    payload = json
             }
         }
         payload
