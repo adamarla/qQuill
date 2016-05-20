@@ -75,8 +75,8 @@ class Editor implements ISkillLibClient {
         editGroups = e.getEditGroups()
         sb.edt {
             lookAndFeel 'nimbus'
-            frame(id: 'frmEditor', title: "Quill (${VERSION}) - Editor - ${e.getDirPath()}", size: [900, 600],
-                show: true, resizable: true, locationRelativeTo: null, 
+            frame(id: 'frmEditor', size: [900, 600], show: true, resizable: true, locationRelativeTo: null, 
+                title: "Quill (${VERSION}) - ChapterId ${((Asset)e).chapterId} - ${e.getDirPath()}",                
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 getMenuBar()
                 gridBagLayout()
@@ -220,13 +220,16 @@ class Editor implements ISkillLibClient {
     }
     
     private def launchSkillLibrary() {
-        int idx = sb.tpTeX.selectedIndex
         try {
-            SkillLibrary sl
-            sl = new SkillLibrary(this)
-            Asset a = (Asset)e
-            sl.launch(a.chapterId, editGroups[idx].skills)
-        } catch (Exception e) { println e }
+            int idx = sb.tpTeX.selectedIndex
+            SkillLibrary sl = new SkillLibrary(this)
+            sl.launch(((Asset)e).chapterId, editGroups[idx].skills)    
+        } catch (Exception e) {
+            e.printStackTrace()
+            javax.swing.JOptionPane.showMessageDialog(sb.frmEditor,
+                "Crash. Send stack trace to akshay@gradians.com",
+                "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
+        }   
     }
     
     private def commit() {

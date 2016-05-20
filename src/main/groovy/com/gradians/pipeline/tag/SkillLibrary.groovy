@@ -44,7 +44,7 @@ class SkillLibrary {
     }
 
     def launch(int chapterId, int[] skillId) {
-        def chapter = [NO_CHAPTER, NO_CHAPTER, NO_CHAPTER]
+        def chapter = [chapters.find { c -> c.id == chapterId }, NO_CHAPTER, NO_CHAPTER]
         def skill = new int[3]
         
         skillId.eachWithIndex { it, i ->
@@ -64,55 +64,78 @@ class SkillLibrary {
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 gridBagLayout()
                 
-                vbox(border: BorderFactory.createTitledBorder("Primary Skill"),
-                    constraints: gbc(weightx: 1, fill: HORIZONTAL)) {
-                    label(text: chapter[0].name)
-                    comboBox(id: 'cbSkills0', model: getSkillList(chapter[0]),
-                        renderer: renderer, maximumRowCount: 5)    
-                }                
-                
-                vbox(border: BorderFactory.createTitledBorder("Secondary Skill"),
-                    constraints: gbc(gridy: 1, weightx: 1, fill: HORIZONTAL)) {
-                    comboBox(id: 'cbChapters1', items: chapters, selectedItem: chapter[1])
-                    comboBox(id: 'cbSkills1', model: getSkillList(chapter[1]),
-                        renderer: renderer, maximumRowCount: 5)
+                (0..2).each { idx ->
+                    def order = idx == 0 ? "Primary" : ((idx == 1) ? "Secondary" : "Tertiary") 
+                    vbox(border: BorderFactory.createTitledBorder("${order} Skill"),
+                        constraints: gbc(gridy: idx, weightx: 1, fill: HORIZONTAL)) {
+                        comboBox(id: "cbChapters${idx}", items: chapters, selectedItem: chapter[idx])
+                        comboBox(id: "cbSkills${idx}", model: getSkillList(chapter[idx]),
+                            renderer: renderer, maximumRowCount: 5)
+                    }    
                 }
-                
-                vbox(border: BorderFactory.createTitledBorder("Tertiary Skill"),
-                    constraints: gbc(gridy: 2, weightx: 1, fill: HORIZONTAL)) {
-                    comboBox(id: 'cbChapters2', items: chapters, selectedItem: chapter[2])
-                    comboBox(id: 'cbSkills2', model: getSkillList(chapter[2]),
-                        renderer: renderer, maximumRowCount: 5)
-                }
+//                vbox(border: BorderFactory.createTitledBorder("Primary Skill"),
+//                    constraints: gbc(weightx: 1, fill: HORIZONTAL)) {
+//                    label(text: chapter[0].name)
+//                    comboBox(id: 'cbSkills0', model: getSkillList(chapter[0]),
+//                        renderer: renderer, maximumRowCount: 5)    
+//                }                
+//                
+//                vbox(border: BorderFactory.createTitledBorder("Secondary Skill"),
+//                    constraints: gbc(gridy: 1, weightx: 1, fill: HORIZONTAL)) {
+//                    comboBox(id: 'cbChapters1', items: chapters, selectedItem: chapter[1])
+//                    comboBox(id: 'cbSkills1', model: getSkillList(chapter[1]),
+//                        renderer: renderer, maximumRowCount: 5)
+//                }
+//                
+//                vbox(border: BorderFactory.createTitledBorder("Tertiary Skill"),
+//                    constraints: gbc(gridy: 2, weightx: 1, fill: HORIZONTAL)) {
+//                    comboBox(id: 'cbChapters2', items: chapters, selectedItem: chapter[2])
+//                    comboBox(id: 'cbSkills2', model: getSkillList(chapter[2]),
+//                        renderer: renderer, maximumRowCount: 5)
+//                }
                 
                 panel(constraints: gbc(gridy: 3, weightx: 1, fill: HORIZONTAL)) {
                     button(id: 'btnSelectSkill', text: 'Select',
                         actionPerformed: {
                             sb.dlgSkills.modal = false
-                            skill[0] = sb.cbSkills0.selectedItem != null ?
-                                sb.cbSkills0.selectedItem.id : 0
+                            
+                            if (!sb.cbChapters0.selectedItem.equals(NO_CHAPTER) &&
+                                sb.cbSkills0.selectedItem != null) {                                    
+                                skill[0] = sb.cbSkills0.selectedItem.id
+                            } else {
+                                skill[0] = 0
+                            }
+                            
                             (1..2).each {
                                 if (!sb."cbChapters${it}".selectedItem.equals(NO_CHAPTER) &&
                                     sb."cbSkills${it}".selectedItem != null) {
-                                    skill[it] = sb."cbSkills${it}".selectedItem.id
+                                    // If previous skill is zero OR the same
+                                    if (skill[it-1] == 0 || skill[it-1] == sb."cbSkills${it}".selectedItem.id) {
+                                        skill[it-1] = sb."cbSkills${it}".selectedItem.id
+                                        skill[it] = 0
+                                    } else {
+                                        skill[it] = sb."cbSkills${it}".selectedItem.id
+                                    }
                                 } else {
                                     skill[it] = 0
                                 }
                             }
+                            
                             client.applySelectedSkill(skill)
-                            sb.dlgSkills.dispose() })
+                            sb.dlgSkills.dispose() 
+                        })
+                    
                     button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
                 }
 
             }
                 
-            sb.cbChapters1.actionPerformed = {
-                sb.cbSkills1.model = getSkillList(sb.cbChapters1.selectedItem)
+            (0..2).each { idx ->
+                sb."cbChapters${idx}".actionPerformed = {
+                    sb."cbSkills${idx}".model = getSkillList(sb."cbChapters${idx}".selectedItem)
+                }    
             }
-            sb.cbChapters2.actionPerformed = {
-                sb.cbSkills2.model = getSkillList(sb.cbChapters2.selectedItem)
-            }
-            
+                
             skill.eachWithIndex { s, i ->
                 if (s != 0) {
                     sb."cbSkills${i}".selectedItem = skills.find{ it.id == s }                 

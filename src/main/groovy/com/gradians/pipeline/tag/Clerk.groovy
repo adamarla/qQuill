@@ -123,11 +123,9 @@ class Clerk {
         filteredList = new FilterList<Asset>(sortedList)
         artefactsEventList.clear()
         def assets = []
-        chapters.each { chapter ->
-            items = Network.executeHTTPGet("sku/list?c=${chapter.id}")
-            items.each{ item ->
-                assets << Asset.getInstance(item)
-            }
+        items = Network.executeHTTPGet("sku/list")
+        items.each{ item ->
+            assets << Asset.getInstance(item)
         }
         artefactsEventList.addAll assets
     }
@@ -136,6 +134,7 @@ class Clerk {
         def row = sb.tblAssets.rowAtPoint(me.getPoint())
         if (me.getClickCount() == 2) {
             Asset a = filteredList.get(row)
+            launchEditor(a)
         } else if (me.getClickCount() == 1) {
             onRowSelect(row)
         }
