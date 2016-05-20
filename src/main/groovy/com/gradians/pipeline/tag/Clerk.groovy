@@ -125,9 +125,8 @@ class Clerk {
         def assets = []
         items = Network.executeHTTPGet("sku/list")
         items.each{ item ->
-            assets << Asset.getInstance(item)
+            artefactsEventList.add Asset.getInstance(item)
         }
-        artefactsEventList.addAll assets
     }
     
     private def onGridClick = { MouseEvent me ->
@@ -143,7 +142,7 @@ class Clerk {
     private def onRowSelect = { int row ->
         if (!filteredList.size() || !(0..<filteredList.size()).contains(row))
             return
-        Asset selected = filteredList.get(row)        
+        Asset selected = filteredList.get(row)
         if (selected.isLoaded()) {
             IEditable e = (IEditable)selected
             def tex = e.getEditGroups()[0].getEditItems()[0].text
@@ -177,7 +176,7 @@ class Clerk {
     }
     
     private def launchEditor(Asset a) {
-        if (a.isLoaded()) {
+        if (a.load()) {
             new Editor(a).launchGeneric()
         } else {
             def author = config.getAuthor(a.id)
@@ -396,11 +395,9 @@ class AssetsMatcher implements Matcher {
             return true
 
         Asset asset = (Asset)o
-        int chapterId = asset.getChapterId()
-        int authorId = asset.getAuthorId()
-        def match = chapters.contains(config.getChapter(chapterId))
+        def match = chapters.contains(config.getChapter(asset.chapterId))
         if (authors.size() > 0) {
-            match = match && authors.contains(config.getAuthor(authorId))
+            match = match && authors.contains(config.getAuthor(asset.authorId))
         }
         if (classes.size() > 0) {
             match = match && classes.contains(asset.assetClass)

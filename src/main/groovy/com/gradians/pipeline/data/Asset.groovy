@@ -40,9 +40,7 @@ abstract class Asset implements IEditable, Comparable {
         Config config = Config.getInstance()
         Path vault = Paths.get(config.getBankPath()).resolve("vault")
         asset.qpath = vault.resolve(asset.path)
-        if (Files.exists(asset.qpath)) {
-            asset.load()
-        }
+        asset.load()
         asset
     }
     
@@ -60,6 +58,18 @@ abstract class Asset implements IEditable, Comparable {
             parse(xmlStream)
         }
         save()
+    }
+    
+    Asset load() {
+        if (Files.exists(qpath)) {
+            def xmlPath = qpath.resolve(SRC_FILE)
+            if (isValidXML(xmlPath)) {
+                def xmlStream = Files.newInputStream(xmlPath)
+                parse(xmlStream)
+            } else {
+                throw new Exception("${xmlPath.toString()} contains invalid XML")
+            }
+        }
     }
     
     boolean isLoaded() {
@@ -129,16 +139,6 @@ abstract class Asset implements IEditable, Comparable {
             transformer.transform(source, target)
         } catch (Exception e) {
             throw new GroovyRuntimeException(e.getMessage())
-        }
-    }
-
-    protected Asset load() {
-        def xmlPath = qpath.resolve(SRC_FILE)
-        if (isValidXML(xmlPath)) {
-            def xmlStream = Files.newInputStream(xmlPath)
-            parse(xmlStream)    
-        } else {
-            throw new Exception("${xmlPath.toString()} contains invalid XML")
         }
     }
 

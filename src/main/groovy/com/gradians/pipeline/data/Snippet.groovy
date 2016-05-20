@@ -28,6 +28,11 @@ class Snippet extends Asset {
     @Override
     void updateModel(EditGroup[] panels) {
         
+        def text =
+        "<?xml version='1.0' encoding='utf-8'?>\n" +
+        "<snippet xmlns='http://www.gradians.com' chapterId='${chapterId}' />"
+        xml = new XmlSlurper(false, false).parseText(text)
+        
         def item = panels[0].editItems[0]
         def map = [:]
                 
@@ -39,21 +44,21 @@ class Snippet extends Asset {
         if (item.isImage)
             map.isImage = true
             
-        xml.render.replaceNode {
+        xml.appendNode {
             render() {
                 tex(map, item.text.trim())
             }
         }
         
-        xml.reason.replaceNode {
+        xml.appendNode {
             reason() {
                 map = panels[0].editItems[2].isImage ? [isImage: true] : [:]
                 tex(map, panels[0].editItems[2].text)    
             }
         }
         
-        if (panels[0].skills[0]) {
-            xml.skills.replaceNode {
+        if (panels[0].skills.length > 0) {
+            xml.appendNode {
                 skills() {
                     panels[0].skills.each {
                         if (it)

@@ -59,11 +59,11 @@ class Question extends Asset implements IEditable {
     }
 
     @Override
-    public void updateModel(EditGroup[] panels) {        
+    public void updateModel(EditGroup[] panels) {
         def text = 
             "<?xml version='1.0' encoding='utf-8'?>\n" +
             "<question xmlns='http://www.gradians.com' chapterId='${chapterId}' />"
-        xml = new XmlSlurper().parseText(text)
+        xml = new XmlSlurper(false, false).parseText(text)
         
         xml.appendNode {
             statement() {
