@@ -61,8 +61,8 @@ abstract class Asset implements IEditable, Comparable {
     }
     
     Asset load() {
-        if (Files.exists(qpath)) {
-            def xmlPath = qpath.resolve(SRC_FILE)
+        def xmlPath = qpath.resolve(SRC_FILE)
+        if (Files.exists(xmlPath)) {
             if (isValidXML(xmlPath)) {
                 def xmlStream = Files.newInputStream(xmlPath)
                 parse(xmlStream)

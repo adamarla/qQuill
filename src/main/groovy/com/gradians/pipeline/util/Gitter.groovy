@@ -4,7 +4,9 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.lib.StoredConfig
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.transport.FetchResult
 
 class Gitter {
         
@@ -64,6 +66,10 @@ class Gitter {
     
     void pullFromUpstream() {
         // Get a reference
+        FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
+        System.out.println("Messages: " + result.getMessages());
+        
+        dx
     }
     
     void pushToRemote() {

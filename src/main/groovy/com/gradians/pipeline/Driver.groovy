@@ -19,28 +19,31 @@ import com.gradians.pipeline.edit.Editor
 import com.gradians.pipeline.edit.Renderer
 import com.gradians.pipeline.tag.Clerk
 import com.gradians.pipeline.util.Config;
+import com.gradians.pipeline.util.Converter
 
 
 class Driver {
     
     def static void main(String[] args) {
-        
         def pwd = System.getProperty("user.dir")
         
         Options options = new Options()
         options.addOption(Option.builder("e").argName("edit").longOpt("edit").build())
         options.addOption(Option.builder("r").argName("render").longOpt("render").build())        
         options.addOption(Option.builder("m").argName("mode").longOpt("mode").build())
+        options.addOption(Option.builder("c").argName("convert").longOpt("convert").build())
         
-        try {            
+        try {
             CommandLine cl = (new DefaultParser()).parse(options, args)
-            def edit, render, mode, list 
+            def edit, render, mode, list, convert 
             if (cl.hasOption('e'))
                 edit = true
             else if (cl.hasOption('r')) 
                 render = true
             else if (cl.hasOption('m'))
                 mode = true
+            else if (cl.hasOption('c'))
+                convert = true
             else
                 list = true
             
@@ -72,7 +75,7 @@ class Driver {
                     println "Quill is in ${modeOption} mode connecting to ${hostport}"
                 }
             } else {
-                Path path = Paths.get(pwd)
+                Path path = Paths.get(pwd)                
                 if (!cl.argList.empty)
                     path = path.resolve(cl.argList.get(0)).normalize()
     
@@ -85,7 +88,7 @@ class Driver {
                 if (path.toString().contains("skill"))
                     assetClass = "Skill"
                 else if (path.toString().contains("snippet"))
-                    assetClass = "Snippet"
+                    assetClass = "Snippet"  
                     
                 Path vault = Paths.get(config.getBankPath()).resolve("vault")
                 path = vault.relativize(path)
@@ -98,12 +101,17 @@ class Driver {
                     (new Renderer(a)).toSVG()
                 } else if (edit) {
                     (new Editor(a)).launchGeneric()
+                } else if (convert) {
+                    if (cl.argList.size() < 2)
+                        println "Pass chapterId as argument"
+                    (new Converter(a)).convert(cl.argList.get(1))
+                    (new Editor(a.load())).launchGeneric()
                 }
             }
         } catch (Exception e) {
             e.printStackTrace()
-            javax.swing.JOptionPane.showMessageDialog(null, 
-                "Crash. Send stack trace to akshay@gradians.com", 
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "${e.getMessage()}\nSend stack trace to akshay@gradians.com", 
                 "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
         }
     }        
