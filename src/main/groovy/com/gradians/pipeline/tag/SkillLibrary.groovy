@@ -73,26 +73,6 @@ class SkillLibrary {
                             renderer: renderer, maximumRowCount: 5)
                     }    
                 }
-//                vbox(border: BorderFactory.createTitledBorder("Primary Skill"),
-//                    constraints: gbc(weightx: 1, fill: HORIZONTAL)) {
-//                    label(text: chapter[0].name)
-//                    comboBox(id: 'cbSkills0', model: getSkillList(chapter[0]),
-//                        renderer: renderer, maximumRowCount: 5)    
-//                }                
-//                
-//                vbox(border: BorderFactory.createTitledBorder("Secondary Skill"),
-//                    constraints: gbc(gridy: 1, weightx: 1, fill: HORIZONTAL)) {
-//                    comboBox(id: 'cbChapters1', items: chapters, selectedItem: chapter[1])
-//                    comboBox(id: 'cbSkills1', model: getSkillList(chapter[1]),
-//                        renderer: renderer, maximumRowCount: 5)
-//                }
-//                
-//                vbox(border: BorderFactory.createTitledBorder("Tertiary Skill"),
-//                    constraints: gbc(gridy: 2, weightx: 1, fill: HORIZONTAL)) {
-//                    comboBox(id: 'cbChapters2', items: chapters, selectedItem: chapter[2])
-//                    comboBox(id: 'cbSkills2', model: getSkillList(chapter[2]),
-//                        renderer: renderer, maximumRowCount: 5)
-//                }
                 
                 panel(constraints: gbc(gridy: 3, weightx: 1, fill: HORIZONTAL)) {
                     button(id: 'btnSelectSkill', text: 'Select',

@@ -413,12 +413,12 @@ class Category {
     @Override
     public boolean equals(Object obj) {
         Category c = (Category)obj
-        return id == c.id && name.equals(c.name)
+        id == c.id && name.equals(c.name)
     }
 
     @Override
     public String toString() {
-        "${name}"
+        name
     }
 }
 

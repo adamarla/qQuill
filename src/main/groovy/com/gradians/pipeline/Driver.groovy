@@ -102,9 +102,7 @@ class Driver {
                 } else if (edit) {
                     (new Editor(a)).launchGeneric()
                 } else if (convert) {
-                    if (cl.argList.size() < 2)
-                        println "Pass chapterId as argument"
-                    (new Converter(a)).convert(cl.argList.get(1))
+                    (new Converter(a)).convert()
                     (new Editor(a.load())).launchGeneric()
                 }
             }

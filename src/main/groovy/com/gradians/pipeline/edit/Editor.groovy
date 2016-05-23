@@ -15,6 +15,7 @@ import javax.swing.BorderFactory
 import javax.swing.ImageIcon
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
+import javax.swing.JOptionPane
 
 import org.apache.batik.swing.JSVGCanvas
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants
@@ -26,8 +27,9 @@ import com.gradians.pipeline.data.Question
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.tag.ISkillLibClient
 import com.gradians.pipeline.tag.SkillLibrary
-import com.gradians.pipeline.util.Config;
-import com.gradians.pipeline.util.Gitter;
+import com.gradians.pipeline.tag.Category
+import com.gradians.pipeline.util.Config
+import com.gradians.pipeline.util.Gitter
 import com.gradians.pipeline.util.Network
 
 import static java.awt.GridBagConstraints.BOTH
@@ -75,8 +77,8 @@ class Editor implements ISkillLibClient {
         editGroups = e.getEditGroups()
         sb.edt {
             lookAndFeel 'nimbus'
-            frame(id: 'frmEditor', size: [900, 600], show: true, resizable: true, locationRelativeTo: null, 
-                title: "Quill (${VERSION}) - ChapterId ${((Asset)e).chapterId} - ${e.getDirPath()}",                
+            frame(id: 'frmEditor', size: [900, 600], show: true, resizable: true, locationRelativeTo: null,
+                title: "Quill (${VERSION}) - ChapterId ${((Asset)e).chapterId} - ${e.getDirPath()}",
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 getMenuBar()
                 gridBagLayout()
@@ -136,13 +138,14 @@ class Editor implements ISkillLibClient {
         editGroups[idx].skills = skills
         refreshSkillPreview(editGroups[idx])
         
+        e.updateModel(editGroups)
+        e.save()
+        
         // HTTP POST skills list to server
         def userId = config.get("user_id")
         def a = (Asset)e
         def url = "${a.assetClass.toString().toLowerCase()}/tag"
         Map map = [id: a.id, skills: editGroups.collect { it.skills }.flatten().findAll { it != 0 }]
-        
-        // create asset
         Network.executeHTTPPostBody(url, map)
     }
     
@@ -226,10 +229,49 @@ class Editor implements ISkillLibClient {
             sl.launch(((Asset)e).chapterId, editGroups[idx].skills)    
         } catch (Exception e) {
             e.printStackTrace()
-            javax.swing.JOptionPane.showMessageDialog(sb.frmEditor,
-                "Crash. Send stack trace to akshay@gradians.com",
+            JOptionPane.showMessageDialog(sb.frmEditor,
+                "${e.getMessage()}\nSend stack trace to akshay@gradians.com",
                 "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
         }   
+    }
+    
+    private def launchChapterSelector() {
+        def items
+        try {
+            items = Network.executeHTTPGet("chapter/list")            
+        } catch (Exception e) {
+            e.printStackTrace()
+            JOptionPane.showMessageDialog(sb.frmEditor,
+                "${e.getMessage()}\nSend stack trace to akshay@gradians.com",
+                "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
+        }        
+        if (!items)
+            return
+
+        def chapters = new Category[items.size()]
+        items.eachWithIndex{ item, i ->
+            chapters[i] = new Category(item)
+        }
+        
+        Asset a = (Asset)e
+        def initial = a.chapterId != 0 ? chapters.find { it.id == a.chapterId } : chapters[0]
+        def selected = JOptionPane.showInputDialog(sb.frmEditor,
+            "Select to assign chapter to question", "Chapter List", 
+            JOptionPane.PLAIN_MESSAGE, null, 
+            chapters*.name.toArray(new String[chapters.length]),
+            initial.name)
+        
+        if (selected) {
+            a.chapterId = chapters.find { it.name.equals(selected) }.id
+            e.updateModel(editGroups)
+            e.save()
+            sb.frmEditor.title = "Quill (${VERSION}) - ChapterId ${a.chapterId} - ${e.getDirPath()}"
+            
+            // HTTP POST chapterId to server
+            def url = "question/tag"
+            Map map = [id: a.id, c: a.chapterId]
+            Network.executeHTTPPostBody(url, map)    
+        }
     }
     
     private def commit() {
@@ -292,7 +334,8 @@ class Editor implements ISkillLibClient {
                         commit() 
                 })
             }
-            menu(text: 'Edit', mnemonic: 'E') {                
+            menu(text: 'Edit', mnemonic: 'E') {
+                menuItem(text: "Chapter", mnemonic: 'H', actionPerformed: { launchChapterSelector() })
                 menuItem(text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillLibrary() })
                 menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
             }

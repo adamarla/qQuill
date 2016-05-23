@@ -92,7 +92,7 @@ class Question extends Asset implements IEditable {
                             tex(map, panel.editItems[REASON_IDX].text)    
                         }
                         
-                        if (panel.skills[0]) {
+                        if (!panel.skills) {
                             xml.skills.replaceNode {
                                 skills() {
                                     panel.skills.each {

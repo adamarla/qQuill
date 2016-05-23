@@ -23,10 +23,9 @@ class Converter {
         questionXml = new XmlSlurper(false, false).parse(stream)
     }
     
-    def convert(String chapterId) {
-        asset.chapterId = chapterId.toInteger()
+    def convert() {
         def xml = "<?xml version='1.0' encoding='utf-8'?>\n" +
-            "<question xmlns='http://www.gradians.com' chapterId='${asset.chapterId}' />"
+            "<question xmlns='http://www.gradians.com' />"
         sourceXml = new XmlSlurper(false, false).parseText(xml)
 
         def context = questionXml.statement.tex.toString() + '\n'
@@ -60,7 +59,7 @@ class Converter {
                     reason() {
                         tex(stepNode.reason.toString())
                     }
-                }                
+                }
             }
         }
         
@@ -71,21 +70,12 @@ class Converter {
                         def map = it.@correct.isEmpty() ? [correct: false] : [:]
                         tex(map, it.toString())
                     }
-                }    
+                }
             }
         }
         
         asset.xml = sourceXml
         asset.save()
     }
-    
-    private def updateChapterId() {
-        // HTTP POST chapterId to server
-        def url = "question/tag"
-        Map map = [id: asset.id, c: asset.chapterId]
-        
-        // create asset
-        Network.executeHTTPPostBody(url, map)
-    }
-    
+
 }
