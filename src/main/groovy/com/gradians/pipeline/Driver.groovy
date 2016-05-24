@@ -103,7 +103,7 @@ class Driver {
                     (new Editor(a)).launchGeneric()
                 } else if (convert) {
                     (new Converter(a)).convert()
-                    (new Editor(a.load())).launchGeneric()
+                    (new Editor(a)).launchGeneric()
                 }
             }
         } catch (Exception e) {

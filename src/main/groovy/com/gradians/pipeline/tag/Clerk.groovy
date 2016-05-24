@@ -13,7 +13,6 @@ import java.awt.event.KeyEvent
 
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
-import javax.swing.JOptionPane
 import javax.swing.border.Border
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
@@ -176,27 +175,7 @@ class Clerk {
     }
     
     private def launchEditor(Asset a) {
-        if (a.load()) {
-            new Editor(a).launchGeneric()
-        } else {
-            def author = config.getAuthor(a.id)
-            def pane = sb.optionPane(message:
-                "The slot for this ${a.assetClass} was created by\n" +
-                "${author}, but it has not been filled yet.\n" +
-                "Someone may be working on it. \n" +
-                "Do you still want to edit this ${a.assetClass}?",
-                optionType: JOptionPane.OK_CANCEL_OPTION,
-                messageType: JOptionPane.INFORMATION_MESSAGE,
-                options: ["Yes, I want to", "No, never mind"])
-            def dialog = pane.createDialog(sb.frmClerk, 'Hang on a sec!')
-            dialog.visible = true
-            
-            String value = (String)pane.getValue()
-            if (value.startsWith("Yes")) {
-                a.create()
-                new Editor(a).launchGeneric()
-            }
-        }
+        new Editor(a).launchGeneric()
     }
     
     private def filter = {

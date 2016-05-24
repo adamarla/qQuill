@@ -74,6 +74,28 @@ class Editor implements ISkillLibClient {
     }
     
     def launchGeneric() {
+        Asset a = (Asset)e        
+        if (!a.load()) {
+            def author = a.authorId ? config.getAuthor(a.authorId) : "someone"
+            def pane = sb.optionPane(message:
+                "The slot for this ${a.assetClass} was created by\n" +
+                "${author}, but it has not been filled yet.\n" +
+                "Someone may be working on it. \n" +
+                "Do you still want to edit this ${a.assetClass}?",
+                optionType: JOptionPane.OK_CANCEL_OPTION,
+                messageType: JOptionPane.INFORMATION_MESSAGE,
+                options: ["Yes, I want to", "No, never mind"])
+            def dialog = pane.createDialog(null, 'Hang on a sec!')
+            dialog.visible = true
+            String value = (String)pane.getValue()
+            dialog.dispose()
+            if (value.startsWith("Yes")) {
+                a.create()
+            } else {
+                return
+            }
+        }
+
         editGroups = e.getEditGroups()
         sb.edt {
             lookAndFeel 'nimbus'
@@ -85,18 +107,18 @@ class Editor implements ISkillLibClient {
                 
                 // left panel
                 tabbedPane(id: 'tpTeX', tabPlacement: LEFT,
-                    constraints: gbc(weightx: 0.75, weighty: 1, gridheight: 2, fill: BOTH)) {
+                    constraints: gbc(weighty: 1, gridheight: 2, fill: VERTICAL)) {
                     editGroups.each { group -> layoutEditGroup(group) }
                 }
                     
                 // right panel
                 scrollPane(
-                    constraints: gbc(gridx: 1, weightx: 0.25, weighty: 0.25, fill: BOTH)) {
+                    constraints: gbc(gridx: 1, weightx: 1, weighty: 0.25, fill: BOTH)) {
                     vbox(id: 'vbReference')
                 }
                 
                 scrollPane(
-                    constraints: gbc(gridx: 1, gridy: 1, weightx: 0.25, weighty: 0.75, fill: BOTH)) {
+                    constraints: gbc(gridx: 1, gridy: 1, weightx: 1, weighty: 0.75, fill: BOTH)) {
                     vbox(id: 'vbDisplay')
                 }    
             }
