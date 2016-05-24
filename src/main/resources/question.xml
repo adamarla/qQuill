@@ -5,16 +5,11 @@
         <!--image>image1.svg</image-->
     </statement>
     <step>
-        <context/>
-        <tex/>
-        <tex correct='false'/>
+        <options>
+	        <tex/>
+	        <tex correct='false'/>
+        </options>
         <reason/>
     </step>
-    <choices>
-        <tex/>
-        <tex correct='true'/>
-        <tex/>
-        <tex/>
-    </choices>
 </question>
 

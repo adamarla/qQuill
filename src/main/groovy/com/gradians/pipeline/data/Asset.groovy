@@ -53,10 +53,8 @@ abstract class Asset implements IEditable, Comparable {
             Path makefile = qpath.resolve("Makefile")
             Path target = vault.resolve("bin").resolve("compile.mk")
             Files.createSymbolicLink(makefile, qpath.relativize(target))
-            
-            def xmlStream = Asset.class.getClassLoader().getResourceAsStream(REF_FILE)
-            parse(xmlStream)
         }
+        parse(Asset.class.getClassLoader().getResourceAsStream(REF_FILE))
         save()
     }
     

@@ -291,8 +291,8 @@ class Clerk {
                         })
                     menuItem(text: "Problem", mnemonic: 'P', 
                         actionPerformed: {
-                            def asset = createNewAsset(AssetClass.Snippet) 
-                            launchEditor(asset)                
+                            def asset = createNewAsset(AssetClass.Question) 
+                            launchEditor(asset)
                         })
                 }
                 menuItem(text: "Synch (not implemented)", mnemonic: 'H', actionPerformed: { pullPush() } )
