@@ -16,13 +16,11 @@ interface IEditable {
 class EditGroup {
 
     String title
-    int skill
     int[] skills
     List<EditItem> editItems
     
-    def EditGroup(String title, int skill = 0) {
+    def EditGroup(String title) {
         this.title = title
-        this.skill = skill
         editItems = new ArrayList<EditItem>()
     }
     

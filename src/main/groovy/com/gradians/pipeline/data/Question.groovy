@@ -40,6 +40,7 @@ class Question extends Asset implements IEditable {
                 panels[it].addEditItem("Correct", "", 8)
                 panels[it].addEditItem("Incorrect", "", 8)
                 panels[it].addEditItem("Reason", "", 8)
+                panels[it].skills = new int[0]
             }
         }
         
@@ -92,17 +93,15 @@ class Question extends Asset implements IEditable {
                             tex(map, panel.editItems[REASON_IDX].text)    
                         }
                         
-                        if (!panel.skills) {
-                            xml.skills.replaceNode {
-                                skills() {
-                                    panel.skills.each {
-                                        if (it)
-                                            skill(id: it)
-                                    }
+                        if (panel.skills) {
+                            skills() {
+                                panel.skills.each {
+                                    if (it)
+                                        skill(id: it)
                                 }
-                            }    
-                        }        
-                    }                    
+                            }
+                        }
+                    }
                 }
                 xml.appendNode stepNode
             }

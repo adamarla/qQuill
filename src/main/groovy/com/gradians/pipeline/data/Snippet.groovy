@@ -57,7 +57,7 @@ class Snippet extends Asset {
             }
         }
         
-        if (panels[0].skills.length > 0) {
+        if (panels[0].skills.length) {
             xml.appendNode {
                 skills() {
                     panels[0].skills.each {

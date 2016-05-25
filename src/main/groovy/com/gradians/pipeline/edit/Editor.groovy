@@ -130,6 +130,9 @@ class Editor implements ISkillLibClient {
                     int idx = sb.tpTeX.selectedIndex
                     layoutEditGroupPreview(editGroups[idx])
                     refreshSkillPreview(editGroups[idx])
+                    
+                    Asset asset = (Asset)e
+                    sb.miEditSkill.enabled = !(asset.assetClass == AssetClass.Question && idx == 0)
                 }
             }
             
@@ -247,8 +250,9 @@ class Editor implements ISkillLibClient {
     private def launchSkillLibrary() {
         try {
             int idx = sb.tpTeX.selectedIndex
+            Asset a = (Asset)e
             SkillLibrary sl = new SkillLibrary(this)
-            sl.launch(((Asset)e).chapterId, editGroups[idx].skills)    
+            sl.launch(a.chapterId, editGroups[idx].skills)
         } catch (Exception e) {
             e.printStackTrace()
             JOptionPane.showMessageDialog(sb.frmEditor,
@@ -358,7 +362,7 @@ class Editor implements ISkillLibClient {
             }
             menu(text: 'Edit', mnemonic: 'E') {
                 menuItem(text: "Chapter", mnemonic: 'H', actionPerformed: { launchChapterSelector() })
-                menuItem(text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillLibrary() })
+                menuItem(id: 'miEditSkill', text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillLibrary() })
                 menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
             }
         }
