@@ -28,9 +28,9 @@ class Converter {
             "<question xmlns='http://www.gradians.com' />"
         sourceXml = new XmlSlurper(false, false).parseText(xml)
 
-        def context = questionXml.statement.tex.toString() + '\n'
+        def context = questionXml.statement.tex.toString().trim() + '\\\\\n'
         questionXml.step.each {
-            context += it.context.toString() + '\n'
+            context += it.context.toString().trim() + '\\\\\n'
         }
         sourceXml.appendNode {
             delegate.statement() {
