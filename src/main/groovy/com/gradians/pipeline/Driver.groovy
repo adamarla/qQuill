@@ -7,6 +7,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import javax.swing.UIManager;
+
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.Option
@@ -20,6 +22,7 @@ import com.gradians.pipeline.edit.Renderer
 import com.gradians.pipeline.tag.Clerk
 import com.gradians.pipeline.util.Config;
 import com.gradians.pipeline.util.Converter
+import com.gradians.pipeline.util.Registration
 
 
 class Driver {
@@ -47,17 +50,16 @@ class Driver {
             else
                 list = true
             
-            Config config = Config.getInstance()
-            if (list) {
-                (new Clerk()).go(true)
-            } else if (mode) {
-                if (!config.get("mode")) {
-                    config.add("sandboxHostPort", "http://localhost:3000")
-                    config.add("productionHostPort", "http://www.gradians.com")
-                    config.add("mode", "sandbox")
-                    config.commit()
-                }
+            UIManager.lookAndFeel = 'javax.swing.plaf.nimbus.NimbusLookAndFeel'
             
+            Config config = Config.getInstance()
+            if (!config.hasRegistered())
+                new Registration(config).launch()
+                
+            if (!config.hasRegistered())
+                return
+            
+            if (mode) {
                 def modes = ["sandbox", "production", "display"]
                 def modeAction = cl.argList[0]
                 if (!modeAction || !modes.contains(modeAction)) {
@@ -65,45 +67,49 @@ class Driver {
                     println "Please use one of the following options ${modes}"
                 } else {
                     if (!modeAction.equals("display")) {
-                        if (!config.get("mode").equals(modeAction)) {
-                            config.add("mode", modeAction)
+                        if (!config.getMode().equals(modeAction)) {
+                            config.setMode(modeAction)
                             config.commit()
                         }
                     }
-                    def modeOption = config.get("mode")
-                    def hostport = config.getHostPort(modeOption)
+                    def modeOption = config.getMode()
+                    def hostport = config.getHostPort()
                     println "Quill is in ${modeOption} mode connecting to ${hostport}"
                 }
-            } else {
-                Path path = Paths.get(pwd)                
-                if (!cl.argList.empty)
-                    path = path.resolve(cl.argList.get(0)).normalize()
-    
-                if (!path.toString().contains("vault")) {
-                    println "Locate path to a question folder"
-                    return
-                }
-                
-                def assetClass = "Question"
-                if (path.toString().contains("skill"))
-                    assetClass = "Skill"
-                else if (path.toString().contains("snippet"))
-                    assetClass = "Snippet"  
+            } else {                             
+                if (list) {
+                    (new Clerk()).go(true)
+                } else {
+                    Path path = Paths.get(pwd)                
+                    if (!cl.argList.empty)
+                        path = path.resolve(cl.argList.get(0)).normalize()
+        
+                    if (!path.toString().contains("vault")) {
+                        println "Locate path to a question folder"
+                        return
+                    }
                     
-                Path vault = Paths.get(config.getBankPath()).resolve("vault")
-                path = vault.relativize(path)
-                
-                int id = Integer.parseInt(path.getFileName().toString())
-                def map = [id: id, path: path.toString(), assetClass: assetClass]
-                Asset a = Asset.getInstance(map)
-                
-                if (render) {
-                    (new Renderer(a)).toSVG()
-                } else if (edit) {
-                    (new Editor(a)).launchGeneric()
-                } else if (convert) {
-                    (new Converter(a)).convert()
-                    (new Editor(a)).launchGeneric()
+                    def assetClass = "Question"
+                    if (path.toString().contains("skill"))
+                        assetClass = "Skill"
+                    else if (path.toString().contains("snippet"))
+                        assetClass = "Snippet"  
+                        
+                    Path vault = Paths.get(config.getBankPath()).resolve("vault")
+                    path = vault.relativize(path)
+                    
+                    int id = Integer.parseInt(path.getFileName().toString())
+                    def map = [id: id, path: path.toString(), assetClass: assetClass]
+                    Asset a = Asset.getInstance(map)
+                    
+                    if (render) {
+                        (new Renderer(a)).toSVG()
+                    } else if (edit) {
+                        (new Editor(a)).launchGeneric()
+                    } else if (convert) {
+                        (new Converter(a)).convert()
+                        (new Editor(a)).launchGeneric()
+                    }
                 }
             }
         } catch (Exception e) {

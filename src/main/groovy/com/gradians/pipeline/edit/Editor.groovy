@@ -167,7 +167,7 @@ class Editor implements ISkillLibClient {
         e.save()
         
         // HTTP POST skills list to server
-        def userId = config.get("user_id")
+        def userId = config.getUser().id
         def a = (Asset)e
         def url = "${a.assetClass.toString().toLowerCase()}/tag"
         Map map = [id: a.id, skills: editGroups.collect { it.skills }.flatten().findAll { it != 0 }]
@@ -356,7 +356,7 @@ class Editor implements ISkillLibClient {
                 menuItem(text: "Save + Commit", actionPerformed: { 
                     e.updateModel(editGroups)
                     e.save()
-                    if (config.get("mode").equals("production"))
+                    if (config.getMode().equals("production"))
                         commit() 
                 })
             }

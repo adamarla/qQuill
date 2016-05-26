@@ -18,6 +18,7 @@ import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
 import javax.swing.KeyStroke
 import javax.swing.text.Keymap
+import javax.swing.JOptionPane
 
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
@@ -145,7 +146,7 @@ class Clerk {
         if (selected.isLoaded()) {
             IEditable e = (IEditable)selected
             def tex = e.getEditGroups()[0].getEditItems()[0].text
-            if (tex.length() > 0) {
+            if (tex.length()) {
                 sb.pnlPreview.removeAll()
                 sb.pnlPreview.add new TeXLabel(tex, "Preview")
                 sb.pnlPreview.revalidate()
@@ -157,7 +158,7 @@ class Clerk {
     private Asset createNewAsset(AssetClass assetClass) {
         // call server
         int chapterId = sb.listChapters.selectedValue.id
-        def userId = config.get("user_id")
+        def userId = config.getUser().id
         def url = "${assetClass.toString().toLowerCase()}/add"
         Map map = [e: userId, c: chapterId]
         
@@ -257,35 +258,49 @@ class Clerk {
     private def getMenuBar = {
         sb.menuBar {
             menu(text: 'File', mnemonic: 'F') {
-                menu(text: "New", mnemonic: 'N') {
-                    menuItem(text: "Skill", mnemonic: 'K', 
-                        actionPerformed: {
+                menuItem(text: "Snippet", mnemonic: 'N',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_N, KeyEvent.CTRL_DOWN_MASK),
+                    actionPerformed: {
+                        def asset = createNewAsset(AssetClass.Snippet) 
+                        launchEditor(asset)                
+                    })
+                menuItem(text: "Problem", mnemonic: 'P',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_P, KeyEvent.CTRL_DOWN_MASK),
+                    actionPerformed: {
+                        def asset = createNewAsset(AssetClass.Question) 
+                        launchEditor(asset)
+                    })
+                menuItem(id: 'miNewSkill', text: "Skill", mnemonic: 'K',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_K, KeyEvent.CTRL_DOWN_MASK),  
+                    actionPerformed: {
+                        def pane = sb.optionPane(
+                            message: "Are you sure you want to create a new Skill?\n" +
+                            "Not a Snippet or Question?",
+                            optionType: JOptionPane.YES_NO_OPTION,
+                            messageType: JOptionPane.QUESTION_MESSAGE,
+                            options: ["Yes, New Skill", "No, never mind"])
+                        def dialog = pane.createDialog(null, 'Hang on a sec!')
+                        dialog.visible = true
+                        
+                        String value = (String)pane.getValue()
+                        dialog.dispose()
+                        if (value.startsWith("Yes")) {
                             def asset = createNewAsset(AssetClass.Skill)
-                            launchEditor(asset)                
-                        })
-                    menuItem(text: "Snippet", mnemonic: 'N', 
-                        actionPerformed: { 
-                            def asset = createNewAsset(AssetClass.Snippet) 
-                            launchEditor(asset)                
-                        })
-                    menuItem(text: "Problem", mnemonic: 'P', 
-                        actionPerformed: {
-                            def asset = createNewAsset(AssetClass.Question) 
                             launchEditor(asset)
-                        })
-                }
+                        }
+                    })
+                separator()
                 menuItem(text: "Synch (not implemented)", mnemonic: 'H', actionPerformed: { pullPush() } )
-                menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
-            }
-            menu(text: 'Edit', mnemonic: 'E') {
-                menuItem(text: "Change Attributes", mnemonic: 'C', 
-                    actionPerformed: { })
+                menuItem(text: "Exit", mnemonic: 'X',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK),
+                    actionPerformed: { dispose() })
             }
             menu(text: 'Help', mnemonic: 'H') {
                 menuItem(text: "About", mnemonic: 'A', actionPerformed: { showAbout() })
                 menuItem(text: "Settings", mnemonic: 'S', actionPerformed: { showSettings() })
-            }
+            }            
         }
+        sb.miNewSkill.visible = config.getUser().role.equals("admin")
     }
     
     private def showSettings() {
