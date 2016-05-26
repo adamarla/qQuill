@@ -20,6 +20,7 @@ import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.edit.Editor
 import com.gradians.pipeline.edit.Renderer
 import com.gradians.pipeline.tag.Clerk
+import com.gradians.pipeline.tag.Pinger
 import com.gradians.pipeline.util.Config;
 import com.gradians.pipeline.util.Converter
 import com.gradians.pipeline.util.Registration
@@ -35,10 +36,11 @@ class Driver {
         options.addOption(Option.builder("r").argName("render").longOpt("render").build())        
         options.addOption(Option.builder("m").argName("mode").longOpt("mode").build())
         options.addOption(Option.builder("c").argName("convert").longOpt("convert").build())
+        options.addOption(Option.builder("p").argName("ping").longOpt("ping").build())
         
         try {
             CommandLine cl = (new DefaultParser()).parse(options, args)
-            def edit, render, mode, list, convert 
+            def edit, render, mode, ping, list, convert 
             if (cl.hasOption('e'))
                 edit = true
             else if (cl.hasOption('r')) 
@@ -47,6 +49,8 @@ class Driver {
                 mode = true
             else if (cl.hasOption('c'))
                 convert = true
+            else if (cl.hasOption('p'))
+                ping = true
             else
                 list = true
             
@@ -102,13 +106,18 @@ class Driver {
                     def map = [id: id, path: path.toString(), assetClass: assetClass]
                     Asset a = Asset.getInstance(map)
                     
-                    if (render) {
-                        (new Renderer(a)).toSVG()
-                    } else if (edit) {
+                    if (edit) {
                         (new Editor(a)).launchGeneric()
                     } else if (convert) {
                         (new Converter(a)).convert()
                         (new Editor(a)).launchGeneric()
+                    } else {
+                        if (render) {
+                            new Renderer(a).toSVG()
+                        }                        
+                        if (ping) {
+                            new Pinger(a).ping()
+                        }
                     }
                 }
             }

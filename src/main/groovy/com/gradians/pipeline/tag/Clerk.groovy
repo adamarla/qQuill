@@ -1,10 +1,12 @@
 package com.gradians.pipeline.tag
 
+import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
 
 import java.awt.Color
 import java.awt.event.MouseEvent
 import java.awt.GridBagConstraints as GBC
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths;
 import java.awt.event.ActionEvent
@@ -113,10 +115,9 @@ class Clerk {
             config.addAuthor(c.id, c.name)
         }
         
-        // Persist chapter and author names locally for 
-        // later use 
         config.commit()
         
+        def skills = []
         // Collections for display table
         artefactsEventList = new BasicEventList<Asset>()
         sortedList = new SortedList(artefactsEventList)
@@ -126,7 +127,12 @@ class Clerk {
         items = Network.executeHTTPGet("sku/list")
         items.each{ item ->
             artefactsEventList.add Asset.getInstance(item)
+            if (AssetClass.valueOf(item.assetClass) == AssetClass.Skill)
+                skills << item
         }
+        
+        Path skillCache = config.configPath.resolveSibling("skills.json")
+        skillCache.toFile().write new JsonBuilder(skills).toString()
     }
     
     private def onGridClick = { MouseEvent me ->

@@ -1,17 +1,16 @@
 package com.gradians.pipeline.tag
 
 import java.awt.Component
-import java.util.EnumSet
-import java.util.HashMap
-import java.util.List
+
+import java.nio.file.Path
 
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
-import com.gradians.pipeline.data.AssetState
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.edit.TeXHelper
-import com.gradians.pipeline.util.Network;
+import com.gradians.pipeline.util.Config
 
+import groovy.json.JsonSlurper
 import groovy.swing.SwingBuilder
 
 import javax.swing.BorderFactory
@@ -34,15 +33,17 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class SkillLibrary {
 
+    Config config
     ISkillLibClient client
     SwingBuilder sb
     SkillRenderer renderer
 
     public SkillLibrary(ISkillLibClient client) {
         this.client = client
+        config = Config.getInstance()
         loadAssets()
     }
-
+    
     def launch(int chapterId, int[] skillId) {
         def chapter = [chapters.find { c -> c.id == chapterId }, NO_CHAPTER, NO_CHAPTER]
         def skill = new int[3]
@@ -138,17 +139,19 @@ class SkillLibrary {
     private def loadAssets = {
         chapters = new ArrayList<Category>()
         chapters.add NO_CHAPTER
-        def items = Network.executeHTTPGet("chapter/list")
-        items.eachWithIndex{ item, i ->
+        
+        def items = config.getChapters()
+        items.each { item ->
             Category c = new Category(item)
             chapters.add c
         }
         
         skills = new ArrayList<Skill>()
-        items = Network.executeHTTPGet("skills/all")
+        Path skillCache = config.configPath.resolveSibling("skills.json")
+        items = new JsonSlurper().parse(skillCache.toFile())
         items.each{ item ->
             def skill = Asset.getInstance(item)
-            if (skill.xml)
+            if (skill.isLoaded())
                 skills << skill 
         }
     }

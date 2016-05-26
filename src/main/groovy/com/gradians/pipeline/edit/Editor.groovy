@@ -30,7 +30,6 @@ import com.gradians.pipeline.tag.SkillLibrary
 import com.gradians.pipeline.tag.Category
 import com.gradians.pipeline.util.Config
 import com.gradians.pipeline.util.Gitter
-import com.gradians.pipeline.util.Network
 
 import static java.awt.GridBagConstraints.BOTH
 import static java.awt.GridBagConstraints.VERTICAL
@@ -164,14 +163,7 @@ class Editor implements ISkillLibClient {
         refreshSkillPreview(editGroups[idx])
         
         e.updateModel(editGroups)
-        e.save()
-        
-        // HTTP POST skills list to server
-        def userId = config.getUser().id
-        def a = (Asset)e
-        def url = "${a.assetClass.toString().toLowerCase()}/tag"
-        Map map = [id: a.id, skills: editGroups.collect { it.skills }.flatten().findAll { it != 0 }]
-        Network.executeHTTPPostBody(url, map)
+        e.save()        
     }
     
     @Override
@@ -262,41 +254,26 @@ class Editor implements ISkillLibClient {
     }
     
     private def launchChapterSelector() {
-        def items
-        try {
-            items = Network.executeHTTPGet("chapter/list")            
-        } catch (Exception e) {
-            e.printStackTrace()
-            JOptionPane.showMessageDialog(sb.frmEditor,
-                "${e.getMessage()}\nSend stack trace to akshay@gradians.com",
-                "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
-        }        
-        if (!items)
-            return
-
-        def chapters = new Category[items.size()]
-        items.eachWithIndex{ item, i ->
-            chapters[i] = new Category(item)
+        def chapters = []
+        def items = config.getChapters()
+        items.each { item ->
+            Category c = new Category(item)
+            chapters.add c
         }
-        
+
         Asset a = (Asset)e
         def initial = a.chapterId != 0 ? chapters.find { it.id == a.chapterId } : chapters[0]
         def selected = JOptionPane.showInputDialog(sb.frmEditor,
             "Select to assign chapter to question", "Chapter List", 
             JOptionPane.PLAIN_MESSAGE, null, 
-            chapters*.name.toArray(new String[chapters.length]),
+            chapters*.name.toArray(new String[chapters.size()]),
             initial.name)
         
         if (selected) {
             a.chapterId = chapters.find { it.name.equals(selected) }.id
             e.updateModel(editGroups)
             e.save()
-            sb.frmEditor.title = "Quill (${VERSION}) - ChapterId ${a.chapterId} - ${e.getDirPath()}"
-            
-            // HTTP POST chapterId to server
-            def url = "question/tag"
-            Map map = [id: a.id, c: a.chapterId]
-            Network.executeHTTPPostBody(url, map)    
+            sb.frmEditor.title = "Quill (${VERSION}) - ChapterId ${a.chapterId} - ${e.getDirPath()}"            
         }
     }
     

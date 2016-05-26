@@ -21,7 +21,7 @@ class Config {
         Config.theInstance
     }
     
-    private Config() {        
+    private Config() {
         def userHome = System.getProperty("user.home")
         configPath = Paths.get("${userHome}/.quill/config.groovy")
         if (!Files.exists(configPath))
@@ -91,6 +91,12 @@ class Config {
     
     String getAuthor(int id) {
         config.author."a${id}"
+    }
+    
+    def getChapters() {
+        config.chapter.collect {
+            [ id: it.key.substring(1).toInteger(), name: it.value]
+        }
     }
     
     void commit() {
