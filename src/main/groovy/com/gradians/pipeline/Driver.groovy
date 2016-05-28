@@ -38,9 +38,10 @@ class Driver {
         options.addOption(Option.builder("c").argName("convert").longOpt("convert").build())
         options.addOption(Option.builder("p").argName("ping").longOpt("ping").build())
         
+        def edit, render, mode, ping, list, convert 
         try {
+            
             CommandLine cl = (new DefaultParser()).parse(options, args)
-            def edit, render, mode, ping, list, convert 
             if (cl.hasOption('e'))
                 edit = true
             else if (cl.hasOption('r')) 
@@ -123,9 +124,10 @@ class Driver {
             }
         } catch (Exception e) {
             e.printStackTrace()
-            javax.swing.JOptionPane.showMessageDialog(null,
-                "${e.getMessage()}\nSend stack trace to akshay@gradians.com", 
-                "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
+            if (!render && !ping)
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "${e.getMessage()}\nSend stack trace to akshay@gradians.com", 
+                    "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
         }
     }        
 }

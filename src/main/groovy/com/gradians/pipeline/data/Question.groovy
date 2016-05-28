@@ -158,7 +158,7 @@ class Question extends Asset implements IEditable {
                     svgs.put(src, it.toString())
                     map.src = src
                 } else {
-                    map.src = node.toString()
+                    map.src = it.toString()
                     map.isImage = true
                 }                
                 it.replaceNode { node ->

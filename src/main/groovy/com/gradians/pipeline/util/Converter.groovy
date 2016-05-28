@@ -43,17 +43,23 @@ class Converter {
                 step() { 
                     options() {
                         def map = [:]
-                        def text = ""
                         def tag = "tex"
                         if (!stepNode.image.isEmpty()) {
                             map.isImage = true
-                            tag = "image"                        
-                        }                        
+                            tag = "image"
+                        }
                         stepNode."${tag}".each {
                             if (it.@correct.isEmpty()) {
                                 map.correct = false
                             }
-                            tex(map, it.toString())
+                            def text = it.toString()
+                            if (map.isImage) {
+                                if (!text.startsWith("img_")) {
+                                    Files.move(asset.qpath.resolve(text), asset.qpath.resolve("img_${text}"))
+                                    text = "img_${text}"
+                                }
+                            }                            
+                            tex(map, text)
                         }
                     }
                     reason() {
