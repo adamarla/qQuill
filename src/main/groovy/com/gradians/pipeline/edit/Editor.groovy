@@ -102,24 +102,24 @@ class Editor implements ISkillLibClient {
                 title: "Quill (${VERSION}) - ChapterId ${((Asset)e).chapterId} - ${e.getDirPath()}",
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
                 getMenuBar()
-                gridBagLayout()
                 
-                // left panel
-                tabbedPane(id: 'tpTeX', tabPlacement: LEFT,
-                    constraints: gbc(weighty: 1, gridheight: 2, fill: VERTICAL)) {
-                    editGroups.each { group -> layoutEditGroup(group) }
+                splitPane(orientation: javax.swing.JSplitPane.HORIZONTAL_SPLIT) {
+                    // left panel
+                    tabbedPane(id: 'tpTeX', tabPlacement: LEFT) {
+                        editGroups.each { group -> layoutEditGroup(group) }
+                    }
+                        
+                    splitPane(orientation: javax.swing.JSplitPane.VERTICAL_SPLIT) {
+                        // right panel
+                        scrollPane() {
+                            vbox(id: 'vbReference')
+                        }
+                        
+                        scrollPane() {
+                            vbox(id: 'vbDisplay')
+                        }        
+                    }    
                 }
-                    
-                // right panel
-                scrollPane(
-                    constraints: gbc(gridx: 1, weightx: 1, weighty: 0.25, fill: BOTH)) {
-                    vbox(id: 'vbReference')
-                }
-                
-                scrollPane(
-                    constraints: gbc(gridx: 1, gridy: 1, weightx: 1, weighty: 0.75, fill: BOTH)) {
-                    vbox(id: 'vbDisplay')
-                }    
             }
                 
             sb.tpTeX.addChangeListener new ChangeListener() {
@@ -240,17 +240,10 @@ class Editor implements ISkillLibClient {
     }
     
     private def launchSkillLibrary() {
-        try {
-            int idx = sb.tpTeX.selectedIndex
-            Asset a = (Asset)e
-            SkillLibrary sl = new SkillLibrary(this)
-            sl.launch(a.chapterId, editGroups[idx].skills)
-        } catch (Exception e) {
-            e.printStackTrace()
-            JOptionPane.showMessageDialog(sb.frmEditor,
-                "${e.getMessage()}\nSend stack trace to akshay@gradians.com",
-                "Ooops", javax.swing.JOptionPane.ERROR_MESSAGE)
-        }   
+        int idx = sb.tpTeX.selectedIndex
+        Asset a = (Asset)e
+        SkillLibrary sl = new SkillLibrary(this)
+        sl.launch(a.chapterId, editGroups[idx].skills)
     }
     
     private def launchChapterSelector() {
