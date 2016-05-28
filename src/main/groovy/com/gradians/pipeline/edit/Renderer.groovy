@@ -54,7 +54,7 @@ class Renderer {
         DirectoryStream<Path> svgs = Files.newDirectoryStream(path, "*.svg")
         for (Path p : svgs) {
             def s = p.getFileName().toString()
-            if (!(s =~ "img.*svg")) {
+            if (s =~ /\d+\.svg/) {
                 Files.deleteIfExists(p)
             }
         }
