@@ -28,7 +28,7 @@
     <xsd:complexType name="questionType">
         <xsd:sequence>
             <xsd:element name="statement" type="tns:contentType"/>
-            <xsd:element name="step" type="tns:stepType" maxOccurs="6"/>
+            <xsd:element name="step" type="tns:stepType" minOccurs="0" maxOccurs="6"/>
             <xsd:element name="choices" type="tns:contentType" minOccurs="0"/>
         </xsd:sequence>
         <xsd:attribute name="chapterId" type="xsd:integer"/>
@@ -41,6 +41,7 @@
             <xsd:element name="skills" type="tns:skillsType" minOccurs="0"/>
         </xsd:sequence>
         <xsd:attribute name="skillId" type="xsd:integer"/>
+        <xsd:attribute name="swipe" type="xsd:boolean" use="optional" />
     </xsd:complexType>
     <xsd:complexType name="choicesType">
         <xsd:sequence>

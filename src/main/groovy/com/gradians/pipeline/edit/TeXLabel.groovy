@@ -41,15 +41,12 @@ class TeXLabel extends JLabel {
         if (icon.iconWidth > ERROR_WIDTH) {
             int overflowPcnt = (icon.iconWidth - ERROR_WIDTH)*100/ERROR_WIDTH
             b.title += "(${overflowPcnt}%)"
-            b.setBorder(new LineBorder(RED, (int)overflowPcnt/10+1))
-        } else if (icon.iconWidth > WARNING_WIDTH) {
-            b.setBorder(new LineBorder(ORANGE))
         }
         super.setBorder(BorderFactory.createCompoundBorder(b,
             new EmptyBorder(0, 0, 0, 0)))
     }
     
-    private final int ERROR_WIDTH = 335, WARNING_WIDTH = 310
+    private final int ERROR_WIDTH = 335
     
 }
 

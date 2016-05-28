@@ -22,16 +22,16 @@ class Converter {
         def stream = Files.newInputStream(a.qpath.resolve("question.xml"))
         questionXml = new XmlSlurper(false, false).parse(stream)
     }
-    
+    final def LINE_BREAK = "\n\\\\\n"
     def convert() {
         def xml = "<?xml version='1.0' encoding='utf-8'?>\n" +
             "<question xmlns='http://www.gradians.com' />"
         sourceXml = new XmlSlurper(false, false).parseText(xml)
 
-        def context = questionXml.statement.tex.toString().trim() + '\\\\\n'
+        def context = questionXml.statement.tex.toString().trim() + LINE_BREAK
         questionXml.step.each {
-            context += it.context.toString().trim() + '\\\\\n'
-        }
+            context += it.context.toString().trim() + LINE_BREAK
+        }        
         sourceXml.appendNode {
             delegate.statement() {
                 tex(context)

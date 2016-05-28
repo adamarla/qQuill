@@ -15,6 +15,7 @@ import java.awt.event.KeyEvent
 
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
+import javax.swing.SwingWorker
 import javax.swing.border.Border
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
@@ -76,19 +77,12 @@ class Clerk {
                 size: [840, 600], show: true, locationRelativeTo: null,
                 defaultCloseOperation: topLevel ? EXIT_ON_CLOSE : DISPOSE_ON_CLOSE) {
                 getMenuBar()
-                panel() {
-                    gridBagLayout()                    
-                    vbox(constraints: gbc(gridheight: 2, weightx: 1, weighty: 1,
-                        anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
-                        getSelectorLists()
-                    }                                                        
-                    scrollPane(constraints: gbc(gridx: 1, weightx: 1, weighty: 0.5,
-                        anchor: GBC.PAGE_START, fill: GBC.BOTH)) {
-                        createTable()
+                splitPane(orientation: javax.swing.JSplitPane.HORIZONTAL_SPLIT) {
+                    vbox() { getSelectorLists() }
+                    splitPane(orientation: javax.swing.JSplitPane.VERTICAL_SPLIT) {
+                        scrollPane() { createTable() }
+                        panel(id: 'pnlPreview', border: A_BORDER)
                     }
-                    panel(border: A_BORDER, 
-                        constraints: gbc(gridx: 1, gridy: 1, weightx: 1, weighty: 0.5,
-                        anchor: GBC.PAGE_END, fill: GBC.BOTH), id: 'pnlPreview')
                 }
             }
             tableSorter = TableComparatorChooser.install(sb.tblAssets, sortedList,
@@ -101,16 +95,20 @@ class Clerk {
     private def loadAssets() {        
         chapters = new ArrayList<Category>()
         def items = Network.executeHTTPGet("chapter/list")
+        Category c
         items.eachWithIndex{ item, i ->
-            Category c = new Category(item)
+            c = new Category(item)
             chapters.add c
             config.addChapter(c.id, c.name)
         }
+        c = new Category(id: 0, name: 'Uncategorized')
+        chapters.add c
+        config.addChapter(c.id, c.name)
         
         authors = new ArrayList<Category>()
         items = Network.executeHTTPGet("examiner/list")
         items.eachWithIndex{ item, i ->
-            Category c = new Category(item)
+            c = new Category(item)
             authors.add c
             config.addAuthor(c.id, c.name)
         }
@@ -129,8 +127,7 @@ class Clerk {
             artefactsEventList.add Asset.getInstance(item)
             if (AssetClass.valueOf(item.assetClass) == AssetClass.Skill)
                 skills << item
-        }
-        
+        }        
         Path skillCache = config.configPath.resolveSibling("skills.json")
         skillCache.toFile().write new JsonBuilder(skills).toString()
     }
@@ -192,6 +189,7 @@ class Clerk {
         List<AssetClass> classSelection = sb.listClasses.getSelectedValuesList()
         AssetsMatcher matcher = new AssetsMatcher(chapterSelection*.name, authorSelection*.name, classSelection)
         filteredList.setMatcher(matcher)
+        filteredList.each { it.load() }
     }
     
     private def pullPush = {

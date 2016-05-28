@@ -29,6 +29,7 @@ import com.gradians.pipeline.tag.ISkillLibClient
 import com.gradians.pipeline.tag.SkillLibrary
 import com.gradians.pipeline.tag.Category
 import com.gradians.pipeline.util.Config
+import com.gradians.pipeline.util.Converter
 import com.gradians.pipeline.util.Gitter
 
 import static java.awt.GridBagConstraints.BOTH
@@ -73,7 +74,11 @@ class Editor implements ISkillLibClient {
     }
     
     def launchGeneric() {
-        Asset a = (Asset)e        
+        Asset a = (Asset)e
+        if (Files.notExists(a.qpath.resolve(a.SRC_FILE)) &&
+            Files.exists(a.qpath.resolve(a.REF_FILE)))
+            new Converter(a).convert()
+        
         if (!a.load()) {
             def author = a.authorId ? config.getAuthor(a.authorId) : "someone"
             def pane = sb.optionPane(message:
@@ -286,7 +291,7 @@ class Editor implements ISkillLibClient {
             "# Edit Commit message. Any line beginning with '#' will be ignored.\n" +
             "Created / Altered ${a.assetClass}."
             def dialog = sb.dialog(id: 'dlgCommit', title: 'Commit Message',
-                locationRelativeTo: sb.frmEditor) {
+                locationRelativeTo: sb.frmEditor, modal: true) {
                 vbox() {
                     textArea(id: 'taCommitMessage', rows: 8, columns: 40, text: message)
                     panel() {

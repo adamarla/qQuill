@@ -79,13 +79,18 @@ class Question extends Asset implements IEditable {
             if (panel.editItems[REASON_IDX].text) {                
                 def stepNode = {
                     step() {
-                        options() {
-                            def map = panel.editItems[CORRECT_IDX].isImage ? [isImage: true] : [:]
-                            tex(map, panel.editItems[CORRECT_IDX].text)
+                        
+                        options() {                            
+                            if (panel.editItems[CORRECT_IDX].text) {
+                                def map = panel.editItems[CORRECT_IDX].isImage ? [isImage: true] : [:]
+                                tex(map, panel.editItems[CORRECT_IDX].text)    
+                            }                            
                             
-                            map = panel.editItems[INCORRECT_IDX].isImage ? [isImage: true] : [:]
-                            map.correct = false
-                            tex(map, panel.editItems[INCORRECT_IDX].text)
+                            if (panel.editItems[INCORRECT_IDX].text) {
+                                def map = panel.editItems[INCORRECT_IDX].isImage ? [isImage: true] : [:]
+                                map.correct = false
+                                tex(map, panel.editItems[INCORRECT_IDX].text)    
+                            }
                         }
                         
                         reason() {
