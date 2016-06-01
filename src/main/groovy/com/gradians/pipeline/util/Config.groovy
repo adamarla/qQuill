@@ -23,17 +23,19 @@ class Config {
     
     private Config() {
         def userHome = System.getProperty("user.home")
-        configPath = Paths.get("${userHome}/.quill/config.groovy")
-        if (!Files.exists(configPath))
+        def quillDir = Paths.get("${userHome}/.quill")
+        configPath = quillDir.resolve("config.groovy")
+        if (Files.notExists(quillDir)) {
+            Files.createDirectory(quillDir)
             Files.createFile(configPath)
-        config = new ConfigSlurper().parse(configPath.toUri().toURL())
-        if (!config.containsKey("general")) {
             initialize()
+        } else {
+            config = new ConfigSlurper().parse(configPath.toUri().toURL())        
         }
     }
     
     private def initialize() {
-        config.clear()
+        config = new ConfigSlurper()
         config.sandbox.host_port = "http://localhost:3000"
         config.production.host_port = "http://www.gradians.com"
         config.general.mode = "production"

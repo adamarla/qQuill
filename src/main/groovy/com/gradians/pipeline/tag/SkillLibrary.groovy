@@ -8,6 +8,7 @@ import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.edit.TeXHelper
+import com.gradians.pipeline.edit.TeXLabel
 import com.gradians.pipeline.util.Config
 
 import groovy.json.JsonSlurper
@@ -19,6 +20,7 @@ import javax.swing.DefaultComboBoxModel
 import javax.swing.JLabel
 import javax.swing.JList
 import javax.swing.ListCellRenderer
+import javax.swing.border.Border
 import javax.swing.border.EmptyBorder
 import javax.swing.event.ListDataListener
 
@@ -28,6 +30,7 @@ import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
 import static javax.swing.JList.VERTICAL
 import static java.awt.GridBagConstraints.BOTH
 import static java.awt.GridBagConstraints.HORIZONTAL
+import static javax.swing.SwingConstants.LEFT
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 
@@ -60,55 +63,67 @@ class SkillLibrary {
         sb = new SwingBuilder()
         sb.edt {
             lookAndFeel 'nimbus'
-            dialog(id: 'dlgSkills', title: 'Skill Library', modal: true,
-                preferredSize: [360, 480],
+            dialog(id: 'dlgSkills', title: 'Skill Library', modal: true, preferredSize: [600, 400],
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
-                gridBagLayout()
                 
-                (0..2).each { idx ->
-                    def order = idx == 0 ? "Primary" : ((idx == 1) ? "Secondary" : "Tertiary") 
-                    vbox(border: BorderFactory.createTitledBorder("${order} Skill"),
-                        constraints: gbc(gridy: idx, weightx: 1, fill: HORIZONTAL)) {
-                        comboBox(id: "cbChapters${idx}", items: chapters, selectedItem: chapter[idx])
-                        comboBox(id: "cbSkills${idx}", model: getSkillList(chapter[idx]),
-                            renderer: renderer, maximumRowCount: 5)
-                    }    
-                }
-                
-                panel(constraints: gbc(gridy: 3, weightx: 1, fill: HORIZONTAL)) {
-                    button(id: 'btnSelectSkill', text: 'Select',
-                        actionPerformed: {
-                            sb.dlgSkills.modal = false
-                            
-                            if (!sb.cbChapters0.selectedItem.equals(NO_CHAPTER) &&
-                                sb.cbSkills0.selectedItem != null) {                                    
-                                skill[0] = sb.cbSkills0.selectedItem.id
-                            } else {
-                                skill[0] = 0
-                            }
-                            
-                            (1..2).each {
-                                if (!sb."cbChapters${it}".selectedItem.equals(NO_CHAPTER) &&
-                                    sb."cbSkills${it}".selectedItem != null) {
-                                    // If previous skill is zero OR the same
-                                    if (skill[it-1] == 0 || skill[it-1] == sb."cbSkills${it}".selectedItem.id) {
-                                        skill[it-1] = sb."cbSkills${it}".selectedItem.id
-                                        skill[it] = 0
-                                    } else {
-                                        skill[it] = sb."cbSkills${it}".selectedItem.id
-                                    }
-                                } else {
-                                    skill[it] = 0
+                vbox() {
+                    tabbedPane(id: 'tpSkill', border: A_BORDER) {
+                        (0..2).each { idx ->
+                            def order = idx == 0 ? "Primary" : ((idx == 1) ? "Secondary" : "Tertiary")
+                            panel(name: "${order} Skill") {
+                                gridBagLayout()
+                                
+                                vbox(name: "${order} Skill", constraints: gbc(weightx: 1, fill: HORIZONTAL)) {
+                                    comboBox(id: "cbChapters${idx}", items: chapters, selectedItem: chapter[idx])
+                                    comboBox(id: "cbSkills${idx}", model: getSkillList(chapter[idx]),
+                                        renderer: renderer, maximumRowCount: 5,
+                                        actionPerformed: {
+                                            def selectedSkill = sb."cbSkills${idx}".selectedItem
+                                            sb."pnlSkillNote${idx}".removeAll()
+                                            def tex = selectedSkill.xml.reason.tex.toString()
+                                            sb."pnlSkillNote${idx}".add new TeXLabel(tex, "Skill")
+                                            sb."pnlSkillNote${idx}".revalidate()
+                                            sb."pnlSkillNote${idx}".repaint()
+                                        } )
                                 }
+                                panel(id: "pnlSkillNote${idx}", constraints: gbc(weightx: 1, fill: BOTH))                                    
                             }
-                            
-                            client.applySelectedSkill(skill)
-                            sb.dlgSkills.dispose() 
-                        })
+                        }
+                    }
                     
-                    button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
+                    panel(border: A_BORDER) {
+                        button(id: 'btnSelectSkill', text: 'Apply',
+                            actionPerformed: {
+                                sb.dlgSkills.modal = false
+                                
+                                if (!sb.cbChapters0.selectedItem.equals(NO_CHAPTER) &&
+                                    sb.cbSkills0.selectedItem != null) {
+                                    skill[0] = sb.cbSkills0.selectedItem.id
+                                } else {
+                                    skill[0] = 0
+                                }
+                                
+                                (1..2).each {
+                                    if (!sb."cbChapters${it}".selectedItem.equals(NO_CHAPTER) &&
+                                        sb."cbSkills${it}".selectedItem != null) {
+                                        // If previous skill is zero OR the same
+                                        if (skill[it-1] == 0 || skill[it-1] == sb."cbSkills${it}".selectedItem.id) {
+                                            skill[it-1] = sb."cbSkills${it}".selectedItem.id
+                                            skill[it] = 0
+                                        } else {
+                                            skill[it] = sb."cbSkills${it}".selectedItem.id
+                                        }
+                                    } else {
+                                        skill[it] = 0
+                                    }
+                                }
+                                
+                                client.applySelectedSkill(skill)
+                                sb.dlgSkills.dispose()
+                            })
+                        button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
+                    }
                 }
-
             }
                 
             (0..2).each { idx ->
@@ -160,6 +175,9 @@ class SkillLibrary {
     private List<Category> chapters
     
     private final Category NO_CHAPTER = new Category([id: 0, name: "No Selection"])
+    private final Border A_BORDER = BorderFactory.createCompoundBorder(
+        BorderFactory.createEmptyBorder(2, 2, 0, 2),
+        BorderFactory.createLineBorder(new java.awt.Color(0x9297a1)))    
 
 }
 
