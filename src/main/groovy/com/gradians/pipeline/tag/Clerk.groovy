@@ -3,12 +3,13 @@ package com.gradians.pipeline.tag
 import groovy.json.JsonBuilder
 import groovy.swing.SwingBuilder
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
 import java.awt.Color
 import java.awt.event.MouseEvent
 import java.awt.GridBagConstraints as GBC
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths;
 import java.awt.event.ActionEvent
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent

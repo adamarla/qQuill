@@ -2,17 +2,20 @@ package com.gradians.pipeline.edit
 
 import groovy.swing.SwingBuilder
 
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.Files
+
 import java.awt.dnd.DropTarget
 import java.awt.dnd.DnDConstants
 import java.awt.dnd.DropTargetDropEvent
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.nio.file.Files
+import java.awt.event.KeyEvent
 
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
+import javax.swing.KeyStroke
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
 import javax.swing.JOptionPane
@@ -318,27 +321,38 @@ class Editor implements ISkillLibClient {
     private def getMenuBar = {
         sb.menuBar {
             menu(text: 'File', mnemonic: 'F') {
-                menuItem(text: "Save", mnemonic: 'S', actionPerformed: {
-                    e.updateModel(editGroups)
-                    e.save()            
+                menuItem(text: "Save", mnemonic: 'S',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK),
+                    actionPerformed: {
+                        e.updateModel(editGroups)
+                        e.save()            
                 })
                 menuItem(text: "Render", mnemonic: 'R', actionPerformed: {
                     (new Renderer(e)).toSVG()            
                 })
                 separator()
-                menuItem(text: "Exit", mnemonic: 'X', actionPerformed: { dispose() })
+                menuItem(text: "Exit", mnemonic: 'X',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK),
+                    actionPerformed: { dispose() })
                 separator()
-                menuItem(text: "Save + Commit", actionPerformed: { 
-                    e.updateModel(editGroups)
-                    e.save()
-                    if (config.getMode().equals("production"))
-                        commit() 
+                menuItem(text: "Save + Commit",
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK),
+                    actionPerformed: { 
+                        e.updateModel(editGroups)
+                        e.save()
+                        if (config.getMode().equals("production"))
+                            commit()
                 })
             }
             menu(text: 'Edit', mnemonic: 'E') {
-                menuItem(text: "Chapter", mnemonic: 'H', actionPerformed: { launchChapterSelector() })
-                menuItem(id: 'miEditSkill', text: "Skill", mnemonic: 'K', actionPerformed: { launchSkillLibrary() })
-                menuItem(text: "Clear", mnemonic: 'C', actionPerformed: { clear() })
+                menuItem(text: "Chapter", mnemonic: 'H',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_H, KeyEvent.CTRL_DOWN_MASK),
+                    actionPerformed: { launchChapterSelector() })
+                menuItem(id: 'miEditSkill', text: "Skill", mnemonic: 'L',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_L, KeyEvent.CTRL_DOWN_MASK),                    
+                    actionPerformed: { launchSkillLibrary() })
+                separator()
+                menuItem(text: "Blankify", mnemonic: 'B', actionPerformed: { clear() })
             }
         }
     }
