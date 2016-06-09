@@ -296,7 +296,9 @@ class Editor implements ISkillLibClient {
             def dialog = sb.dialog(id: 'dlgCommit', title: 'Commit Message',
                 locationRelativeTo: sb.frmEditor, modal: true) {
                 vbox() {
-                    textArea(id: 'taCommitMessage', rows: 8, columns: 40, text: message)
+                    scrollPane() {
+                        textArea(id: 'taCommitMessage', rows: 8, columns: 40, text: message)                        
+                    }
                     panel() {
                         button(text: 'Commit', actionPerformed: {
                             gitter.commit(path.toString(), toAdd, toDelete, sb.taCommitMessage.text)
@@ -307,6 +309,7 @@ class Editor implements ISkillLibClient {
                 }
             }
             dialog.pack()
+            dialog.setLocationRelativeTo(sb.frmEditor)            
             dialog.visible = true
         }
     }
