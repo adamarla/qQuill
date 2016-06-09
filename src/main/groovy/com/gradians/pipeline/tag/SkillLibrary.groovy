@@ -93,7 +93,7 @@ class SkillLibrary {
                 }
                     
                 panel(border: A_BORDER, constraints: gbc(gridy: 1, weighty: 1, fill: VERTICAL)) {
-                    button(id: 'btnSelectSkill', text: 'Apply', actionPerformed: { applySkills() })
+                    button(id: 'btnSelectSkill', text: 'Apply', actionPerformed: { applySkills(skill) })
                     button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
                 }
                 
@@ -142,7 +142,7 @@ class SkillLibrary {
         }
     }
     
-    private def applySkills() {        
+    private def applySkills(int[] skill) {
         sb.dlgSkills.modal = false
         
         if (!sb.cbChapters0.selectedItem.equals(NO_CHAPTER) &&

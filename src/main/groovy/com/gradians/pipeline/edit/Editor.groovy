@@ -283,16 +283,16 @@ class Editor implements ISkillLibClient {
         def bankPathString = config.getBankPath()
         String path = Paths.get(bankPathString).relativize(a.qpath)
         
-        Gitter gitter = new Gitter(new File("${bankPathString}/.git"))        
-        
+        Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
         Set<String> toAdd = gitter.toAdd(path.toString())
         Set<String> toDelete = gitter.toDelete(path.toString())
         
         if (toAdd.size() + toDelete.size() > 0) {
             String message =
-            "# To Add: ${toAdd.toString()}\n# To Delete ${toDelete.toString()}\n" +
-            "# Edit Commit message. Any line beginning with '#' will be ignored.\n" +
-            "Created / Altered ${a.assetClass}."
+                "# To Add:\n" + toAdd.join("\n") + "\n"
+                "# To Delete:\n" + toDelete.join("\n") + "\n"
+                "# Edit Commit message. Any line beginning with '#' will be ignored.\n" +
+                "Created / Altered ${a.assetClass}"
             def dialog = sb.dialog(id: 'dlgCommit', title: 'Commit Message',
                 locationRelativeTo: sb.frmEditor, modal: true) {
                 vbox() {
