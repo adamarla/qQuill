@@ -1,6 +1,7 @@
 package com.gradians.pipeline.tag
 
 import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
 import groovy.swing.SwingBuilder
 
 import java.nio.file.Files
@@ -128,7 +129,7 @@ class Clerk {
             artefactsEventList.add Asset.getInstance(item)
             if (AssetClass.valueOf(item.assetClass) == AssetClass.Skill)
                 skills << item
-        }        
+        }
         Path skillCache = config.configPath.resolveSibling("skills.json")
         skillCache.toFile().write new JsonBuilder(skills).toString()
     }
@@ -171,10 +172,18 @@ class Clerk {
         params.chapterId = chapterId
         params.authorId = userId
         params.assetClass = assetClass
-        Asset newAsset = Asset.getInstance(params)
-        newAsset.create()
+        
+        // add skill to the skill cache
+        if (assetClass == AssetClass.Skill) {
+            Path skillCache = config.configPath.resolveSibling("skills.json")
+            def skills = new JsonSlurper().parse(skillCache.toFile())
+            skills << params
+            skillCache.toFile().write new JsonBuilder(skills).toString()
+        }
         
         // refresh list
+        Asset newAsset = Asset.getInstance(params)
+        newAsset.create()
         artefactsEventList.add newAsset
         newAsset
     }

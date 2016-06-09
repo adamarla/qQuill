@@ -36,14 +36,12 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 
 class SkillLibrary {
 
-    Config config
     ISkillLibClient client
     SwingBuilder sb
     SkillRenderer renderer
 
     public SkillLibrary(ISkillLibClient client) {
         this.client = client
-        config = Config.getInstance()
         loadAssets()
     }
     
@@ -65,71 +63,43 @@ class SkillLibrary {
             lookAndFeel 'nimbus'
             dialog(id: 'dlgSkills', title: 'Skill Library', modal: true, preferredSize: [600, 400],
                 defaultCloseOperation: DISPOSE_ON_CLOSE) {
+                gridBagLayout()
                 
-                vbox() {
-                    tabbedPane(id: 'tpSkill', border: A_BORDER) {
-                        (0..2).each { idx ->
-                            def order = idx == 0 ? "Primary" : ((idx == 1) ? "Secondary" : "Tertiary")
-                            panel(name: "${order} Skill") {
-                                gridBagLayout()
-                                
-                                vbox(name: "${order} Skill", constraints: gbc(weightx: 1, fill: HORIZONTAL)) {
-                                    comboBox(id: "cbChapters${idx}", items: chapters, selectedItem: chapter[idx])
-                                    comboBox(id: "cbSkills${idx}", model: getSkillList(chapter[idx]),
-                                        renderer: renderer, maximumRowCount: 5,
-                                        actionPerformed: {
-                                            def selectedSkill = sb."cbSkills${idx}".selectedItem
-                                            sb."pnlSkillNote${idx}".removeAll()
-                                            def tex = selectedSkill.xml.reason.tex.toString()
-                                            sb."pnlSkillNote${idx}".add new TeXLabel(tex, "Skill")
-                                            sb."pnlSkillNote${idx}".revalidate()
-                                            sb."pnlSkillNote${idx}".repaint()
-                                        } )
-                                }
-                                panel(id: "pnlSkillNote${idx}", constraints: gbc(weightx: 1, fill: BOTH))                                    
+                tabbedPane(id: 'tpSkill', border: A_BORDER, constraints: gbc(weighty: 1, fill: VERTICAL)) {
+                    (0..2).each { idx ->
+                        def order = idx == 0 ? "Primary" : ((idx == 1) ? "Secondary" : "Tertiary")
+                        panel(name: order) {
+                            vbox() {
+                                comboBox(id: "cbChapters${idx}", items: chapters, selectedItem: chapter[idx],
+                                    actionPerformed: {
+                                        def skillList = getSkillList(sb."cbChapters${idx}".selectedItem)
+                                        sb."cbSkills${idx}".model = skillList
+                                        if (skillList.size)
+                                            sb."cbSkills${idx}".selectedIndex = 0
+                                    })
+                                comboBox(id: "cbSkills${idx}", model: getSkillList(chapter[idx]),
+                                    renderer: renderer, maximumRowCount: 5,
+                                    actionPerformed: {
+                                        def selectedSkill = sb."cbSkills${idx}".selectedItem
+                                        sb.pnlSkillNote.removeAll()
+                                        def tex = selectedSkill.xml.reason.tex.toString()
+                                        sb.pnlSkillNote.add new TeXLabel(tex, "Skill")
+                                        sb.pnlSkillNote.revalidate()
+                                        sb.pnlSkillNote.repaint()
+                                    } )
                             }
                         }
                     }
-                    
-                    panel(border: A_BORDER) {
-                        button(id: 'btnSelectSkill', text: 'Apply',
-                            actionPerformed: {
-                                sb.dlgSkills.modal = false
-                                
-                                if (!sb.cbChapters0.selectedItem.equals(NO_CHAPTER) &&
-                                    sb.cbSkills0.selectedItem != null) {
-                                    skill[0] = sb.cbSkills0.selectedItem.id
-                                } else {
-                                    skill[0] = 0
-                                }
-                                
-                                (1..2).each {
-                                    if (!sb."cbChapters${it}".selectedItem.equals(NO_CHAPTER) &&
-                                        sb."cbSkills${it}".selectedItem != null) {
-                                        // If previous skill is zero OR the same
-                                        if (skill[it-1] == 0 || skill[it-1] == sb."cbSkills${it}".selectedItem.id) {
-                                            skill[it-1] = sb."cbSkills${it}".selectedItem.id
-                                            skill[it] = 0
-                                        } else {
-                                            skill[it] = sb."cbSkills${it}".selectedItem.id
-                                        }
-                                    } else {
-                                        skill[it] = 0
-                                    }
-                                }
-                                
-                                client.applySelectedSkill(skill)
-                                sb.dlgSkills.dispose()
-                            })
-                        button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
-                    }
                 }
-            }
+                    
+                panel(border: A_BORDER, constraints: gbc(gridy: 1, weighty: 1, fill: VERTICAL)) {
+                    button(id: 'btnSelectSkill', text: 'Apply', actionPerformed: { applySkills() })
+                    button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
+                }
                 
-            (0..2).each { idx ->
-                sb."cbChapters${idx}".actionPerformed = {
-                    sb."cbSkills${idx}".model = getSkillList(sb."cbChapters${idx}".selectedItem)
-                }    
+                scrollPane(constraints: gbc(gridx: 1, gridheight: 2, weightx: 1, weighty: 1, fill: BOTH)) {
+                    panel(id: 'pnlSkillNote')
+                }
             }
                 
             skill.eachWithIndex { s, i ->
@@ -151,10 +121,11 @@ class SkillLibrary {
         new DefaultComboBoxModel<Skill>(subSkills)
     }
 
-    private def loadAssets = {
+    private def loadAssets() {
         chapters = new ArrayList<Category>()
         chapters.add NO_CHAPTER
         
+        def config = Config.getInstance()
         def items = config.getChapters()
         items.each { item ->
             Category c = new Category(item)
@@ -169,6 +140,35 @@ class SkillLibrary {
             if (skill.isLoaded())
                 skills << skill 
         }
+    }
+    
+    private def applySkills() {        
+        sb.dlgSkills.modal = false
+        
+        if (!sb.cbChapters0.selectedItem.equals(NO_CHAPTER) &&
+            sb.cbSkills0.selectedItem != null) {
+            skill[0] = sb.cbSkills0.selectedItem.id
+        } else {
+            skill[0] = 0
+        }
+        
+        (1..2).each {
+            if (!sb."cbChapters${it}".selectedItem.equals(NO_CHAPTER) &&
+                sb."cbSkills${it}".selectedItem != null) {
+                // If previous skill is zero OR the same
+                if (skill[it-1] == 0 || skill[it-1] == sb."cbSkills${it}".selectedItem.id) {
+                    skill[it-1] = sb."cbSkills${it}".selectedItem.id
+                    skill[it] = 0
+                } else {
+                    skill[it] = sb."cbSkills${it}".selectedItem.id
+                }
+            } else {
+                skill[it] = 0
+            }
+        }
+        
+        client.applySelectedSkill(skill)
+        sb.dlgSkills.dispose()    
     }
 
     private List<Skill> skills
