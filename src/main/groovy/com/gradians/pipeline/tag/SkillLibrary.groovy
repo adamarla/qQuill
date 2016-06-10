@@ -24,6 +24,8 @@ import javax.swing.border.Border
 import javax.swing.border.EmptyBorder
 import javax.swing.event.ListDataListener
 
+import org.apache.batik.swing.JSVGCanvas
+
 import static java.awt.BorderLayout.EAST
 import static javax.swing.ListSelectionModel.SINGLE_SELECTION
 import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
@@ -82,8 +84,17 @@ class SkillLibrary {
                                     actionPerformed: {
                                         def selectedSkill = sb."cbSkills${idx}".selectedItem
                                         sb.pnlSkillNote.removeAll()
-                                        def tex = selectedSkill.xml.reason.tex.toString()
-                                        sb.pnlSkillNote.add new TeXLabel(tex, "Skill")
+                                        
+                                        def drawable
+                                        def tex = selectedSkill.xml.reason.tex
+                                        if (!tex.@isImage.equals(true)) {
+                                            drawable = new TeXLabel(tex.toString(), "Skill")
+                                        } else {
+                                            def path = selectedSkill.getDirPath().resolve(tex.toString())
+                                            drawable = SkillLibrary.fileToIcon(path)
+                                        }
+
+                                        sb.pnlSkillNote.add drawable
                                         sb.pnlSkillNote.revalidate()
                                         sb.pnlSkillNote.repaint()
                                     } )
@@ -96,7 +107,7 @@ class SkillLibrary {
                     button(id: 'btnSelectSkill', text: 'Apply', actionPerformed: { applySkills(skill) })
                     button(text: 'Cancel', actionPerformed: { sb.dlgSkills.dispose() })
                 }
-                
+                                
                 scrollPane(constraints: gbc(gridx: 1, gridheight: 2, weightx: 1, weighty: 1, fill: BOTH)) {
                     panel(id: 'pnlSkillNote')
                 }
@@ -170,6 +181,14 @@ class SkillLibrary {
         client.applySelectedSkill(skill)
         sb.dlgSkills.dispose()    
     }
+    
+    static def JSVGCanvas fileToIcon(Path path) {
+        JSVGCanvas svgCanvas = new JSVGCanvas()
+        try {
+            svgCanvas.setURI(path.toUri().toURL().toString())
+        } catch (Exception e) { }
+        svgCanvas
+    }
 
     private List<Skill> skills
     private List<Category> chapters
@@ -181,24 +200,32 @@ class SkillLibrary {
 
 }
 
-class SkillRenderer extends JLabel implements ListCellRenderer {
+class SkillRenderer implements ListCellRenderer {
 
     @Override
     public Component getListCellRendererComponent(JList list, Object value,
             int index, boolean isSelected, boolean cellHasFocus) {
-        if (isSelected) {
-            setBackground(list.getSelectionBackground())
-        } else {
-            setBackground(list.getBackground())
-        }
+        def drawable        
         if (value) {
-            def skill = (Skill)value
-            this.icon = TeXHelper.createIcon(skill.xml.render.tex.toString(), 15, false)
+            Skill skill = (Skill)value            
+            def tex = skill.xml.render.tex            
+            if (!tex.@isImage.equals(true)) {
+                drawable = new TeXLabel(tex.toString(), "Render")
+            } else {
+                def path = skill.getDirPath().resolve(tex.toString())
+                drawable = SkillLibrary.fileToIcon(path)
+            }
         } else {
-            this.icon = TeXHelper.createIcon("\\text{No Skills defined}", 15, false)
+            drawable = new TeXLabel("\\text{No Skills defined}", "Render")
         }
-        this.border = new EmptyBorder(5, 5, 5, 5)
-        return this
+        
+        if (isSelected) {
+            drawable.setBackground(list.getSelectionBackground())
+        } else {
+            drawable.setBackground(list.getBackground())
+        }
+        drawable.border = new EmptyBorder(5, 5, 5, 5)
+        drawable
     }
 
 }

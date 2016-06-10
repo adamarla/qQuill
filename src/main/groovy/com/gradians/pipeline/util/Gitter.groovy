@@ -1,17 +1,19 @@
 package com.gradians.pipeline.util
 
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.MergeResult
 import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.lib.StoredConfig
+import org.eclipse.jgit.lib.RefUpdate.Result
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.transport.FetchResult
+import org.eclipse.jgit.transport.PushResult
+import org.eclipse.jgit.transport.TrackingRefUpdate
 
 class Gitter {
-        
-    Repository repo
-    
+            
     public Gitter(File repoLocation) {
         repo = loadRepo(repoLocation)
         git = new Git(repo)
@@ -65,15 +67,19 @@ class Gitter {
     }
     
     void pullFromUpstream() {
-        // Get a reference
-        FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
-        System.out.println("Messages: " + result.getMessages());
-        
-        dx
+        FetchResult fetchResult = git.fetch().setRefSpecs(["remotes/origin/master"]).call()
+        MergeResult mergeResult = git.merge().call()
+        println mergeResult.getMergeStatus()
+//        TrackingRefUpdate refUpdate = fetchResult.getTrackingRefUpdate("refs/remotes/origin/master")
+//        Result result = refUpdate.getResult()
+//        println result    
     }
     
     void pushToRemote() {
-        
+        Iterable<PushResult> iterable = git.push().call()
+        PushResult pushResult = iterable.iterator().next()
+        Status status = pushResult.getRemoteUpdate("refs/heads/master").getStatus()
+        println status
     }
     
     private Repository loadRepo(File repoLocation) {
@@ -83,5 +89,6 @@ class Gitter {
     }
     
     private Git git
+    private Repository repo
     
 }
