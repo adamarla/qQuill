@@ -210,13 +210,13 @@ class SkillRenderer implements ListCellRenderer {
             Skill skill = (Skill)value            
             def tex = skill.xml.render.tex            
             if (!tex.@isImage.equals(true)) {
-                drawable = new TeXLabel(tex.toString(), "Render")
+                drawable = new TeXLabel(tex.toString(), "")
             } else {
                 def path = skill.getDirPath().resolve(tex.toString())
                 drawable = SkillLibrary.fileToIcon(path)
             }
         } else {
-            drawable = new TeXLabel("\\text{No Skills defined}", "Render")
+            drawable = new TeXLabel("\\text{No Skills defined}", "")
         }
         
         if (isSelected) {
