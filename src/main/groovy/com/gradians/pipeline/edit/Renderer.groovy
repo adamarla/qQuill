@@ -86,11 +86,14 @@ class Renderer {
         // Ask the test to render into the SVG Graphics2D implementation.
         svgGenerator.setSVGCanvasSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()))
         icon.paintIcon(null, svgGenerator, 0, 0)
+        org.w3c.dom.Element svgRoot = svgGenerator.getRoot()
+        def viewBox = "0 0 ${icon.getIconWidth()} ${icon.getIconHeight()}"
+        svgRoot.setAttributeNS(svgNS, svgGenerator.SVG_VIEW_BOX_ATTRIBUTE, viewBox)        
     
         // Finally, stream out SVG to the standard output using UTF-8 encoding.
         boolean useCSS = true // we want to use CSS style attributes
         Writer out = new OutputStreamWriter(new FileOutputStream(path.toFile()), "UTF-8")
-        svgGenerator.stream(out, useCSS)
+        svgGenerator.stream(svgRoot, out, useCSS, false)
         out.close()
     }
     
