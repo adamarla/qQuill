@@ -18,10 +18,11 @@ class Pinger {
             return
         
         // HTTP POST chapterId, skills to server
-        def url = "${a.assetClass.toString().toLowerCase()}/tag"
         def skills = a.getEditGroups().collect { it.skills }.flatten().findAll { it != 0 }
-        url = "${a.assetClass.toString().toLowerCase()}/tag"
-        def map = [id: a.id, c: a.chapterId, skills: skills]
-        Network.executeHTTPPostBody(url, map)    
+        if (!skills) {
+            def url = "${a.assetClass.toString().toLowerCase()}/tag"
+            def map = [id: a.id, c: a.chapterId, skills: skills]
+            Network.executeHTTPPostBody(url, map)    
+        }
     }
 }
