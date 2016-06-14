@@ -7,6 +7,7 @@ import java.nio.file.Path
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.Skill
+import com.gradians.pipeline.edit.SVGIcon
 import com.gradians.pipeline.edit.TeXHelper
 import com.gradians.pipeline.edit.TeXLabel
 import com.gradians.pipeline.util.Config
@@ -91,7 +92,7 @@ class SkillLibrary {
                                             drawable = new TeXLabel(tex.toString(), "Skill")
                                         } else {
                                             def path = selectedSkill.getDirPath().resolve(tex.toString())
-                                            drawable = SkillLibrary.fileToIcon(path)
+                                            drawable = SkillLibrary.fileToJLabel(path)
                                         }
 
                                         sb.pnlSkillNote.add drawable
@@ -182,12 +183,11 @@ class SkillLibrary {
         sb.dlgSkills.dispose()    
     }
     
-    static def JSVGCanvas fileToIcon(Path path) {
-        JSVGCanvas svgCanvas = new JSVGCanvas()
-        try {
-            svgCanvas.setURI(path.toUri().toURL().toString())
-        } catch (Exception e) { }
-        svgCanvas
+    static def JLabel fileToJLabel(Path path) {        
+        SVGIcon icon = new SVGIcon(path.toUri().toURL().toString())
+        def label = new JLabel()
+        label.icon = icon
+        label
     }
 
     private List<Skill> skills
@@ -212,8 +212,7 @@ class SkillRenderer implements ListCellRenderer {
             if (!tex.@isImage.equals(true)) {
                 drawable = new TeXLabel(tex.toString(), "")
             } else {
-                def path = skill.getDirPath().resolve(tex.toString())
-                drawable = SkillLibrary.fileToIcon(path)
+                drawable = SkillLibrary.fileToJLabel(skill.getDirPath().resolve(tex.toString()))
             }
         } else {
             drawable = new TeXLabel("\\text{No Skills defined}", "")

@@ -223,7 +223,7 @@ class Editor implements ISkillLibClient {
             if (!item.isImage) {
                 drawable = new TeXLabel(item.text, item.title)
             } else {
-                drawable = fileToIcon(item.text)
+                drawable = fileToJLabel(item.text)
             }
             itemToDisplay.put(item, drawable)
             sb.vbDisplay.add drawable
@@ -360,12 +360,14 @@ class Editor implements ISkillLibClient {
         }
     }
     
-    private def JSVGCanvas fileToIcon(String name) {
-        JSVGCanvas svgCanvas = new JSVGCanvas()
+    private def javax.swing.JLabel fileToJLabel(String name) {
+        def label
         try {
-            svgCanvas.setURI(e.getDirPath().resolve(name).toUri().toURL().toString())
+            SVGIcon icon = new SVGIcon(e.getDirPath().resolve(name).toUri().toURL().toString())
+            label = new javax.swing.JLabel()
+            label.icon = icon
         } catch (Exception e) { }
-        svgCanvas
+        label
     }
     
     private final int TA_WIDTH = 36
