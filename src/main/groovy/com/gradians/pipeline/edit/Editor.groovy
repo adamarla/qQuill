@@ -5,7 +5,6 @@ import groovy.swing.SwingBuilder
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.Files
-
 import java.awt.dnd.DropTarget
 import java.awt.dnd.DnDConstants
 import java.awt.dnd.DropTargetDropEvent
@@ -31,6 +30,7 @@ import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.tag.ISkillLibClient
 import com.gradians.pipeline.tag.SkillLibrary
 import com.gradians.pipeline.tag.Category
+import com.gradians.pipeline.tex.SVGIcon;
 import com.gradians.pipeline.util.Config
 import com.gradians.pipeline.util.Converter
 import com.gradians.pipeline.util.Gitter
@@ -76,7 +76,7 @@ class Editor implements ISkillLibClient {
         config = Config.getInstance()
     }
     
-    def launchGeneric() {
+    def launch() {
         Asset a = (Asset)e
         if (Files.notExists(a.qpath.resolve(a.SRC_FILE)) &&
             Files.exists(a.qpath.resolve(a.REF_FILE)))
@@ -331,7 +331,7 @@ class Editor implements ISkillLibClient {
                         e.save()            
                 })
                 menuItem(text: "Render", mnemonic: 'R', actionPerformed: {
-                    (new Renderer(e)).toSVG()            
+                    ((Asset)e).toSVG()
                 })
                 separator()
                 menuItem(text: "Exit", mnemonic: 'X',

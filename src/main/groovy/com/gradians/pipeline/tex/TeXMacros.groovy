@@ -1,4 +1,4 @@
-package com.gradians.pipeline.edit
+package com.gradians.pipeline.tex
 
 import org.json.simple.parser.ParseException
 import org.scilab.forge.jlatexmath.Atom
@@ -43,7 +43,5 @@ class TeXMacros {
     public Atom ora(TeXParser tp, String[] args) throws ParseException {
         new TeXFormula(String.format("\\overrightarrow{%s}", args[1])).root
     }
-    
-
 
 }

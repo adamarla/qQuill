@@ -1,15 +1,14 @@
 package com.gradians.pipeline.tag
 
 import java.awt.Component
-
 import java.nio.file.Path
 
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.Skill
-import com.gradians.pipeline.edit.SVGIcon
-import com.gradians.pipeline.edit.TeXHelper
 import com.gradians.pipeline.edit.TeXLabel
+import com.gradians.pipeline.tex.SVGIcon;
+import com.gradians.pipeline.tex.TeXHelper;
 import com.gradians.pipeline.util.Config
 
 import groovy.json.JsonSlurper

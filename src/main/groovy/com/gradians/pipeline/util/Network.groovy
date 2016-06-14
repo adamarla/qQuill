@@ -1,12 +1,11 @@
 package com.gradians.pipeline.util
 
+import com.gradians.pipeline.tex.SVGHelper;
 import com.gradians.pipeline.util.Config
 import com.gradians.pipeline.data.Question
-import com.gradians.pipeline.edit.Renderer
 
 import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.Status
-
 import static groovyx.net.http.Method.POST
 import static groovyx.net.http.Method.GET
 import static groovyx.net.http.ContentType.JSON

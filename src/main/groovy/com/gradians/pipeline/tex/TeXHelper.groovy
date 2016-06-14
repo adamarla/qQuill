@@ -1,4 +1,4 @@
-package com.gradians.pipeline.edit;
+package com.gradians.pipeline.tex;
 
 import java.awt.Component
 import java.awt.Font
@@ -23,11 +23,11 @@ class TeXHelper {
         // TeXFormula.registerExternalFont(Character.UnicodeBlock.BASIC_LATIN, "Ubuntu")
         Map<String, String> map = TeXFormula.predefinedTeXFormulasAsString
         map.keySet().each { TeXFormula.get(it) }
-        def ostream = Renderer.class.getClassLoader().getResourceAsStream("TeXMacros.xml")
+        def ostream = TeXMacros.class.getClassLoader().getResourceAsStream("TeXMacros.xml")
         TeXFormula.addPredefinedCommands(ostream)
     }            
         
-    public static def Icon createIcon(String tex, int fontSize, boolean negative = false) {        
+    public static Icon createIcon(String tex, int fontSize, boolean negative = false) {        
         Icon icon        
         String[] lines = tex.split("\n")
         def sb = new StringBuilder()

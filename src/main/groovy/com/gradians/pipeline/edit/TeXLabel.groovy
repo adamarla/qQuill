@@ -10,6 +10,8 @@ import javax.swing.border.LineBorder
 import javax.swing.border.TitledBorder
 import javax.swing.BorderFactory
 
+import com.gradians.pipeline.tex.TeXHelper;
+
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
 

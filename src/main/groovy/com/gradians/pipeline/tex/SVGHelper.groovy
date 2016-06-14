@@ -1,6 +1,5 @@
-package com.gradians.pipeline.edit
+package com.gradians.pipeline.tex
 
-import java.awt.Color
 import java.awt.Dimension
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
@@ -25,51 +24,14 @@ import org.w3c.dom.DOMImplementation
 
 import com.gradians.pipeline.data.Asset
 
-import static java.awt.Color.ORANGE
-import static java.awt.Color.RED
-import static java.awt.GridBagConstraints.HORIZONTAL
-import static java.awt.GridBagConstraints.BOTH
-import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
-import static javax.swing.JFrame.EXIT_ON_CLOSE
-
-
-class Renderer {
+class SVGHelper {    
     
-    def fontSize
-    Asset a
-    
-    def Renderer(int fontSize = 15) {
-        this.fontSize = fontSize
-    }
-    
-    def Renderer(Asset a, int fontSize = 15) {
-        this(fontSize)
-        this.a = a
-    }
-    
-    def toSVG() {
-        Path path = a.qpath
-        
-        Map<String, String> toRender = a.toRender()
-        DirectoryStream<Path> svgs = Files.newDirectoryStream(path, "*.svg")
-        for (Path p : svgs) {
-            def s = p.getFileName().toString()
-            if (s ==~ /\d+\.svg/) {
-                Files.deleteIfExists(p)
-            }
-        }
-                
-        toRender.keySet().each { it ->
-            createSVG(toRender.get(it), path.resolve(it))
-        }
-    }
-
-    private def createSVG(String tex, Path path, boolean negative = false) {        
+    public static void createSVG(String tex, Path path, boolean negative = false) {        
         Files.deleteIfExists(path)
         if (tex.length() == 0)
             return
             
-        Icon icon = TeXHelper.createIcon(tex, fontSize, negative)
+        Icon icon = TeXHelper.createIcon(tex, 15, negative)
             
         // Get a DOMImplementation.
         DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation()

@@ -1,12 +1,16 @@
-package com.gradians.pipeline.util
+package com.gradians.pipeline.tag
 
 import groovy.swing.SwingBuilder
 
 import java.nio.file.Files
+
 import javax.swing.BorderFactory
 import javax.swing.JFileChooser
 import javax.swing.JOptionPane
 import javax.swing.filechooser.FileFilter
+
+import com.gradians.pipeline.util.Config;
+import com.gradians.pipeline.util.Network;
 
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE
 

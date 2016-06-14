@@ -2,11 +2,13 @@ package com.gradians.pipeline.data
 
 import com.gradians.pipeline.edit.EditGroup
 import com.gradians.pipeline.edit.IEditable
+import com.gradians.pipeline.tex.SVGHelper;
 import com.gradians.pipeline.util.Config
 
 import groovy.xml.XmlUtil
 
 import java.io.InputStream;
+import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -102,6 +104,21 @@ abstract class Asset implements IEditable, Comparable {
     @Override
     public String toString() {
         "${assetClass}: ${id}-${path}-${authorId}-${chapterId}"
+    }
+    
+    protected void toSVG() {        
+        Map<String, String> toRender = toRender()
+        DirectoryStream<Path> svgs = Files.newDirectoryStream(qpath, "*.svg")
+        for (Path p : svgs) {
+            def s = p.getFileName().toString()
+            if (s ==~ /\d+\.svg/) {
+                Files.deleteIfExists(p)
+            }
+        }
+                
+        toRender.keySet().each { it ->
+            SVGHelper.createSVG(toRender.get(it), qpath.resolve(it))
+        }
     }
 
     abstract Map<String, String> toRender()

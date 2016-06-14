@@ -18,12 +18,11 @@ import org.apache.commons.cli.Option.Builder
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.edit.Editor
-import com.gradians.pipeline.edit.Renderer
 import com.gradians.pipeline.tag.Clerk
 import com.gradians.pipeline.tag.Pinger
-import com.gradians.pipeline.util.Config;
+import com.gradians.pipeline.tag.Registration
+import com.gradians.pipeline.util.Config
 import com.gradians.pipeline.util.Converter
-import com.gradians.pipeline.util.Registration
 
 
 class Driver {
@@ -108,13 +107,13 @@ class Driver {
                     Asset a = Asset.getInstance(map)
                     
                     if (edit) {
-                        (new Editor(a)).launchGeneric()
+                        (new Editor(a)).launch()
                     } else if (convert) {
                         (new Converter(a)).convert()
-                        (new Editor(a)).launchGeneric()
+                        (new Editor(a)).launch()
                     } else {
                         if (render) {
-                            new Renderer(a).toSVG()
+                            a.toSVG()
                         }                        
                         if (ping) {
                             new Pinger(a).ping()

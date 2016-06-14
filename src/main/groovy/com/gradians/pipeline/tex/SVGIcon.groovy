@@ -1,36 +1,30 @@
-/*
- * SVGIcon.java
- *
+package com.gradians.pipeline.tex
+
+import java.awt.Component
+import java.awt.Dimension
+import java.awt.Graphics
+import java.awt.geom.Dimension2D
+import java.awt.image.BufferedImage
+
+import javax.swing.Icon
+
+import org.apache.batik.bridge.UserAgentAdapter
+import org.apache.batik.transcoder.TranscoderException
+import org.apache.batik.transcoder.TranscoderInput
+import org.apache.batik.transcoder.TranscoderOutput
+import org.apache.batik.transcoder.image.ImageTranscoder
+
+import org.w3c.dom.Document
+
+/**
  * A Swing Icon that draws an SVG image.
- *
+ * 
  * Cameron McCormack <cam (at) mcc.id.au>
  *
  * Permission is hereby granted to use, copy, modify and distribte this
  * code for any purpose, without fee.
  *
  * Initial version: April 21, 2005
- */
-package com.gradians.pipeline.edit;
-
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.geom.Dimension2D;
-import java.awt.image.BufferedImage;
-
-import javax.swing.Icon;
-
-import org.apache.batik.bridge.UserAgentAdapter;
-import org.apache.batik.transcoder.TranscoderException;
-import org.apache.batik.transcoder.TranscoderInput;
-import org.apache.batik.transcoder.TranscoderOutput;
-import org.apache.batik.transcoder.image.ImageTranscoder;
-
-import org.w3c.dom.Document;
-
-/**
- * A Swing Icon that draws an SVG image.
- *
  * @author <a href="mailto:cam%40mcc%2eid%2eau">Cameron McCormack</a>
  */
 class SVGIcon extends UserAgentAdapter implements Icon {

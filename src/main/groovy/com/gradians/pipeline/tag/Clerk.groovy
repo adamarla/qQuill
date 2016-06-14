@@ -7,7 +7,6 @@ import groovy.swing.SwingBuilder
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-
 import java.awt.Color
 import java.awt.event.MouseEvent
 import java.awt.GridBagConstraints as GBC
@@ -33,8 +32,8 @@ import com.gradians.pipeline.data.Skill
 import com.gradians.pipeline.data.Snippet
 import com.gradians.pipeline.edit.Editor
 import com.gradians.pipeline.edit.IEditable
-import com.gradians.pipeline.edit.TeXHelper
 import com.gradians.pipeline.edit.TeXLabel
+import com.gradians.pipeline.tex.TeXHelper;
 import com.gradians.pipeline.util.Config;
 import com.gradians.pipeline.util.Gitter;
 import com.gradians.pipeline.util.Network;
@@ -189,7 +188,7 @@ class Clerk {
     }
     
     private def launchEditor(Asset a) {
-        new Editor(a).launchGeneric()
+        new Editor(a).launch()
     }
     
     private def filter = {
