@@ -21,7 +21,7 @@ import org.w3c.dom.Document
  * 
  * Cameron McCormack <cam (at) mcc.id.au>
  *
- * Permission is hereby granted to use, copy, modify and distribte this
+ * Permission is hereby granted to use, copy, modify and distribute this
  * code for any purpose, without fee.
  *
  * Initial version: April 21, 2005

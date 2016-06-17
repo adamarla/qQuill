@@ -7,9 +7,11 @@ import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.lib.StoredConfig
 import org.eclipse.jgit.lib.RefUpdate.Result
+import org.eclipse.jgit.merge.MergeStrategy
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.transport.FetchResult
 import org.eclipse.jgit.transport.PushResult
+import org.eclipse.jgit.transport.RefSpec
 import org.eclipse.jgit.transport.TrackingRefUpdate
 
 class Gitter {
@@ -67,18 +69,22 @@ class Gitter {
     }
     
     void pullFromUpstream() {
-        FetchResult fetchResult = git.fetch().setRefSpecs(["remotes/origin/master"]).call()
-        MergeResult mergeResult = git.merge().call()
-        println mergeResult.getMergeStatus()
-//        TrackingRefUpdate refUpdate = fetchResult.getTrackingRefUpdate("refs/remotes/origin/master")
-//        Result result = refUpdate.getResult()
-//        println result    
+        def upstreamMaster = "refs/remotes/upstream/master"
+        def remoteUpstreamMaster = new RefSpec("refs/heads/master:${upstreamMaster}")
+        FetchResult fetchResult = git.fetch().setRefSpecs([remoteUpstreamMaster]).call()        
+        MergeResult mergeResult = git.merge()
+            .include(git.getRepository().exactRef(upstreamMaster))
+            .setStrategy(MergeStrategy.RECURSIVE).call()
+        if (mergeResult.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
+            throw new Exception(mergeResult.getConflicts().toString())
+        }
     }
     
     void pushToRemote() {
+        // TODO: to do this!
         Iterable<PushResult> iterable = git.push().call()
         PushResult pushResult = iterable.iterator().next()
-        Status status = pushResult.getRemoteUpdate("refs/heads/master").getStatus()
+        Status status = pushResult.getRemoteUpdate("refs/remotes/origin/master").getStatus()
         println status
     }
     

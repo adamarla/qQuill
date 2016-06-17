@@ -93,7 +93,7 @@ class Clerk {
         }
     }
     
-    private def loadAssets() {        
+    private void loadAssets() {        
         chapters = new ArrayList<Category>()
         def items = Network.executeHTTPGet("chapter/list")
         Category c
@@ -204,9 +204,13 @@ class Clerk {
     private def pullPush = {
         def bankPathString = config.getBankPath()
         Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
-        
-        // git pull then 
-        // git push
+        try {
+            gitter.pullFromUpstream()
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(sb.frmClerk,
+                "${e.getMessage()}\nResolve this issue on the command line",
+                "Ooops", JOptionPane.ERROR_MESSAGE)
+        }
     }
     
     private def createTable = {
@@ -303,8 +307,10 @@ class Clerk {
                         }
                     })
                 separator()
-                menuItem(text: "Synch (not implemented)", mnemonic: 'H', actionPerformed: { pullPush() } )
-                menuItem(text: "Exit", mnemonic: 'X',
+                menuItem(text: "Sync (pull)", mnemonic: 'Y',
+                    accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Y, KeyEvent.CTRL_DOWN_MASK),
+                    actionPerformed: { pullPush() } )
+                menuItem(text: "Quit", mnemonic: 'Q',
                     accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK),
                     actionPerformed: { dispose() })
             }
