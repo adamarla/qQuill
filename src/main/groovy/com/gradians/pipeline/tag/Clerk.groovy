@@ -16,6 +16,7 @@ import java.awt.event.KeyEvent
 
 import javax.swing.AbstractAction
 import javax.swing.BorderFactory
+import javax.swing.JLabel
 import javax.swing.SwingWorker
 import javax.swing.border.Border
 import javax.swing.event.ListSelectionEvent
@@ -33,10 +34,11 @@ import com.gradians.pipeline.data.Snippet
 import com.gradians.pipeline.edit.Editor
 import com.gradians.pipeline.edit.IEditable
 import com.gradians.pipeline.edit.TeXLabel
-import com.gradians.pipeline.tex.TeXHelper;
-import com.gradians.pipeline.util.Config;
-import com.gradians.pipeline.util.Gitter;
-import com.gradians.pipeline.util.Network;
+import com.gradians.pipeline.tex.SVGIcon
+import com.gradians.pipeline.tex.TeXHelper
+import com.gradians.pipeline.util.Config
+import com.gradians.pipeline.util.Gitter
+import com.gradians.pipeline.util.Network
 
 import ca.odell.glazedlists.BasicEventList
 import ca.odell.glazedlists.EventList
@@ -67,7 +69,6 @@ class Clerk {
     
     public Clerk() {
         config = Config.getInstance()
-        loadAssets()
     }
     
     def go(boolean topLevel = true) {
@@ -80,17 +81,37 @@ class Clerk {
                 getMenuBar()
                 splitPane(orientation: javax.swing.JSplitPane.HORIZONTAL_SPLIT) {
                     vbox() { getSelectorLists() }
-                    splitPane(orientation: javax.swing.JSplitPane.VERTICAL_SPLIT) {
-                        scrollPane() { createTable() }
+                    splitPane(id: 'spHoriz', orientation: javax.swing.JSplitPane.VERTICAL_SPLIT) {
+                        scrollPane(id: 'spTable')
                         panel(id: 'pnlPreview', border: A_BORDER)
                     }
                 }
             }
-            tableSorter = TableComparatorChooser.install(sb.tblAssets, sortedList,
-                TableComparatorChooser.MULTIPLE_COLUMN_MOUSE_WITH_UNDO)
-            createTable(sb.tblAssets)
-            sb.listChapters.setSelectedIndex 0            
+                
+            sb.doOutside {                
+                loadAssets()
+                sb.edt {
+                    sb.pbMessage.string = "syncing files..."
+                }
+                pullPush()
+                
+                sb.doLater {
+                    sb.listChapters.listData = chapters
+                    sb.listAuthors.listData = authors
+                    sb.listClasses.listData = classes
+                    sb.listStates.listData = states
+                    
+                    sb.spTable.viewport.add createTable()
+                    sb.spHoriz.resetToPreferredSizes()
+    
+                    tableSorter = TableComparatorChooser.install(sb.tblAssets, sortedList,
+                        TableComparatorChooser.MULTIPLE_COLUMN_MOUSE_WITH_UNDO)
+                    sb.listChapters.setSelectedIndex 0
+                    this.dlgProgress.visible = false
+                }
+            }
         }
+        this.showProgressBar("Syncing db...")
     }
     
     private void loadAssets() {        
@@ -149,13 +170,19 @@ class Clerk {
         Asset selected = filteredList.get(row)
         if (selected.isLoaded()) {
             IEditable e = (IEditable)selected
-            def tex = e.getEditGroups()[0].getEditItems()[0].text
-            if (tex.length()) {
-                sb.pnlPreview.removeAll()
-                sb.pnlPreview.add new TeXLabel(tex, "Preview")
-                sb.pnlPreview.revalidate()
-                sb.pnlPreview.repaint()
+            def statement = e.getEditGroups()[0].getEditItems()[0]
+            sb.pnlPreview.removeAll()
+            if (statement.text.length()) {
+                def drawable = new JLabel()
+                if (statement.isImage) {
+                    drawable = fileToJLabel(selected.getDirPath().resolve(statement.text))
+                } else {
+                    drawable = new TeXLabel(statement.text, "Preview")
+                }                
+                sb.pnlPreview.add drawable
             }    
+            sb.pnlPreview.revalidate()
+            sb.pnlPreview.repaint()
         }
     }
     
@@ -205,7 +232,7 @@ class Clerk {
         def bankPathString = config.getBankPath()
         Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
         try {
-            gitter.pullFromUpstream()
+             gitter.pullFromUpstream()
         } catch (Exception e) {
             JOptionPane.showMessageDialog(sb.frmClerk,
                 "${e.getMessage()}\nResolve this issue on the command line",
@@ -255,20 +282,19 @@ class Clerk {
     
     private def getSelectorLists = {
         sb.scrollPane(horizontalScrollBarPolicy: HORIZONTAL_SCROLLBAR_NEVER) {
-            list(id: 'listChapters', listData: chapters, valueChanged: { filter() },
+            list(id: 'listChapters', valueChanged: { filter() },
                 layoutOrientation: VERTICAL, visibleRowCount: 12, selectionMode: SINGLE_SELECTION)
         }
         sb.scrollPane() {
-            list(id: 'listAuthors', listData: authors, valueChanged: { filter() },
+            list(id: 'listAuthors', valueChanged: { filter() },
                 layoutOrientation: VERTICAL, visibleRowCount: 3)
         }
         sb.scrollPane() {
-            list(id: 'listClasses', listData: classes, valueChanged: { filter() },
+            list(id: 'listClasses', valueChanged: { filter() },
                 layoutOrientation: VERTICAL, visibleRowCount: 3)
         }
         sb.scrollPane() {
-            list(id: 'listStates', listData: states,
-                layoutOrientation: VERTICAL, visibleRowCount: 4)
+            list(id: 'listStates', layoutOrientation: VERTICAL, visibleRowCount: 4)
         }
     }
     
@@ -322,6 +348,16 @@ class Clerk {
         sb.miNewSkill.visible = config.getUser().role.equals("admin")
     }
     
+    private def showProgressBar(String message) {
+        dlgProgress = sb.dialog(title: 'Please wait', modal: true, locationRelativeTo: null) {
+            panel() {
+                progressBar(id: 'pbMessage', indeterminate: true, string: message, stringPainted: true)
+            }
+        }
+        dlgProgress.pack()
+        dlgProgress.visible = true        
+    }
+    
     private def showSettings() {
         def dialog = sb.dialog(id: 'dlgSettings', title: 'Settings',
             modal: true, locationRelativeTo: sb.frmClerk) {
@@ -358,7 +394,16 @@ class Clerk {
             icon: new javax.swing.ImageIcon(iconURL))
         def dialog = pane.createDialog(sb.frmClerk, 'About Quill')
         dialog.visible = true
-   }
+    }
+    
+    private JLabel fileToJLabel(Path path) {
+        SVGIcon icon = new SVGIcon(path.toUri().toURL().toString())
+        def label = new JLabel()
+        label.icon = icon
+        label
+    }
+    
+    private def dlgProgress
         
     private List<Category> chapters
     private List<Category> authors
