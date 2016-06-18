@@ -335,7 +335,15 @@ class Clerk {
                 separator()
                 menuItem(text: "Sync (pull)", mnemonic: 'Y',
                     accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Y, KeyEvent.CTRL_DOWN_MASK),
-                    actionPerformed: { pullPush() } )
+                    actionPerformed: {
+                        sb.doOutside {  
+                            pullPush()                            
+                            sb.doLater {
+                                this.dlgProgress.visible = false                               
+                            }
+                        }
+                        this.showProgressBar("Syncing files ...")
+                    })
                 menuItem(text: "Quit", mnemonic: 'Q',
                     accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK),
                     actionPerformed: { dispose() })

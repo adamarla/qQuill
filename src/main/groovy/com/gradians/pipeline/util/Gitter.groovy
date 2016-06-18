@@ -2,6 +2,7 @@ package com.gradians.pipeline.util
 
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.MergeResult
+import org.eclipse.jgit.api.PullResult
 import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
@@ -69,15 +70,7 @@ class Gitter {
     }
     
     void pullFromUpstream() {
-        def upstreamMaster = "refs/remotes/upstream/master"
-        def remoteUpstreamMaster = new RefSpec("refs/heads/master:${upstreamMaster}")
-        FetchResult fetchResult = git.fetch().setRefSpecs([remoteUpstreamMaster]).call()        
-        MergeResult mergeResult = git.merge()
-            .include(git.getRepository().exactRef(upstreamMaster))
-            .setStrategy(MergeStrategy.RECURSIVE).call()
-        if (mergeResult.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
-            throw new Exception(mergeResult.getConflicts().toString())
-        }
+        git.pull().setRemote("upstream").call()
     }
     
     void pushToRemote() {
