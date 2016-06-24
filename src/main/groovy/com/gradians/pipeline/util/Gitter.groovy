@@ -73,12 +73,8 @@ class Gitter {
         git.pull().setRemote("upstream").call()
     }
     
-    void pushToRemote() {
-        // TODO: to do this!
-        Iterable<PushResult> iterable = git.push().call()
-        PushResult pushResult = iterable.iterator().next()
-        Status status = pushResult.getRemoteUpdate("refs/remotes/origin/master").getStatus()
-        println status
+    void pushToOrigin() {
+        git.push().setRemote("origin").call()
     }
     
     private Repository loadRepo(File repoLocation) {

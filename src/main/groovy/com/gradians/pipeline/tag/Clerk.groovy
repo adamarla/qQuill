@@ -93,7 +93,6 @@ class Clerk {
                 sb.edt {
                     sb.pbMessage.string = "syncing files..."
                 }
-                pullPush()
                 
                 sb.doLater {
                     sb.listChapters.listData = chapters
@@ -233,6 +232,7 @@ class Clerk {
         Gitter gitter = new Gitter(new File("${bankPathString}/.git"))
         try {
              gitter.pullFromUpstream()
+             gitter.pushToOrigin()
         } catch (Exception e) {
             JOptionPane.showMessageDialog(sb.frmClerk,
                 "${e.getMessage()}\nResolve this issue on the command line",
@@ -333,13 +333,13 @@ class Clerk {
                         }
                     })
                 separator()
-                menuItem(text: "Sync (pull)", mnemonic: 'Y',
+                menuItem(text: "Sync files", mnemonic: 'Y',
                     accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Y, KeyEvent.CTRL_DOWN_MASK),
                     actionPerformed: {
                         sb.doOutside {  
-                            pullPush()                            
+                            pullPush()
                             sb.doLater {
-                                this.dlgProgress.visible = false                               
+                                this.dlgProgress.visible = false
                             }
                         }
                         this.showProgressBar("Syncing files ...")
