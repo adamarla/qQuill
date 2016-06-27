@@ -233,6 +233,7 @@ class Clerk {
         try {
              gitter.pullFromUpstream()
              gitter.pushToOrigin()
+             gitter.createPullRequest()
         } catch (Exception e) {
             JOptionPane.showMessageDialog(sb.frmClerk,
                 "${e.getMessage()}\nResolve this issue on the command line",
@@ -322,7 +323,7 @@ class Clerk {
                             optionType: JOptionPane.YES_NO_OPTION,
                             messageType: JOptionPane.QUESTION_MESSAGE,
                             options: ["Yes, New Skill", "No, never mind"])
-                        def dialog = pane.createDialog(null, 'Hang on a sec!')
+                        def dialog = pane.createDialog(sb.frmClerk, 'Hang on a sec!')
                         dialog.visible = true
                         
                         String value = (String)pane.getValue()
