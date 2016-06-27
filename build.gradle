@@ -1,7 +1,7 @@
 apply plugin: 'groovy'
 apply plugin: 'application'
-apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'eclipse'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 mainClassName = 'com.gradians.pipeline.Driver'
 
@@ -18,16 +18,15 @@ repositories {
 dependencies {
     compile localGroovy()
     compile 'net.java.dev.glazedlists:glazedlists_java15:1.9.0'
-    compile 'org.codehaus.groovy:http-builder:0.4.0'
-    compile 'com.github.jengelman.gradle.plugins:shadow:1.2.1'    
-    compile 'com.googlecode.json-simple:json-simple:1.1'
-    compile 'org.apache.xmlgraphics:batik-svggen:1.7'
-    compile 'org.apache.xmlgraphics:batik-swing:1.7'
-    compile 'org.apache.xmlgraphics:batik-transcoder:1.7'
     compile 'commons-cli:commons-cli:1.3'
+    compile 'com.googlecode.json-simple:json-simple:1.1'
     compile 'com.fifesoft:autocomplete:2.5.7'
     compile 'com.fifesoft:spellchecker:2.5.7'
     compile 'com.fifesoft:rsyntaxtextarea:2.5.7'
+    compile 'org.codehaus.groovy:http-builder:0.4.0'
+    compile 'org.apache.xmlgraphics:batik-svggen:1.7'
+    compile 'org.apache.xmlgraphics:batik-swing:1.7'
+    compile 'org.apache.xmlgraphics:batik-transcoder:1.7'
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.3.0.201604071810-r'
     compile files('./lib/jlatexmath-embedded-fop-1.0.3.jar')
 }
@@ -39,6 +38,6 @@ buildscript {
     }
     
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
     }
 }
