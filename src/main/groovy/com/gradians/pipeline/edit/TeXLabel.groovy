@@ -10,21 +10,37 @@ import javax.swing.border.LineBorder
 import javax.swing.border.TitledBorder
 import javax.swing.BorderFactory
 
+import com.gradians.pipeline.tex.SVGIcon
 import com.gradians.pipeline.tex.TeXHelper;
 
 import static java.awt.Color.ORANGE
 import static java.awt.Color.RED
 
+
+/**
+ * The purpose of this class is to add a title to a piece of TeX
+ * and a marker to suggest optimal width. No other purpose.
+ * 
+ * @author adamarla
+ *
+ */
+
 class TeXLabel extends JLabel {
     
-    public TeXLabel(String text, String title) {
-        icon = TeXHelper.createIcon(text, 15, false)
-        setBorder(title)
+    public TeXLabel(EditItem item) {
+        if (item.isImage)
+            icon = new SVGIcon(item.parent.parent.getDirPath().resolve(item.text).toUri().toURL().toString())
+        else
+            icon = TeXHelper.createIcon(item.text, 15, false)
+        setBorder(item.title)
     }
         
-    @Override
-    public void setText(String text) {
-        icon = TeXHelper.createIcon(text, 15, false)
+    /**
+     * Important method: Keeps preview updated as the user 
+     * types LaTeX
+     */
+    public void updateTex(String tex) {
+        icon = TeXHelper.createIcon(tex, 15, false)
     }
 
     @Override

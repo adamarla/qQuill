@@ -12,7 +12,7 @@ class Skill extends Asset {
     @Override
     EditGroup[] getEditGroups() {
         EditGroup[] pnls = new EditGroup[1]
-        pnls[0] = new EditGroup("Skill")
+        pnls[0] = new EditGroup("Skill", this)
         pnls[0].addEditItem("Statement", xml.render.tex.toString(), 6, 
             xml.render.tex.@isImage.equals(true))
         pnls[0].addEditItem("Study Note", xml.reason.tex.toString(), 10, 

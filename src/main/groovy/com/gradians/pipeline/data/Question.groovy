@@ -10,13 +10,13 @@ class Question extends Asset implements IEditable {
     @Override
     public EditGroup[] getEditGroups() {
         EditGroup[] panels = new EditGroup[8]
-        panels[0] = new EditGroup("Problem")
+        panels[0] = new EditGroup("Problem", this)
         panels[0].addEditItem("Statement", 
             xml.statement.tex.toString(), 12, 
             xml.statement.tex.@isImage.equals(true))
         
         xml.step.eachWithIndex { step, idx ->
-            panels[idx+1] = new EditGroup("Step ${idx+1}")
+            panels[idx+1] = new EditGroup("Step ${idx+1}", this)
             panels[idx+1].editItems = new EditItem[xml.options.tex.size()]
             
             def incorrect = step.options.tex.find { it -> it.@correct.equals(false) }
@@ -36,7 +36,7 @@ class Question extends Asset implements IEditable {
         
         (1..6).each {
             if (panels[it] == null) {
-                panels[it] = new EditGroup("Step ${it}")
+                panels[it] = new EditGroup("Step ${it}", this)
                 panels[it].addEditItem("Correct", "", 8)
                 panels[it].addEditItem("Incorrect", "", 8)
                 panels[it].addEditItem("Reason", "", 8)
@@ -44,7 +44,7 @@ class Question extends Asset implements IEditable {
             }
         }
         
-        panels[7] = new EditGroup("Choices")
+        panels[7] = new EditGroup("Choices", this)
         if (!xml.choices.isEmpty()) {
             xml.choices.tex.eachWithIndex { tex, i ->
                 panels[7].addEditItem(tex.@correct.equals(false) ? "Incorrect" : "Correct" , 

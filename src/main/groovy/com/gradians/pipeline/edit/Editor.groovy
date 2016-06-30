@@ -152,7 +152,7 @@ class Editor implements ISkillLibClient {
         EditItem item = latexToItem.get(area)
         def display = itemToDisplay.get(item)
         if (!item.isImage) {
-            display.setText(area.getText())
+            display.updateTex(area.getText())
             display.revalidate()
             display.repaint()
         } else {
@@ -219,12 +219,7 @@ class Editor implements ISkillLibClient {
         sb.vbDisplay.removeAll()
         eg.getEditItems().each { item ->
             itemToDisplay.remove(item)
-            def drawable
-            if (!item.isImage) {
-                drawable = new TeXLabel(item.text, item.title)
-            } else {
-                drawable = fileToJLabel(item.text)
-            }
+            def drawable = new TeXLabel(item)
             itemToDisplay.put(item, drawable)
             sb.vbDisplay.add drawable
         }
@@ -239,8 +234,8 @@ class Editor implements ISkillLibClient {
                 def map = [path: "skills/${it}", assetClass: "Skill"]
                 Skill reference = Asset.getInstance(map)
                 IEditable e = (IEditable)reference
-                def tex = e.getEditGroups()[0].getEditItems()[0].text
-                sb.vbReference.add new TeXLabel(tex, "Skill ${i+1}")    
+                def item = e.getEditGroups()[0].getEditItems()[0]
+                sb.vbReference.add new TeXLabel(item)
             }
         }
         sb.vbReference.revalidate()
@@ -358,16 +353,6 @@ class Editor implements ISkillLibClient {
                 menuItem(text: "Blankify", mnemonic: 'B', actionPerformed: { clear() })
             }
         }
-    }
-    
-    private def javax.swing.JLabel fileToJLabel(String name) {
-        def label
-        try {
-            SVGIcon icon = new SVGIcon(e.getDirPath().resolve(name).toUri().toURL().toString())
-            label = new javax.swing.JLabel()
-            label.icon = icon
-        } catch (Exception e) { }
-        label
     }
     
     private final int TA_WIDTH = 36

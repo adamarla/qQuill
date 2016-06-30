@@ -11,7 +11,7 @@ class Snippet extends Asset {
     @Override
     EditGroup[] getEditGroups() {
         EditGroup[] pnls = new EditGroup[1]
-        pnls[0] = new EditGroup("Snippet")
+        pnls[0] = new EditGroup("Snippet", this)
         
         def correct = !xml.render.tex.@correct.equals(false)
         pnls[0].addEditItem("Correct", correct ? xml.render.tex.toString() : "", 4, 

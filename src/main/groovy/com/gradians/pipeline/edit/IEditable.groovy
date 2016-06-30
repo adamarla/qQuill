@@ -15,12 +15,14 @@ interface IEditable {
 
 class EditGroup {
 
+    IEditable parent
     String title
     int[] skills
     List<EditItem> editItems
     
-    def EditGroup(String title) {
+    def EditGroup(String title, IEditable parent) {
         this.title = title
+        this.parent = parent
         editItems = new ArrayList<EditItem>()
     }
     
