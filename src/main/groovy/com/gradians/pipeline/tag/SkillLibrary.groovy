@@ -6,6 +6,7 @@ import java.nio.file.Path
 import com.gradians.pipeline.data.Asset
 import com.gradians.pipeline.data.AssetClass
 import com.gradians.pipeline.data.Skill
+import com.gradians.pipeline.edit.EditItem
 import com.gradians.pipeline.edit.TeXLabel
 import com.gradians.pipeline.tex.SVGIcon;
 import com.gradians.pipeline.tex.TeXHelper;
@@ -82,17 +83,10 @@ class SkillLibrary {
                                 comboBox(id: "cbSkills${idx}", model: getSkillList(chapter[idx]),
                                     renderer: renderer, maximumRowCount: 5,
                                     actionPerformed: {
-                                        def selectedSkill = sb."cbSkills${idx}".selectedItem
+                                        Skill selectedSkill = sb."cbSkills${idx}".selectedItem
                                         sb.pnlSkillNote.removeAll()
                                         
-                                        def drawable
-                                        def tex = selectedSkill.xml.reason.tex
-                                        if (!tex.@isImage.equals(true)) {
-                                            drawable = new TeXLabel(tex.toString(), "Skill")
-                                        } else {
-                                            def path = selectedSkill.getDirPath().resolve(tex.toString())
-                                            drawable = SkillLibrary.fileToJLabel(path)
-                                        }
+                                        def drawable = new TeXLabel(selectedSkill.getEditGroups()[0].getEditItems()[0])
 
                                         sb.pnlSkillNote.add drawable
                                         sb.pnlSkillNote.revalidate()
@@ -206,15 +200,10 @@ class SkillRenderer implements ListCellRenderer {
             int index, boolean isSelected, boolean cellHasFocus) {
         def drawable        
         if (value) {
-            Skill skill = (Skill)value            
-            def tex = skill.xml.render.tex            
-            if (!tex.@isImage.equals(true)) {
-                drawable = new TeXLabel(tex.toString(), "")
-            } else {
-                drawable = SkillLibrary.fileToJLabel(skill.getDirPath().resolve(tex.toString()))
-            }
+            Skill skill = (Skill)value
+            drawable = new TeXLabel(skill.getEditGroups()[0].getEditItems()[0])
         } else {
-            drawable = new TeXLabel("\\text{No Skills defined}", "")
+            drawable = new TeXLabel(new EditItem(text: "\\text{No Skills defined}", title: ""))
         }
         
         if (isSelected) {

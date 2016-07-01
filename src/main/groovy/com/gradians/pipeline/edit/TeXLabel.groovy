@@ -49,7 +49,7 @@ class TeXLabel extends JLabel {
         if (icon != null) {
             if (icon.iconWidth > ERROR_WIDTH) {
                 g.setColor(Color.BLUE)
-                g.drawLine(ERROR_WIDTH, 0, ERROR_WIDTH, icon.iconHeight)
+                g.drawLine(ERROR_WIDTH, 25, ERROR_WIDTH, icon.iconHeight)
             }
         }
     }
@@ -64,7 +64,7 @@ class TeXLabel extends JLabel {
             new EmptyBorder(0, 0, 0, 0)))
     }
     
-    private final int ERROR_WIDTH = 335
+    private final int ERROR_WIDTH = 350
     
 }
 
