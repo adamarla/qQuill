@@ -172,12 +172,7 @@ class Clerk {
             def statement = e.getEditGroups()[0].getEditItems()[0]
             sb.pnlPreview.removeAll()
             if (statement.text.length()) {
-                def drawable = new JLabel()
-                if (statement.isImage) {
-                    drawable = fileToJLabel(selected.getDirPath().resolve(statement.text))
-                } else {
-                    drawable = new TeXLabel(statement.text, "Preview")
-                }                
+                def drawable = new TeXLabel(statement)
                 sb.pnlPreview.add drawable
             }    
             sb.pnlPreview.revalidate()

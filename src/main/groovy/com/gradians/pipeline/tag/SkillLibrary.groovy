@@ -85,9 +85,7 @@ class SkillLibrary {
                                     actionPerformed: {
                                         Skill selectedSkill = sb."cbSkills${idx}".selectedItem
                                         sb.pnlSkillNote.removeAll()
-                                        
-                                        def drawable = new TeXLabel(selectedSkill.getEditGroups()[0].getEditItems()[0])
-
+                                        def drawable = new TeXLabel(selectedSkill.getEditGroups()[0].getEditItems()[1])
                                         sb.pnlSkillNote.add drawable
                                         sb.pnlSkillNote.revalidate()
                                         sb.pnlSkillNote.repaint()
