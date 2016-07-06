@@ -64,7 +64,7 @@ class TeXLabel extends JLabel {
             new EmptyBorder(0, 0, 0, 0)))
     }
     
-    private final int ERROR_WIDTH = 350
+    private final int ERROR_WIDTH = 385
     
 }
 

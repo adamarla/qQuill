@@ -10,6 +10,7 @@ import java.awt.geom.Rectangle2D
 import javax.imageio.ImageIO
 import javax.swing.Icon
 
+import org.scilab.forge.jlatexmath.TeXConstants as TC
 import org.scilab.forge.jlatexmath.TeXFormula
 
 import static java.awt.Color.BLACK
@@ -52,8 +53,7 @@ class TeXHelper {
         TeXFormula formula
         try {
             formula = new TeXFormula(sb.toString())
-            icon = formula.createTeXIcon(STYLE_DISPLAY, 15)
-            icon.setForeground(negative ? WHITE : BLACK)
+            icon = formula.createTeXIcon(STYLE_DISPLAY, 15, TC.UNIT_PIXEL, 390f, TC.ALIGN_LEFT, TC.UNIT_PIXEL, 5f)
         } catch (Exception e) {
             icon = new DynamicIcon(TeXHelper.toPureTeX(tex))
         }

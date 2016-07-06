@@ -114,6 +114,7 @@ class LaTeXArea extends RSyntaxTextArea {
         addAutoComplete()
         addShortCuts()
         setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_LATEX)
+        setLineWrap(true)
         discardAllEdits()
     }
     
