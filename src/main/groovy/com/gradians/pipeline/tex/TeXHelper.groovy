@@ -53,7 +53,7 @@ class TeXHelper {
         TeXFormula formula
         try {
             formula = new TeXFormula(sb.toString())
-            icon = formula.createTeXIcon(STYLE_DISPLAY, 15, TC.UNIT_PIXEL, 390f, TC.ALIGN_LEFT, TC.UNIT_PIXEL, 5f)
+            icon = formula.createTeXIcon(STYLE_DISPLAY, fontSize, TC.UNIT_PIXEL, 390f, TC.ALIGN_LEFT, TC.UNIT_PIXEL, 5f)
         } catch (Exception e) {
             icon = new DynamicIcon(TeXHelper.toPureTeX(tex))
         }

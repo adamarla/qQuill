@@ -54,7 +54,8 @@ class Driver {
             else
                 list = true
             
-            UIManager.lookAndFeel = 'javax.swing.plaf.nimbus.NimbusLookAndFeel'
+            if (edit || convert || list)
+                UIManager.lookAndFeel = 'javax.swing.plaf.nimbus.NimbusLookAndFeel'
             
             Config config = Config.getInstance()
             if (!config.hasRegistered())

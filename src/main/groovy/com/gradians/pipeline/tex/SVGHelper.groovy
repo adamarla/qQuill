@@ -31,7 +31,7 @@ class SVGHelper {
         if (tex.length() == 0)
             return
             
-        Icon icon = TeXHelper.createIcon(tex, 15, negative)
+        Icon icon = TeXHelper.createIcon(tex, 26, negative)
             
         // Get a DOMImplementation.
         DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation()
