@@ -2,12 +2,9 @@ package com.gradians.pipeline
 
 import groovy.swing.SwingBuilder
 
-import java.beans.MetaData.javax_swing_border_MatteBorder_PersistenceDelegate;
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-
-import javax.swing.UIManager;
 
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.CommandLine
@@ -55,7 +52,7 @@ class Driver {
                 list = true
             
             if (edit || convert || list)
-                UIManager.lookAndFeel = 'javax.swing.plaf.nimbus.NimbusLookAndFeel'
+                javax.swing.UIManager.setLookAndFeel 'javax.swing.plaf.nimbus.NimbusLookAndFeel'
             
             Config config = Config.getInstance()
             if (!config.hasRegistered())

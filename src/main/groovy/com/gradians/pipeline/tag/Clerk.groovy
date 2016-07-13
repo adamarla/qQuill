@@ -114,7 +114,7 @@ class Clerk {
     }
     
     private void loadAssets() {        
-        chapters = new ArrayList<Category>()
+        chapters = new Vector<Category>()
         def items = Network.executeHTTPGet("chapter/list")
         Category c
         items.eachWithIndex{ item, i ->
@@ -126,7 +126,7 @@ class Clerk {
         chapters.add c
         config.addChapter(c.id, c.name)
         
-        authors = new ArrayList<Category>()
+        authors = new Vector<Category>()
         items = Network.executeHTTPGet("examiner/list")
         items.eachWithIndex{ item, i ->
             c = new Category(item)
@@ -411,8 +411,8 @@ class Clerk {
         
     private List<Category> chapters
     private List<Category> authors
-    private EnumSet<AssetClass> classes = EnumSet.allOf(AssetClass.class)
-    private EnumSet<AssetState> states = EnumSet.allOf(AssetState.class)
+    private List<AssetClass> classes = new Vector(EnumSet.allOf(AssetClass.class))
+    private List<AssetState> states = new Vector(EnumSet.allOf(AssetState.class))
     
     private FilterList<Asset> filteredList
     private SortedList<Asset> sortedList
