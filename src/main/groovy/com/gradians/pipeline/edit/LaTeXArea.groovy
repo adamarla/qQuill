@@ -5,9 +5,6 @@ import java.awt.event.ActionEvent
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 
-import java.nio.file.Path
-import java.nio.file.Files
-
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.text.JTextComponent
@@ -32,15 +29,9 @@ class LaTeXArea extends RSyntaxTextArea {
         if (completionProvider == null) {
             completionProvider = new DefaultCompletionProvider()
             
-            Path home = (new File(System.getProperty("user.home"))).toPath()
-            Path path = home.resolve(".quill").resolve("autocomplete")
-            def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("autocomplete")
-            if (Files.notExists(path)) {
-                Files.copy(ostream, path)
-            }
-            
+            def stream = LaTeXArea.class.getClassLoader().getResourceAsStream("autocomplete")            
             Properties p = new Properties()
-            p.load(Files.newInputStream(path))
+            p.load(stream)
             Enumeration e = p.propertyNames()
             while (e.hasMoreElements()) {
                 def key = e.nextElement()
@@ -49,29 +40,13 @@ class LaTeXArea extends RSyntaxTextArea {
             }
         }
         
-        if (spellingParser == null) {
-            SpellDictionaryHashMap dict = new SpellDictionaryHashMap()
-            ["eng_com.dic", "color.dic", "colour.dic", "center.dic",
-                "ise.dic", "ize.dic", "labeled.dic", "labelled.dic"].each { String dictName ->
-                def rstream = LaTeXArea.class.getClassLoader().getResourceAsStream(dictName)
-                dict.addDictionary(new BufferedReader(new InputStreamReader(rstream)))
-            }
-            spellingParser = new SpellingParser(dict)    
-        }
-        
         if (quillMap == null) {
             def defaultKeymap = JTextComponent.getKeymap(JTextComponent.DEFAULT_KEYMAP)
             quillMap = JTextComponent.addKeymap("quillMap", defaultKeymap)
              
-            Path home = (new File(System.getProperty("user.home"))).toPath()
-            Path path = home.resolve(".quill").resolve("shortcuts")
-            def ostream = LaTeXArea.class.getClassLoader().getResourceAsStream("shortcuts")
-            if (Files.notExists(path)) {
-                Files.copy(ostream, path)
-            }
-            
+            def stream = LaTeXArea.class.getClassLoader().getResourceAsStream("shortcuts")            
             Properties p = new Properties()
-            p.load(Files.newInputStream(path))
+            p.load(stream)
             Enumeration e = p.propertyNames()
 
             while (e.hasMoreElements()) {                
@@ -91,6 +66,15 @@ class LaTeXArea extends RSyntaxTextArea {
                 })
             }
             
+            if (spellingParser == null) {
+                SpellDictionaryHashMap dict = new SpellDictionaryHashMap()
+                ["eng_com.dic", "color.dic", "colour.dic", "center.dic",
+                    "ise.dic", "ize.dic", "labeled.dic", "labelled.dic"].each { String dictName ->
+                    def rstream = LaTeXArea.class.getClassLoader().getResourceAsStream(dictName)
+                    dict.addDictionary(new BufferedReader(new InputStreamReader(rstream)))
+                }
+                spellingParser = new SpellingParser(dict)
+            }    
         }
         
         def area = new LaTeXArea(editor, tex, row, col)

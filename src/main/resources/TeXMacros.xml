@@ -14,7 +14,7 @@
         <CreateCommand name="f">
             <Argument type="String" value="com.gradians.pipeline.tex.TeXMacros" />
             <Argument type="String" value="vector" />
-            <!-- the command dd has 3 arguments -->
+            <!-- the command vector has 3 arguments -->
             <Argument type="float" value="3" />
         </CreateCommand>
         <Return name="f" />
@@ -24,10 +24,20 @@
         <CreateCommand name="f">
             <Argument type="String" value="com.gradians.pipeline.tex.TeXMacros" />
             <Argument type="String" value="ora" />
-            <!-- the command dd has 1 arguments -->
+            <!-- the command ora has 1 argument -->
             <Argument type="float" value="1" />
         </CreateCommand>
         <Return name="f" />
     </Command>
+    
+    <Command name="title" enabled="true">
+        <CreateCommand name="f">
+            <Argument type="String" value="com.gradians.pipeline.tex.TeXMacros" />
+            <Argument type="String" value="title" />
+            <!-- the command has 1 argument -->
+            <Argument type="float" value="1" />
+        </CreateCommand>
+        <Return name="f" />
+    </Command>    
     
 </PredefinedCommands>

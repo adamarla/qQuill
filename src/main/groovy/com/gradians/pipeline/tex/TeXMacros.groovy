@@ -43,5 +43,9 @@ class TeXMacros {
     public Atom ora(TeXParser tp, String[] args) throws ParseException {
         new TeXFormula(String.format("\\overrightarrow{%s}", args[1])).root
     }
+    
+    public Atom title(TeXParser tp, String[] args) throws ParseException {
+        new TeXFormula(String.format("\\textcolor{blue}{\\text{%s}}", args[1])).root
+    }
 
 }
