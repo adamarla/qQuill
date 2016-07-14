@@ -353,9 +353,11 @@ class Clerk {
     }
     
     private def showProgressBar(String message) {
-        dlgProgress = sb.dialog(title: 'Please wait', modal: true, locationRelativeTo: null) {
+        dlgProgress = sb.dialog(title: 'Please wait', modal: true, 
+            locationRelativeTo: sb ? sb.frmClerk : sb) {
             panel() {
-                progressBar(id: 'pbMessage', indeterminate: true, string: message, stringPainted: true)
+                progressBar(id: 'pbMessage', indeterminate: true, 
+                    string: message, stringPainted: true)
             }
         }
         dlgProgress.pack()

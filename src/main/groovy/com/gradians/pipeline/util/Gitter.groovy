@@ -80,7 +80,7 @@ class Gitter {
     void createPullRequest() {
         def user = System.getProperty("user.home").split('/')[2]
         def cmd = ["hub", "pull-request", "-b", "gutenberg:master", "-m", 
-            "${new Date().format("yyyy-MM-dd - HH:mm:ss Z")} edits by ${user}"]
+            "\"${new Date().format("yyyy-MM-dd - HH:mm:ss Z")} edits by ${user}\""]
         cmd.execute(null, new File(new Config().bankPath))
     }
     
