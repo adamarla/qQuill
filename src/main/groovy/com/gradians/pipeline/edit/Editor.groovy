@@ -273,7 +273,7 @@ class Editor implements ISkillLibClient {
         }
     }
     
-    private def commit() {
+    private boolean commit() {
         Asset a = (Asset)e
         def bankPathString = config.getBankPath()
         String path = Paths.get(bankPathString).relativize(a.qpath)
@@ -282,6 +282,7 @@ class Editor implements ISkillLibClient {
         Set<String> toAdd = gitter.toAdd(path.toString())
         Set<String> toDelete = gitter.toDelete(path.toString())
         
+        boolean committed = false
         if (toAdd.size() + toDelete.size() > 0) {
             String message =
                 "# To Add:\n" + toAdd.join("\n") + "\n"
@@ -298,8 +299,11 @@ class Editor implements ISkillLibClient {
                         button(text: 'Commit', actionPerformed: {
                             gitter.commit(path.toString(), toAdd, toDelete, sb.taCommitMessage.text)
                             sb.dlgCommit.dispose()
+                            committed = true                            
                         })
-                        button(text: 'Cancel', actionPerformed: { sb.dlgCommit.dispose() })    
+                        button(text: 'Cancel', actionPerformed: { 
+                            sb.dlgCommit.dispose()
+                        })    
                     }
                 }
             }
@@ -307,6 +311,7 @@ class Editor implements ISkillLibClient {
             dialog.setLocationRelativeTo(sb.frmEditor)            
             dialog.visible = true
         }
+        return committed
     }
     
     private def clear() {
@@ -329,7 +334,7 @@ class Editor implements ISkillLibClient {
                     ((Asset)e).toSVG()
                 })
                 separator()
-                menuItem(text: "Exit", mnemonic: 'X',
+                menuItem(text: "Quit", mnemonic: 'Q',
                     accelerator: KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK),
                     actionPerformed: { dispose() })
                 separator()
@@ -338,8 +343,10 @@ class Editor implements ISkillLibClient {
                     actionPerformed: { 
                         e.updateModel(editGroups)
                         e.save()
-                        if (config.getMode().equals("production"))
-                            commit()
+                        if (config.getMode().equals("production")) {
+                            if (commit())
+                                dispose()                            
+                        }
                 })
             }
             menu(text: 'Edit', mnemonic: 'E') {
